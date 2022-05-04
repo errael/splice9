@@ -242,25 +242,25 @@ def CheckSettings()
     var check_info = [
         # [ 'splice_initial_XXX', [ 0, 1 ], () => 0 ]
 
-        [ 'splice_initial_diff_grid',    [ 0, 1 ],          () => 0 ]
-        [ 'splice_initial_diff_loupe',   [ 0 ],             () => 0 ]
-        [ 'splice_initial_diff_compare', [ 0, 1 ],          () => 0 ]
-        [ 'splice_initial_diff_path',    [ 0, 1, 2, 3, 4 ], () => 0 ]
+        [ 'splice_initial_diff_grid',    [ 0, 1 ],          () => 0 ],
+        [ 'splice_initial_diff_loupe',   [ 0 ],             () => 0 ],
+        [ 'splice_initial_diff_compare', [ 0, 1 ],          () => 0 ],
+        [ 'splice_initial_diff_path',    [ 0, 1, 2, 3, 4 ], () => 0 ],
 
-        [ 'splice_initial_layout_grid',    [ 0, 1, 2 ], () => 0 ]
-        [ 'splice_initial_layout_loupe',   [ 0 ],       () => 0 ]
-        [ 'splice_initial_layout_compare', [ 0, 1 ],    () => 0 ]
-        [ 'splice_initial_layout_path',    [ 0, 1 ],    () => 0 ]
+        [ 'splice_initial_layout_grid',    [ 0, 1, 2 ], () => 0 ],
+        [ 'splice_initial_layout_loupe',   [ 0 ],       () => 0 ],
+        [ 'splice_initial_layout_compare', [ 0, 1 ],    () => 0 ],
+        [ 'splice_initial_layout_path',    [ 0, 1 ],    () => 0 ],
 
-        [ 'splice_initial_scrollbind_grid',    [ 0, 1, false, true ], () => false ]
-        [ 'splice_initial_scrollbind_loupe',   [ 0, 1, false, true ], () => false ]
-        [ 'splice_initial_scrollbind_compare', [ 0, 1, false, true ], () => false ]
-        [ 'splice_initial_scrollbind_path',    [ 0, 1, false, true ], () => false ]
+        [ 'splice_initial_scrollbind_grid',    [ 0, 1, false, true ], () => false ],
+        [ 'splice_initial_scrollbind_loupe',   [ 0, 1, false, true ], () => false ],
+        [ 'splice_initial_scrollbind_compare', [ 0, 1, false, true ], () => false ],
+        [ 'splice_initial_scrollbind_path',    [ 0, 1, false, true ], () => false ],
 
         [ 'splice_initial_mode', [ 'grid', 'loupe', 'compare', 'path' ],
-            () => "'grid'" ]
+            () => "'grid'" ],
         [ 'splice_wrap', [ 'wrap', 'nowrap' ],
-            () => &wrap == false ? "'nowrap'" : "'wrap'" ]
+            () => &wrap == false ? "'nowrap'" : "'wrap'" ],
 
         ]
 

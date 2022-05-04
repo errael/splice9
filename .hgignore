@@ -1,12 +1,14 @@
 syntax: glob
 
-.DS_Store
-*.pyc
-*.swp
-*.swo
-*.un~
-.ropeproject
+*~
+*.sw[pmno]
+*.orig
+*.orig.*
+*.rej
 tags
+
+*.pyc
+
 tests/one
 tests/two
 tests/original

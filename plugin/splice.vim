@@ -29,7 +29,7 @@ import autoload '../autoload/splice9/splice.vim'
 
 command! -nargs=0 SpliceInit call splice.SpliceBoot()
 
-var patch = 4676
+var patch = 4932
 var longv = 8020000 + patch
 
 if v:versionlong < longv
