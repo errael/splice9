@@ -15,7 +15,7 @@ endif
 #
 # This replaces keys.py.
 #
-# It is a higher level interface to the pythong code, no keys.bind,keys.unbind
+# It is a higher level interface to the python code, no keys.bind,keys.unbind
 # The python code also had keys.bind_for_all, keys.unbind_for_all
 # but they are not used.
 #

@@ -9,13 +9,21 @@
 
 " Vim version check
 
-if ! has('vim9script')
-    echomsg 'This version of Splice requires vim9script'
+if ! has('vim9script') || v:versionlong < 9000000 + 1000
+    let s:patch = 1000
+    let s:minver = 9000000 + s:patch
+
+    " TODO: if vim >= 9 then do popup 
+
+    echomsg 'The installed Splice Merge Tool plugin requires vim9script'
+    echomsg 'and vim version 9.1 with patch level ' .. s:patch .. '.'
     echomsg ' '
-    echomsg 'Since the merge can not be completed, the merge'
-    echomsg 'should be aborted so it can be completed later.'
-    echomsg ' '
-    echomsg 'NOTE: the vim command ":cq" aborts the merge.'
+    echomsg 'Check Vim and Splice versions and configurations.'
+    "echomsg ' '
+    "echomsg 'Since the merge can not be completed, the merge'
+    "echomsg 'should be aborted so it can be completed later.'
+    "echomsg ' '
+    "echomsg 'NOTE: the vim command ":cq" aborts the merge.'
     echomsg ' '
     echomsg ' '
 
@@ -24,19 +32,37 @@ endif
 
 vim9script
 
+# TODO: SHOULD THERE BE A SPLICE COMMAND IF VERSION PREVENTS RUNNING?
+
+# Setting up splice9Dev
+# Create shadow tree symlink to dev sources
+# in ~/.vim/pack/random-packages/start/splice-vim-dev/autoload
+#       cp -as /src/tools/splice.vim/autoload/splice9/ splice9Dev
+# Tweaks: "splice9" --> "splice9Dev" (which should go away with vim9 only)
+#       autoload/splice9/splice.py
+#                       also: log.Log('SpliceBoot DEV')
+#       autoload/splice9/splice.vim
+#
+
 # call test_override('autoload', 1)
-import autoload '../autoload/splice9/splice.vim'
 
-command! -nargs=0 SpliceInit call splice.SpliceBoot()
-
-var patch = 4932
-var longv = 8020000 + patch
-
-if v:versionlong < longv
-    splice.RecordBootFailure(
-        ["Splice unavailable: requires Vim 8.2." .. patch])
-    finish
+var dev = true
+if dev
+    import autoload '/home/err/.vim/pack/random-packages/start/splice-vim-dev/autoload/splice9Dev/splice.vim'
+    command! -nargs=0 SpliceInitDev call splice.SpliceBoot()
+else
+    import autoload '../autoload/splice9/splice.vim'
+    command! -nargs=0 SpliceInit call splice.SpliceBoot()
 endif
+
+#var patch = 4932
+#var longv = 8020000 + patch
+
+#if v:versionlong < longv
+#    splice.RecordBootFailure(
+#        ["Splice unavailable: requires Vim 8.2." .. patch])
+#    finish
+#endif
 
 # TODO: wonder what this condition is all about, seems to have been optimized away
 var loaded_splice: number

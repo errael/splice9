@@ -62,7 +62,7 @@ endif
 
 export def RecordBootFailure(msgs: list<string>)
     # There no insert list at beginning so fiddle about
-    var t = msgs
+    var t = msgs->copy()
     t->extend(startup_error_msgs)
     startup_error_msgs = t
 enddef
@@ -113,6 +113,7 @@ enddef
 
 export def SpliceBoot()
     log.Log('SpliceBoot')
+    log.Log('SpliceBoot DEV')
     if !!has_supported_python && startup_error_msgs->empty()
         startup_col = &columns
         timer_start(50, Trampoline)
@@ -358,7 +359,7 @@ def SpliceInit9()
     startup_error_msgs = []
     InitDefaults()
     CheckSettings()
-    var python_module = fnameescape(globpath(&runtimepath, 'autoload/splice9/splice.py'))
+    var python_module = fnameescape(globpath(&runtimepath, 'autoload/splice9Dev/splice.py'))
     echom python_module
     exe splice_pyfile python_module
     SetupSpliceCommands()

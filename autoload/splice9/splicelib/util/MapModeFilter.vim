@@ -3,7 +3,12 @@ if !has("patch-8.2.4861")
     finish
 endif
 
-const debug_test = false
+var standalone_exp = false
+if getcwd() =~ '^/home/err/experiment/vim' 
+    standalone_exp = true
+endif
+
+const debug_test = standalone_exp
 
 #
 # MapModeFilter(modes, pattern, exact = true, field = lhs)
@@ -163,7 +168,11 @@ const expect_mode_bits_table = {
 #    echo printf("%s: 0x%04x", k, v)
 #endfor
 
-import autoload 'Raelity/vim_assist.vim' as vass
+if standalone_exp
+    import autoload './vim_assist.vim' as vass
+else
+    import autoload 'Raelity/vim_assist.vim' as vass
+endif
 var DictUniqueCopy = vass.DictUniqueCopy
 
 if expect_mode_bits_table != mode_bits_table
