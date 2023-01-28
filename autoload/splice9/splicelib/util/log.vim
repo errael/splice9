@@ -1,7 +1,15 @@
 vim9script
 
-import autoload './vim_assist.vim'
-import autoload '../../splice.vim'
+var standalone_exp = false
+if getcwd() =~ '^/home/err/experiment/vim' 
+    standalone_exp = true
+endif
+
+if ! standalone_exp
+    import autoload '../../splice.vim'
+else
+    import './splice.vim'
+endif
 
 # export Log, LogInit
 

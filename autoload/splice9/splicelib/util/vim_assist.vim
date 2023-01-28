@@ -1,11 +1,19 @@
 vim9script
 
+var standalone_exp = false
+if getcwd() =~ '^/home/err/experiment/vim' 
+    standalone_exp = true
+endif
+
 # export Set, PutIfAbsent, Keys2str,
 # Pad, PropRemoveIds
 # FindInList, FetchFromList
 # EQ, IS
 # Replace, ReplaceBuf
 # ##### HexString
+
+# Not exported
+# DictUniqueCopy, DictUnique
 
 # just use echo 
 #export def HexString(in: string, space: bool = false, quot: bool = false): string
@@ -21,7 +29,7 @@ vim9script
 
 # Remove the common key/val from each dict.
 # Note: the dicts are modified
-def DictUnique(d1: dict<any>, d2: dict<any>)
+export def DictUnique(d1: dict<any>, d2: dict<any>)
     # TODO: use items() from the smallest dict
     for [k2, v2] in d2->items()
         if d1->has_key(k2) && d1[k2] == d2[k2]
@@ -33,26 +41,51 @@ enddef
 
 # return list of dicts with unique elements,
 # returned dicts start as shallow copies
-def DictUniqueCopy(d1: dict<any>, d2: dict<any>): list<dict<any>>
+export def DictUniqueCopy(d1: dict<any>, d2: dict<any>): list<dict<any>>
     var d1_copy = d1->copy()
     var d2_copy = d2->copy()
     DictUnique(d1_copy, d2_copy)
     return [ d1_copy, d2_copy ]
 enddef
 
-export def Replace(s: string,
-        pos1: number, pos2: number, newtext: string): string
-    return pos1 != 0
-        ? s[ : pos1 - 1] .. newtext .. s[pos2 + 1 : ]
-        : newtext .. s[pos2 + 1 : ]
+# Overwrite characters in string, if doesn't fit print error, do nothing.
+# Return new string, input string not modified.
+# NOTE: col starts at 0
+export def Replace(s: string, col0: number, newtext: string): string
+    if col0 + len(newtext) > len(s)
+            echoerr 'Replace: past end' s col0 newtext
+            return s->copy()
+    endif
+    return col0 != 0
+        ? s[ : col0 - 1] .. newtext .. s[col0 + len(newtext) : ]
+        : newtext .. s[len(newtext) : ]
 enddef
+#export def Replace(s: string,
+#        pos1: number, pos2: number, newtext: string): string
+#    return pos1 != 0
+#        ? s[ : pos1 - 1] .. newtext .. s[pos2 + 1 : ]
+#        : newtext .. s[pos2 + 1 : ]
+#enddef
 
 # NOTE: setbufline looses text properties.
+
+
+# Overwrite characters in a buffer, if doesn't fit print error, do nothing.
+# NOTE: col starts at 1
 export def ReplaceBuf(bnr: number, lino: number,
-        pos1: number, pos2: number, newtext: string)
-    getbufline(bnr, lino)[0]
-        ->Replace(pos1, pos2, newtext)->setbufline(bnr, lino)
+        col: number, newtext: string)
+    if col -1 + len(newtext) > len(getbufonelilne(bnr, lino))
+            echoerr 'ReplaceBuf: past end' bnr lino col newtext
+            return
+    endif
+    setpos('.', [bnr, lino, col, 0])
+    execute('normal R' .. newtext)
 enddef
+#export def ReplaceBuf(bnr: number, lino: number,
+#        pos1: number, pos2: number, newtext: string)
+#    getbufline(bnr, lino)[0]
+#        ->Replace(pos1, pos2, newtext)->setbufline(bnr, lino)
+#enddef
 
 # https://github.com/vim/vim/issues/10022
 export def EQ(lhs: any, rhs: any): bool
@@ -136,7 +169,7 @@ def FlattenVim9(l: list<any>, maxdepth: number = 999999): list<any>
 enddef
 
 # 8.2.4589 can now do g:[key] = val
-export def Set(d: dict<any>, k: string, v: any)
+def Set(d: dict<any>, k: string, v: any)
     d[k] = v
 enddef
 

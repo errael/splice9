@@ -1,8 +1,13 @@
 vim9script
 
+var standalone_exp = false
+if getcwd() =~ '^/home/err/experiment/vim' 
+    standalone_exp = true
+endif
+
 # NOTE: simplification/rewrite when vim9 classes. "class Mode"
 
-var testing = false
+var testing = standalone_exp
 
 var hl_label: string
 var hl_sep: string
@@ -28,14 +33,10 @@ if ! testing
 else
     import './vim_assist.vim'
     import './hud_sub.vim'
-    import './log.vim-splice' as log
+    import './log.vim'
 
     const DumpDia = hud_sub.DumpDia
     const DisplayHuds = hud_sub.DisplayHuds
-    def TLog(s: string)
-        echomsg s
-    enddef
-    #Log = TLog
     Log = log.Log
     log.LogInit('/home/err/play/SPLICE_LOG')
 
@@ -75,7 +76,13 @@ var diagram_width: number
 var layout_offset: number
 var actions_offset: number
 
+# actions is the locations of actions/commands in the HUD
+# actions[name] = [ lnum, col0, col1 ]
+# actions could be a list, [ name, [lnum,col0,col1]] (it's not use for lookup)
 var actions: dict<list<number>>
+var base_actions: dict<list<number>>
+var hunk_action1: dict<list<number>>
+var hunk_action2: dict<list<number>>
 
 const label_modes = 'Splice Modes:'
 const label_layout = 'Layout:'
@@ -84,7 +91,7 @@ const label_commands = 'Splice Commands:'
 #
 # Track last window position.
 # Use it to go back to the prev window before executing a command.
-#
+# [ winid, [ pos... ] ]
 var last_win = null_list
 
 def ClearWinPos()
@@ -157,9 +164,8 @@ var modes_diagram =<< EOF
  [l]oupe   [p]ath
  XXXXXXX   YYYYYY
 EOF
-# TODO: get rid of mode_markers, NOT USED
-var mode_markers = [ modes_diagram->remove(1) ]->add(modes_diagram->remove(2))
-modes_diagram->insert(label_modes)->Pad()
+# Only keep text, insert section label. Get rid of the XX/YY stuff.
+modes_diagram = [ label_modes, modes_diagram[0], modes_diagram[2] ]->Pad()
 lockvar! modes_diagram
 
 #
@@ -167,10 +173,10 @@ lockvar! modes_diagram
 #
 # The commands 
 var commands =<< EOF
-d: cycle diffs   n: next conflict   space: cycle layouts   u : use hunk   o: original   1: one   q: save and quit
-AAAAAAAAAAAAAA   BBBBBBBBBBBBBBBB   CCCCCCCCCCCCCCCCCCCC   DDDDDDDDDDDD   EEEEEEEEEEE   FFFFFF   GGGGGGGGGGGGGGGG
-D: diffs off     N: prev conflict   s: toggle scrollbind                  r: result     2: two   CC: exit with error
-AAAAAAAAAAAA     BBBBBBBBBBBBBBBB   CCCCCCCCCCCCCCCCCCCC                  EEEEEEEEE     FFFFFF   GGGGGGGGGGGGGGGGGGG
+d: cycle diffs   n: next conflict   space: cycle layouts   u1: use hunk1   o: original   1: one   q: save-quit
+AAAAAAAAAAAAAA   BBBBBBBBBBBBBBBB   CCCCCCCCCCCCCCCCCCCC   DDDDDDDDDDDDD   EEEEEEEEEEE   FFFFFF   GGGGGGGGGGGG
+D: diffs off     N: prev conflict   s: toggle scrollbind   u2: use hunk2   r: result     2: two   CC: error-exit
+AAAAAAAAAAAA     BBBBBBBBBBBBBBBB   CCCCCCCCCCCCCCCCCCCC   DDDDDDDDDDDDD   EEEEEEEEE     FFFFFF   GGGGGGGGGGGGGG
 EOF
 #D: diffs off     N: prev conflict   s: toggle scrollbind   u2:  hunk2     r: result     2: two   CC: exit with error
 #AAAAAAAAAAAA     BBBBBBBBBBBBBBBB   CCCCCCCCCCCCCCCCCCCC   DDDDDDDDDDDD   EEEEEEEEE     FFFFFF   GGGGGGGGGGGGGGGGGGG
@@ -266,17 +272,17 @@ END
 # TODO: Don't need need extra level of nesting.
 const diagrams_2: list<list<any>> = [
     [
-        [ grid_diagram_0, ],
-        [ grid_diagram_1, ],
-        [ grid_diagram_2, ],
+        grid_diagram_0,
+        grid_diagram_1,
+        grid_diagram_2,
     ], [
-        [ loupe_diagram_0, ],
+        loupe_diagram_0,
     ], [
-        [ compare_diagram_0, ],
-        [ compare_diagram_1, ],
+        compare_diagram_0,
+        compare_diagram_1,
     ], [
-        [ path_diagram_0, ],
-        [ path_diagram_1, ],
+        path_diagram_0,
+        path_diagram_1,
     ]]
 
 # each modes value:  dict of
@@ -295,7 +301,7 @@ const modes = {
 def FindMaxDiagramWidth()
     # find the width of the longest possible diagram string
     var n = 0
-    for s in diagrams_2->flattennew(3)
+    for s in diagrams_2->flattennew(2)
         if len(s) > n
             n = len(s)
         endif
@@ -323,8 +329,8 @@ var action_by_index = [
     'Diff',
     'Next',
     'Layout',
-    'UseHunk',
-    ##### 'UseHunk1',
+    #####'UseHunk',
+    'UseHunk1',
     'Original',
     'One',
     'Quit',
@@ -332,7 +338,7 @@ var action_by_index = [
     'DiffOff',
     'Previous',
     'Scroll',
-    ##### 'UseHunk2',
+    'UseHunk2',
     'Result',
     'Two',
     'Cancel',
@@ -345,9 +351,10 @@ var action_by_index = [
 #    'Path',
     ]
 
+# Create actions that always show up.
 # actions['Action'] = [line, start, end]. Action like 'Next'/'Quit'
 # line/start/end is in buffer, starts at 1. end exclusive
-def BuildActions()
+def BuildBaseActions(): dict<list<number>>
     # action_by_index is the order the commands appear left to right,
     # top to bottom. And the order that items in command_markers are found.
     var cmds = copy(action_by_index)
@@ -379,10 +386,11 @@ def BuildActions()
         t_actions[name] = [ lino, col, col + v.m_len ]
     endfor
 
-    actions = t_actions
     command_markers = null_list
     # TODO: null out action_by_index ?
-    lockvar! actions
+    #actions = t_actions
+    #lockvar! actions
+    return t_actions
 enddef
 
 #
@@ -496,7 +504,7 @@ def BuildDiagram(mode: string, layout: number,
     endif
 
     var diagram_data = diagrams_2[modes[mode].m_idx][layout]
-    var diagram = diagram_data[0]->deepcopy()
+    var diagram = diagram_data->deepcopy()
 
     # substite X* Y* with vari_files
     if !!num_vari_files
@@ -522,7 +530,8 @@ def BuildDiagram(mode: string, layout: number,
     endif
         
     # overlay "Layout:" upper-left of the diagram
-    diagram[0] = diagram[0]->Replace(0, len(label_layout) - 1, label_layout)
+    #diagram[0] = diagram[0]->Replace(0, len(label_layout) - 1, label_layout)
+    diagram[0] = diagram[0]->Replace(0, label_layout)
     return diagram
 enddef
 
@@ -536,7 +545,7 @@ def BuildHud(mode: string, layout: number,
     # get line 0 based
     active_line -= 1
     modes_dia[active_line] = modes_dia[active_line]
-                \->Replace(active_col, active_col, '*')
+                \->Replace(active_col, '*')
 
     var j = 0
     while j < 3
@@ -556,7 +565,10 @@ var current_hud_rollover = null_list
 # NOTE: <buffer> <LeftRelease> works, but <buffer> <MouseMove>
 #        doesn't work, so must do bnr != hudbufnr
 
-# Return null or item from actions dictionary
+# Return null or item from actions dictionary.
+# Could do a binary search within each line,
+# or modify prop_find to add an "exact" with lnum/col
+# or do a builtin prop_at({lnum},{col}).
 def GetHudItemUnderMouse(mpos: dict<number>): list<any>
     if winbufnr(mpos.winid) != hudbufnr
         return null_list
@@ -586,6 +598,7 @@ enddef
 # Mouse button, look for command action.
 def Release()
     var item = getmousepos()->GetHudItemUnderMouse()
+    echomsg string(item) ####################################
     if item != null
         ExecuteCommand(item[0])
     else
@@ -668,20 +681,11 @@ def InstallHUD(mode: string, layout: number, bnr: number,
     RefreshMouseCache()
 enddef
 
-if testing
-    def LogDrawHUD(mode: string, layout: number,
-        vari_files: list<string>, bnr: number)
-    enddef
-else
-    def LogDrawHUD(mode: string, layout: number,
-        vari_files: list<string>, bnr: number)
-        #Log(printf("DrawHUD: mode: '%s', layout %d, first '%s', second '%s', bnr %d",
-        #        mode, layout, first ?? 'null', second ?? 'null', bufnr()))
-
-        Log(printf("DrawHUD: mode: '%s', layout %d, vari_files %s, bnr %d",
-            mode, layout, vari_files, bnr))
-    enddef
-endif
+def LogDrawHUD(mode: string, layout: number,
+    vari_files: list<string>, bnr: number)
+    Log(printf("DrawHUD: mode: '%s', layout %d, vari_files %s, bnr %d",
+        mode, layout, vari_files, bnr))
+enddef
 
 #
 # This is invoked from python when the HUD is the current buffer
@@ -690,10 +694,6 @@ export def DrawHUD(use_vim: bool, mode: string, layout: number,
         ...vari_files: list<string>)
     var b = bufnr()
     LogDrawHUD(mode, layout, vari_files, b)
-    if ! use_vim
-        Log(printf("DrawHUD: not using vim"))
-        return
-    endif
 
     if hudbufnr >= 0 && hudbufnr != b
         throw 'HUD buffer mismatch'
@@ -717,12 +717,35 @@ def DoInit_1()
     lockvar layout_offset
     lockvar actions_offset
 
-    BuildActions()
+    base_actions = BuildBaseActions()
+
+    # The UseHunk1 location is also used for UseHunk
+    var tmp = base_actions->remove('UseHunk1')
+    hunk_action2['UseHunk1'] = tmp
+    hunk_action1['UseHunk'] = tmp
+
+    tmp = base_actions->remove('UseHunk2')
+    hunk_action2['UseHunk2'] = tmp
+    lockvar! base_actions
+    lockvar! hunk_action2
+    lockvar! hunk_action1
+    echo string(base_actions)
+    echo string(hunk_action2)
+    echo string(hunk_action1)
 
     did_init_1 = true
 enddef
 
 def DoInit_2(mode: string, bnr: number)
+    unlockvar! actions
+    actions = base_actions->copy()
+    if mode == 'grid'
+        actions->extend(hunk_action2)
+    else
+        actions->extend(hunk_action1)
+    endif
+    lockvar! actions
+
     AddHeaderProps({bufnr: bnr})
     HighlightActions(bnr)
     HighlightLabels(bnr)
@@ -739,6 +762,10 @@ enddef
 if ! testing
     finish
 endif
+
+###########################################################################
+###########################################################################
+###########################################################################
 
 Log('TESTING, TESTING, 1 2 3 TESTING')
 
@@ -828,7 +855,12 @@ NextHud()
 
 #DoInit_2(hudbufnr)
 
+
 finish
+
+###########################################################################
+###########################################################################
+###########################################################################
 
 vim9script noclear
 NextHud()

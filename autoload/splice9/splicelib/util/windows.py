@@ -7,6 +7,7 @@ def focus(winnr):
     if winnr <= len(vim.windows) and winnr > 0:
         vim.current.window = vim.windows[winnr-1]
     #vim.command('%dwincmd w' % winnr)
+    # execute string(winnr) .. 'wincmd w'
 
 def close_all():
     focus(1)
