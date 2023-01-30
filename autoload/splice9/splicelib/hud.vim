@@ -1,11 +1,16 @@
 vim9script
 
+# echo split(expand('<script>:p'))
+
 var standalone_exp = false
 if getcwd() =~ '^/home/err/experiment/vim' 
     standalone_exp = true
 endif
 
 # NOTE: simplification/rewrite when vim9 classes. "class Mode"
+#   TODO:   HUD query what commands are allowed
+#           'o','r','1','2'; 'u'/'u1'-'u2'; diffs-on/off
+#           cur-diff (should there be a diff diagram? highlight in layout)
 
 var testing = standalone_exp
 
@@ -55,8 +60,11 @@ if exists('&mousemoveevent')
     &mousemoveevent = true
 endif
 
+const With = vim_assist.With
+const ModifiableEE  = vim_assist.ModifiableEE 
 const Pad = vim_assist.Pad
 const Replace = vim_assist.Replace
+const ReplaceBuf = vim_assist.ReplaceBuf
 
 #
 # TODO: define settings for highlights
@@ -72,7 +80,7 @@ const sepchar = &encoding == 'utf-8' && &ambiwidth == 'single'
 const sep_pad = '  '
 const sep = sep_pad .. sepchar .. sep_pad
 
-var diagram_width: number
+var layout_width: number
 var layout_offset: number
 var actions_offset: number
 
@@ -83,6 +91,10 @@ var actions: dict<list<number>>
 var base_actions: dict<list<number>>
 var hunk_action1: dict<list<number>>
 var hunk_action2: dict<list<number>>
+const u_h = 'UseHunk'
+const u_h1 = 'UseHunk1'
+const u_h2 = 'UseHunk2'
+const u_h_name = 'u :  use hunk'
 
 const label_modes = 'Splice Modes:'
 const label_layout = 'Layout:'
@@ -214,27 +226,27 @@ const hunks = [ ' u: use hunk', 'u1: use hunk', 'u2:  hunk2  ' ]
 #                          YYYYYY
 #       which reduces max width of HUD
 
-var grid_diagram_0 =<< EOF
+var grid_layout_0 =<< EOF
 Original
 One  Two
 Result
 EOF
 
-var grid_diagram_1 =<< EOF
+var grid_layout_1 =<< EOF
 
 One Result Two
 
 EOF
 
 
-var grid_diagram_2 =<< EOF
+var grid_layout_2 =<< EOF
 One
 Result
 Two
 EOF
 
 # XXXXXXXX One,Two,Result,Original
-var loupe_diagram_0 =<< END
+var loupe_layout_0 =<< END
 
 XXXXXXXX
 
@@ -242,7 +254,7 @@ END
 
 # XXXXXXXX is Original,One,Two
 # YYYYYY is Result,One,Two
-var compare_diagram_0 =<< END
+var compare_layout_0 =<< END
 
 XXXXXXXX YYYYYY
 
@@ -250,66 +262,65 @@ END
 
 # XXXXXXXX is Original,One,Two
 # YYYYYY is Result,One,Two
-var compare_diagram_1 =<< END
+var compare_layout_1 =<< END
 
 XXXXXXXX
 YYYYYY
 END
 
 # XXX is One,Two
-var path_diagram_0 =<< END
+var path_layout_0 =<< END
 
 Original XXX Result
 
 END
 
-var path_diagram_1 =<< END
+var path_layout_1 =<< END
 Original
 XXX
 Result
 END
 
-# TODO: Don't need need extra level of nesting.
-const diagrams_2: list<list<any>> = [
+const layout_diagrams: list<list<any>> = [
     [
-        grid_diagram_0,
-        grid_diagram_1,
-        grid_diagram_2,
+        grid_layout_0,
+        grid_layout_1,
+        grid_layout_2,
     ], [
-        loupe_diagram_0,
+        loupe_layout_0,
     ], [
-        compare_diagram_0,
-        compare_diagram_1,
+        compare_layout_0,
+        compare_layout_1,
     ], [
-        path_diagram_0,
-        path_diagram_1,
+        path_layout_0,
+        path_layout_1,
     ]]
 
 # each modes value:  dict of
 #   m_line:     hud line, 1 based
 #   m_col:      hud col, 0 based, of activate '*'
-#   m_idx:      index into diagrams_2
+#   m_lays:     index into layout_diagrams
 #   m_nfile:    number of files for X,Y substitution
 #   m_len:      chars on screen, "[g]rid" == 6
 const modes = {
-    grid:       { m_line: 2, m_col: 0,   m_idx: 0, m_nfile: 0, m_len: 6 },
-    loupe:      { m_line: 3, m_col: 0,   m_idx: 1, m_nfile: 1, m_len: 7 },
-    compare:    { m_line: 2, m_col: 10,  m_idx: 2, m_nfile: 2, m_len: 9 },
-    path:       { m_line: 3, m_col: 10,  m_idx: 3, m_nfile: 1, m_len: 6 }
+    grid:       { m_line: 2, m_col: 0,   m_lays: 0, m_nfile: 0, m_len: 6 },
+    loupe:      { m_line: 3, m_col: 0,   m_lays: 1, m_nfile: 1, m_len: 7 },
+    compare:    { m_line: 2, m_col: 10,  m_lays: 2, m_nfile: 2, m_len: 9 },
+    path:       { m_line: 3, m_col: 10,  m_lays: 3, m_nfile: 1, m_len: 6 }
 }
 
-def FindMaxDiagramWidth()
+def FindMaxLayoutWidth()
     # find the width of the longest possible diagram string
     var n = 0
-    for s in diagrams_2->flattennew(2)
+    for s in layout_diagrams->flattennew(2)
         if len(s) > n
             n = len(s)
         endif
     endfor
     # "+ 2" for a little space around the longest line
-    diagram_width = n + 2
+    layout_width = n + 2
 
-    lockvar diagram_width
+    lockvar layout_width
 enddef
 
 
@@ -494,8 +505,8 @@ def HighlightLabels(bnr: number)
 enddef
 
 
-# return the diagram
-def BuildDiagram(mode: string, layout: number,
+# return the layout diagram
+def BuildLayoutDiagram(mode: string, layout: number,
         vari_files: list<string>): list<string>
     var num_vari_files =  modes->get(mode).m_nfile
     if len(vari_files) != num_vari_files
@@ -503,12 +514,11 @@ def BuildDiagram(mode: string, layout: number,
             .. mode .. ': ' .. string(vari_files)
     endif
 
-    var diagram_data = diagrams_2[modes[mode].m_idx][layout]
-    var diagram = diagram_data->deepcopy()
+    var layout_diagram = layout_diagrams[modes[mode].m_lays][layout]->deepcopy()
 
     # substite X* Y* with vari_files
     if !!num_vari_files
-        diagram->map((_, s) => {
+        layout_diagram->map((_, s) => {
             var t = substitute(s, '\v\CX+', vari_files[0], '')
             if num_vari_files == 2
                 t = substitute(t, '\v\CY+', vari_files[1], '')
@@ -518,26 +528,26 @@ def BuildDiagram(mode: string, layout: number,
     endif
 
     # get the width after subsitution
-    diagram->Pad('c')
-    var width = diagram[0]->len()
+    layout_diagram->Pad('c')
+    var width = layout_diagram[0]->len()
 
-    # Shift a centered diagram right when it still fit in diagram_width.
-    if width + 5 <= diagram_width
-        diagram->Pad('c', diagram_width - 5)
-        diagram->map((_, s) => '     ' .. s)
+    # Shift a centered layout_diagram right when it still fit in layout_width.
+    if width + 5 <= layout_width
+        layout_diagram->Pad('c', layout_width - 5)
+        layout_diagram->map((_, s) => '     ' .. s)
     else
-        diagram->Pad('r', diagram_width)
+        layout_diagram->Pad('r', layout_width)
     endif
         
-    # overlay "Layout:" upper-left of the diagram
-    #diagram[0] = diagram[0]->Replace(0, len(label_layout) - 1, label_layout)
-    diagram[0] = diagram[0]->Replace(0, label_layout)
-    return diagram
+    # overlay "Layout:" upper-left of the layout_diagram
+    #diagram[0] = layout_diagram[0]->Replace(0, len(label_layout) - 1, label_layout)
+    layout_diagram[0] = layout_diagram[0]->Replace(0, label_layout)
+    return layout_diagram
 enddef
 
 def BuildHud(mode: string, layout: number,
         vari_files: list<string>): list<string>
-    var diagram = BuildDiagram(mode, layout, vari_files)
+    var diagram = BuildLayoutDiagram(mode, layout, vari_files)
     var result = []
     var modes_dia = modes_diagram->deepcopy()
     var v = modes->get(mode)
@@ -598,7 +608,7 @@ enddef
 # Mouse button, look for command action.
 def Release()
     var item = getmousepos()->GetHudItemUnderMouse()
-    echomsg string(item) ####################################
+    #echomsg string(item) ####################################
     if item != null
         ExecuteCommand(item[0])
     else
@@ -672,7 +682,7 @@ def InstallHUD(mode: string, layout: number, bnr: number,
     #       TODO: And get rid of prop_delete when adding props.
 
     &modifiable = true
-    deletebufline('', 1, '$')
+    #deletebufline('', 1, '$')
     setline(1, hud)
     &modifiable = false
 
@@ -710,28 +720,28 @@ enddef
 var did_init_1 = false
 def DoInit_1()
     if did_init_1 | return | endif
-    FindMaxDiagramWidth()
+    FindMaxLayoutWidth()
 
     layout_offset = modes_diagram[0]->len()  + sep->len()
-    actions_offset = layout_offset + diagram_width + sep->len()
+    actions_offset = layout_offset + layout_width + sep->len()
     lockvar layout_offset
     lockvar actions_offset
 
     base_actions = BuildBaseActions()
 
     # The UseHunk1 location is also used for UseHunk
-    var tmp = base_actions->remove('UseHunk1')
-    hunk_action2['UseHunk1'] = tmp
-    hunk_action1['UseHunk'] = tmp
+    var tmp = base_actions->remove(u_h1)
+    hunk_action2[u_h1] = tmp
+    hunk_action1[u_h] = tmp
 
-    tmp = base_actions->remove('UseHunk2')
-    hunk_action2['UseHunk2'] = tmp
+    tmp = base_actions->remove(u_h2)
+    hunk_action2[u_h2] = tmp
     lockvar! base_actions
     lockvar! hunk_action2
     lockvar! hunk_action1
-    echo string(base_actions)
-    echo string(hunk_action2)
-    echo string(hunk_action1)
+    #echo string(base_actions)
+    #echo string(hunk_action2)
+    #echo string(hunk_action1)
 
     did_init_1 = true
 enddef
@@ -743,8 +753,17 @@ def DoInit_2(mode: string, bnr: number)
         actions->extend(hunk_action2)
     else
         actions->extend(hunk_action1)
+        With(ModifiableEE.new(bnr), (arg) => {
+            var tmp = hunk_action2[u_h1]
+            ReplaceBuf(bnr, tmp[0], tmp[1], u_h_name)
+            tmp = hunk_action2[u_h2]
+            ReplaceBuf(bnr, tmp[0], tmp[1], repeat(' ', len(u_h_name)))
+        })
     endif
     lockvar! actions
+
+    # TODO: u does nothing if neither one or two is visible
+    #           maybe other layout details to enable
 
     AddHeaderProps({bufnr: bnr})
     HighlightActions(bnr)
@@ -769,92 +788,61 @@ endif
 
 Log('TESTING, TESTING, 1 2 3 TESTING')
 
+# [ mode, layout, nbr, [varifiles] ]
+var hud_args = [
+    ['grid',    0, [] ],
+    ['grid',    1, [] ],
+    ['grid',    2, [] ],
+    ['loupe',   0, ['fn0'] ],
+    ['loupe',   0, ['Result'] ],
+    ['compare', 0, ['fn1', 'fn2'] ],
+    ['compare', 1, ['fn3', 'fn4'] ],
+    ['compare', 0, ['Original', 'Result'] ],
+    ['compare', 1, ['Original', 'Result'] ],
+    ['path',    0, ['fn5'] ],
+    ['path',    1, ['fn6'] ],
+]
 
-def CreateDebugHud(mode: string, layout: number, xxx: number,
-        ...vari_files: list<string>): number
-    # xxx is ignored, but same signature and InstallHUD
-
-    #set co=200
-
-    :1wincmd w
-    new __Splice_HUD__
-    wincmd J
-    var n = bufnr()
-
-    InitHudBuffer()
-    var hud = BuildHud(mode, layout, vari_files)
-
-    &modifiable = true
-    deletebufline('', 1, '$')
-    setline(1, hud)
-    &modifiable = false
-
-    DoInit_2(mode, n)
-    hudbufnr = n
-
-    # handy for debug on HUD
-    nnoremap <buffer> q :q<CR>
-
-    if created_hud->index(n) < 0
-        created_hud->add(n)
-    endif
-    return n
+def DebugDrawHud(idx: number)
+    call(DrawHUD, [ true, hud_args[idx] ]->flattennew())
 enddef
 
 var hud_idx = 0
 
-var hud_cmds = [
-    "CreateDebugHud('grid',    0, -1)",
-    "CreateDebugHud('grid',    1, -1)",
-    "CreateDebugHud('grid',    2, -1)",
-    "CreateDebugHud('loupe',   0, -1, 'fn0')",
-    "CreateDebugHud('loupe',   0, -1, 'Result')",
-    "CreateDebugHud('compare', 0, -1, 'fn1', 'fn2')",
-    "CreateDebugHud('compare', 1, -1, 'fn3', 'fn4')",
-    "CreateDebugHud('compare', 0, -1, 'Original', 'Result')",
-    "CreateDebugHud('compare', 1, -1, 'Original', 'Result')",
-    "CreateDebugHud('path',    0, -1, 'fn5')",
-    "CreateDebugHud('path',    1, -1, 'fn6')",
-    ]
-
 def NextHud(forw: bool = true)
-    DoInit_1()
 
+    var use_idx = hud_idx
     if !forw
         hud_idx -= 2
-        if hud_idx < 0 | hud_idx += len(hud_cmds) | endif
+        if hud_idx < 0
+            hud_idx += len(hud_args)
+        endif
         echom 'hud_idx:' hud_idx
-    endif
-    var cmd: string
-    cmd = hud_cmds[hud_idx]
-    #cmd = "CreateDebugHud('path', 1, -1, 'fn1')"
-    #cmd = "CreateDebugHud('compare', 0, -1, 'fn1', 'fn2')"
-    execute cmd
-    if len(created_hud) > 1
-        echo 'created_hud MULTIPLE:' created_hud
+        use_idx = hud_idx
     endif
     hud_idx += 1
-    hud_idx %= len(hud_cmds)
+    hud_idx %= len(hud_args)
+
+    DebugDrawHud(use_idx)
+    return
 enddef
 
 command! -nargs=0 NN {
     win_gotoid(bufwinid(hudbufnr))
-    :close
     NextHud()
-    }
+}
 
 command! -nargs=0 BB {
     win_gotoid(bufwinid(hudbufnr))
-    :close
     NextHud(false)
-    }
+}
 
 defcompile
 
+:1wincmd w
+new __Splice_HUD__
+wincmd J
 NextHud()
-
-#DoInit_2(hudbufnr)
-
 
 finish
 

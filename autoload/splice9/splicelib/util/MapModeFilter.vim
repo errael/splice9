@@ -111,7 +111,7 @@ enddef
 
 export def MapModeFilter(modes: string, pattern: string,
                exact: bool = true, field: string = 'lhs'): func
-    var expr = $"m['{field}'] ={exact ? '=' : '~'} '{pattern}'"
+    var expr = $"m['{field}'] {exact ? '==' : '=~'} '{pattern}'"
     return MapModeFilterExpr(modes, expr)
 enddef
 
@@ -136,7 +136,10 @@ if !debug_test
     finish
 endif
 
-##########################
+#########################################################################
+#########################################################################
+#########################################################################
+
 # Following is for testing
 
 # use the "C" defines. Might help to see what's going on

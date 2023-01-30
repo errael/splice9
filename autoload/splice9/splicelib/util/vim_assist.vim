@@ -11,21 +11,76 @@ endif
 # EQ, IS
 # Replace, ReplaceBuf
 # ##### HexString
+# With(EE,func), ModifiableEE(bnr)
 
 # Not exported
 # DictUniqueCopy, DictUnique
 
-# just use echo 
-#export def HexString(in: string, space: bool = false, quot: bool = false): string
-#    var out: string
-#    for c in str2list(in)
-#        if space
-#            if out != '' | out ..= ' ' | endif
-#        endif
-#        out ..= printf('%2x', c)
-#    endfor
-#    return quot ? "'" .. out .. "'" : out
-#enddef
+
+export class BaseEE
+    def Enter(): any
+        return null
+    enddef
+    def Exit(resource: any): void
+    enddef
+endclass
+
+export class ModifiableEE extends BaseEE
+    this._bnr: number
+    this._prevId = -1
+    this._restore: bool
+    def new(this._bnr)
+        #echo 'ModifiableEE: new(arg):' this._bnr
+    enddef
+
+    def Enter(): number
+        #echo 'ModifiableEE: Enter:' this._bnr
+        # first find a window that holds this buffer, prefer current window
+        var curId = win_getid()
+        var wins = win_findbuf(this._bnr)
+        if wins->len() < 1
+            throw "ModifiableEE: buffer not in a window"
+        endif
+        var idx = wins->index(curId)
+        if idx < 0
+            # need to switch windows
+            #echo 'ModifiableEE: SWITCHING WINDOWS'
+            this._prevId = curId
+            if ! win_gotoid(wins[0])
+                throw "ModifiableEE: win_gotoid failed"
+            endif
+        endif
+        if ! &modifiable
+            #echo 'ModifiableEE: TURNING MODIFIABLE ON'
+            &modifiable = true
+            this._restore = true
+        endif
+        return this._bnr
+    enddef
+
+    def Exit(resource: number): void
+        #echo 'ModifiableEE: Exit'
+        if this._restore
+            #echo 'ModifiableEE: RESTORING MODIFIABLE OFF'
+            &modifiable = false
+        endif
+        if this._prevId < 0
+            #echo 'ModifiableEE: Exit: same window'
+            return
+        endif
+        if ! win_gotoid(this._prevId)
+            throw "ModifiableEE:Exit: win_gotoid failed"
+        endif
+        #echo 'ModifiableEE: Exit: restored window:' this._prevId
+    enddef
+endclass
+
+export def With(ee: ModifiableEE, F: func)
+    var r = ee.Enter()
+    defer ee.Exit(r)
+    F(r)
+enddef
+
 
 # Remove the common key/val from each dict.
 # Note: the dicts are modified
@@ -74,7 +129,7 @@ enddef
 # NOTE: col starts at 1
 export def ReplaceBuf(bnr: number, lino: number,
         col: number, newtext: string)
-    if col -1 + len(newtext) > len(getbufonelilne(bnr, lino))
+    if col - 1 + len(newtext) > len(getbufoneline(bnr, lino))
             echoerr 'ReplaceBuf: past end' bnr lino col newtext
             return
     endif
@@ -286,4 +341,16 @@ enddef
 #    echo l1
 #endfor
 #finish
+
+# just use echo 
+#export def HexString(in: string, space: bool = false, quot: bool = false): string
+#    var out: string
+#    for c in str2list(in)
+#        if space
+#            if out != '' | out ..= ' ' | endif
+#        endif
+#        out ..= printf('%2x', c)
+#    endfor
+#    return quot ? "'" .. out .. "'" : out
+#enddef
 
