@@ -1,7 +1,7 @@
 vim9script
 
 var standalone_exp = false
-if getcwd() =~ '^/home/err/experiment/vim' 
+if expand('<script>:p') =~ '^/home/err/experiment/vim/splice'
     standalone_exp = true
 endif
 
