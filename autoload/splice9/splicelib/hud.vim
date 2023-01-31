@@ -1,16 +1,19 @@
 vim9script
 
-# echo split(expand('<script>:p'))
-
 var standalone_exp = false
-if getcwd() =~ '^/home/err/experiment/vim' 
+if expand('<script>:p') =~ '^/home/err/experiment/vim/splice'
     standalone_exp = true
 endif
 
 # NOTE: simplification/rewrite when vim9 classes. "class Mode"
 #   TODO:   HUD query what commands are allowed
+#           current mode, 
 #           'o','r','1','2'; 'u'/'u1'-'u2'; diffs-on/off
 #           cur-diff (should there be a diff diagram? highlight in layout)
+#
+# TODO: o, r, 1, 2 are not always valid, maybe grey when not valid
+# TODO: other items might be subject to greying out,
+# TODO: for example, diffs may not be valid in loupe mode.
 
 var testing = standalone_exp
 
@@ -26,7 +29,11 @@ var Log: func
 if ! testing
     import autoload './util/log.vim'
     import autoload './util/vim_assist.vim'
+    import autoload './util/keys.vim'
+    import autoload './util/ui.vim'
     import autoload '../splice.vim'
+
+    # highlights used on the HUD and in its text properties
 
     hl_label = splice.hl_label
     hl_sep = splice.hl_sep
@@ -39,6 +46,8 @@ else
     import './vim_assist.vim'
     import './hud_sub.vim'
     import './log.vim'
+    import './keys.vim'
+    import './ui.vim'
 
     const DumpDia = hud_sub.DumpDia
     const DisplayHuds = hud_sub.DisplayHuds
@@ -65,14 +74,16 @@ const ModifiableEE  = vim_assist.ModifiableEE
 const Pad = vim_assist.Pad
 const Replace = vim_assist.Replace
 const ReplaceBuf = vim_assist.ReplaceBuf
+const MappingsList = keys.MappingsList
+const AddSeparators = keys.AddSeparators
 
+# The HUD is made up of 3 lines and 3 sections:
 #
-# TODO: define settings for highlights
+#       modes || layout || commands
 #
-
-
-# The HUD is made up of 3 lines and 3 sections: modes, layout, commands.
 # Each section is 3 lines high. Each section is a fixed width.
+# Much of the detailed info about the sections is derived
+# dynamically during startup.
 
 # use vertical double bar if possible
 const sepchar = &encoding == 'utf-8' && &ambiwidth == 'single'
@@ -86,7 +97,6 @@ var actions_offset: number
 
 # actions is the locations of actions/commands in the HUD
 # actions[name] = [ lnum, col0, col1 ]
-# actions could be a list, [ name, [lnum,col0,col1]] (it's not use for lookup)
 var actions: dict<list<number>>
 var base_actions: dict<list<number>>
 var hunk_action1: dict<list<number>>
@@ -99,6 +109,18 @@ const u_h_name = 'u :  use hunk'
 const label_modes = 'Splice Modes:'
 const label_layout = 'Layout:'
 const label_commands = 'Splice Commands:'
+
+const btn_display_commands = 'BtnDisplayCommands'
+
+#
+# There are special_cmds, these are ui related
+# and handled within the HUD.
+#
+const special_cmds = [ btn_display_commands ]
+var SpliceBtnDisplayCommands: func
+SpliceBtnDisplayCommands = () => {
+    echo 'UNINITIALIZED: SpliceBtnDisplayCommands'
+}
 
 #
 # Track last window position.
@@ -138,18 +160,96 @@ def ExecuteCommand(cmd: string)
     if testing
         RestoreWinPos()
         echo 'Execute: ' .. cmd
+        if special_cmds->index(cmd) >= 0
+            execute 'Splice' .. cmd .. '()'
+        endif
     else
         RestoreWinPos()
         var splice_cmd = 'Splice' .. cmd
         Log('Execute: ' .. splice_cmd)
+        if special_cmds->index(cmd) >= 0
+            splice_cmd ..= '()'
+        endif
         execute splice_cmd
     endif
 enddef
 
+################################################################
 #
-# Diagrams from modes.py
+# modes section designations/specifications
 #
 
+var modes_section =<< EOF
+ [g]rid    [c]ompare
+ XXXXXX    YYYYYYYYY
+ [l]oupe   [p]ath
+ XXXXXXX   YYYYYY
+EOF
+# Set up modes_section, add label and get rid of markers
+modes_section = [ label_modes, modes_section[0], modes_section[2] ]->Pad()
+lockvar! modes_section
+
+# each modes value:  dict of
+#   m_line:     hud line, 1 based
+#   m_col:      hud col, 0 based, of activate '*'
+#   m_lays:     index into layout_diagrams
+#   m_nfile:    number of files for X,Y substitution
+#   m_len:      chars on screen, "[g]rid" == 6
+const modes = {
+    grid:       { m_line: 2, m_col: 0,   m_lays: 0, m_nfile: 0, m_len: 6 },
+    loupe:      { m_line: 3, m_col: 0,   m_lays: 1, m_nfile: 1, m_len: 7 },
+    compare:    { m_line: 2, m_col: 10,  m_lays: 2, m_nfile: 2, m_len: 9 },
+    path:       { m_line: 3, m_col: 10,  m_lays: 3, m_nfile: 1, m_len: 6 }
+}
+
+################################################################
+#
+# commands
+#
+
+# The commands HUD display
+var command_display =<< EOF
+d: cycle diffs   n: next conflict   space: cycle layouts   u1: use hunk1   o: original   1: one   q: save-quit
+AAAAAAAAAAAAAA   BBBBBBBBBBBBBBBB   CCCCCCCCCCCCCCCCCCCC   DDDDDDDDDDDDD   EEEEEEEEEEE   FFFFFF   GGGGGGGGGGGG
+D: diffs off     N: prev conflict   s: toggle scrollbind   u2: use hunk2   r: result     2: two   CC: error-exit
+AAAAAAAAAAAA     BBBBBBBBBBBBBBBB   CCCCCCCCCCCCCCCCCCCC   DDDDDDDDDDDDD   EEEEEEEEE     FFFFFF   GGGGGGGGGGGGGG
+EOF
+
+# 
+# The following list/method associates internal actions with HUD command buttons.
+# Command button boundaries are dynamically built from the above command_display.
+#
+var command_actions = [
+    'Diff',    'Next',     'Layout', 'UseHunk1', 'Original', 'One', 'Quit',
+    'DiffOff', 'Previous', 'Scroll', 'UseHunk2', 'Result',   'Two', 'Cancel',
+]
+def ActionsByIndex(): list<string>
+    # return ActionsSortedBy('a_cidx')
+    return command_actions
+enddef
+# [ 'cycle diffs', 'next conflict', ... ]
+var command_display_names: dict<string>
+
+# Extract the button outlines from command_display (extracting 1 and 3 but...)
+var command_markers = [ command_display->remove(1) ]
+    ->add(command_display->remove(2))
+command_display->insert(label_commands)->Pad()
+lockvar! command_display
+lockvar! command_markers
+lockvar! command_actions
+
+# The hunks are dynamically selected based on mode
+const hunks = [ ' u: use hunk', 'u1: use hunk', 'u2:  hunk2  ' ]
+
+################################################################
+#
+# Layouts
+#
+
+#
+# Layouts available for Grid (originally in modes.py)
+# Comments for the diagrams for the other modes not done
+#
 # Grid
 #   Layout 0                 Layout 1                        Layout 2
 #   +-------------------+    +--------------------------+    +---------------+
@@ -162,53 +262,6 @@ enddef
 #   |      Result       |    |        |        |        |    |      Two      |
 #   |5                  |    |2       |3       |4       |    |4              |
 #   +-------------------+    +--------------------------+    +---------------+
-
-
-
-
-
-#
-# modes_diagram
-#
-var modes_diagram =<< EOF
- [g]rid    [c]ompare
- XXXXXX    YYYYYYYYY
- [l]oupe   [p]ath
- XXXXXXX   YYYYYY
-EOF
-# Only keep text, insert section label. Get rid of the XX/YY stuff.
-modes_diagram = [ label_modes, modes_diagram[0], modes_diagram[2] ]->Pad()
-lockvar! modes_diagram
-
-#
-# commands
-#
-# The commands 
-var commands =<< EOF
-d: cycle diffs   n: next conflict   space: cycle layouts   u1: use hunk1   o: original   1: one   q: save-quit
-AAAAAAAAAAAAAA   BBBBBBBBBBBBBBBB   CCCCCCCCCCCCCCCCCCCC   DDDDDDDDDDDDD   EEEEEEEEEEE   FFFFFF   GGGGGGGGGGGG
-D: diffs off     N: prev conflict   s: toggle scrollbind   u2: use hunk2   r: result     2: two   CC: error-exit
-AAAAAAAAAAAA     BBBBBBBBBBBBBBBB   CCCCCCCCCCCCCCCCCCCC   DDDDDDDDDDDDD   EEEEEEEEE     FFFFFF   GGGGGGGGGGGGGG
-EOF
-#D: diffs off     N: prev conflict   s: toggle scrollbind   u2:  hunk2     r: result     2: two   CC: exit with error
-#AAAAAAAAAAAA     BBBBBBBBBBBBBBBB   CCCCCCCCCCCCCCCCCCCC   DDDDDDDDDDDD   EEEEEEEEE     FFFFFF   GGGGGGGGGGGGGGGGGGG
-
-#var command_markers = [ commands->remove(3) ]->insert(commands->remove(1))
-var command_markers = [ commands->remove(1) ]->add(commands->remove(2))
-commands->insert(label_commands)->Pad()
-lockvar! commands
-
-# TODO: maybe incorporate the hunk info into something indexed by mode
-#       and grey out 'u2:  hunk2'
-const hunks = [ ' u: use hunk', 'u1: use hunk', 'u2:  hunk2  ' ]
-
-# TODO: o, r, 1, 2 are not always valid, maybe grey when not valid
-# TODO: other items might be subject to greying out,
-# TODO: for example, diffs may not be valid in loupe mode.
-
-
-#echo commands
-#echo commands_marker
 
 #
 #       Each HUD section annotated: Splice Modes:, Layout:, Splice Commands:.
@@ -224,7 +277,7 @@ const hunks = [ ' u: use hunk', 'u1: use hunk', 'u2:  hunk2  ' ]
 #               Layout:
 #                          XXXXXXXX
 #                          YYYYYY
-#       which reduces max width of HUD
+#       squeezing stuff together which reduces max width of HUD
 
 var grid_layout_0 =<< EOF
 Original
@@ -296,18 +349,10 @@ const layout_diagrams: list<list<any>> = [
         path_layout_1,
     ]]
 
-# each modes value:  dict of
-#   m_line:     hud line, 1 based
-#   m_col:      hud col, 0 based, of activate '*'
-#   m_lays:     index into layout_diagrams
-#   m_nfile:    number of files for X,Y substitution
-#   m_len:      chars on screen, "[g]rid" == 6
-const modes = {
-    grid:       { m_line: 2, m_col: 0,   m_lays: 0, m_nfile: 0, m_len: 6 },
-    loupe:      { m_line: 3, m_col: 0,   m_lays: 1, m_nfile: 1, m_len: 7 },
-    compare:    { m_line: 2, m_col: 10,  m_lays: 2, m_nfile: 2, m_len: 9 },
-    path:       { m_line: 3, m_col: 10,  m_lays: 3, m_nfile: 1, m_len: 6 }
-}
+################################################################
+#
+# at startup build structures and text property definitions
+#
 
 def FindMaxLayoutWidth()
     # find the width of the longest possible diagram string
@@ -323,66 +368,40 @@ def FindMaxLayoutWidth()
     lockvar layout_width
 enddef
 
-
-# 
-# This list/method only used to populate actions,
-# action_by_index corresponds to left/right, top/bottom
-# presentation of the commands. The command_markers
-# are used to determine the boundaries
-#
-# TODO: action_by_index needs to be dynamic.
-# For example, 'u: use hunk' vs 'u1: use hunk 1'
-#                               'u2: use hunk 2'
-#
-# and then there's the modes...
-# 
-var action_by_index = [
-    'Diff',
-    'Next',
-    'Layout',
-    #####'UseHunk',
-    'UseHunk1',
-    'Original',
-    'One',
-    'Quit',
-
-    'DiffOff',
-    'Previous',
-    'Scroll',
-    'UseHunk2',
-    'Result',
-    'Two',
-    'Cancel',
-
-#    'UseHunk',
-#
-#    'Grid',
-#    'Loupe',
-#    'Compare',
-#    'Path',
-    ]
-
-# Create actions that always show up.
-# actions['Action'] = [line, start, end]. Action like 'Next'/'Quit'
+# 1 - Extract displayed command names
+# 2 - Create actions button parameters for highlight/rollover text properties.
+# actions['Action'] = [line, start, end]. Action like 'Grid'/'Next'/'Quit'
 # line/start/end is in buffer, starts at 1. end exclusive
 def BuildBaseActions(): dict<list<number>>
     # action_by_index is the order the commands appear left to right,
-    # top to bottom. And the order that items in command_markers are found.
-    var cmds = copy(action_by_index)
+    # top to bottom. Also the order that items in command_markers are found.
+    var command_action_keys = ActionsByIndex()
+    var cmd_idx = 0
     var t_actions: dict<list<number>>
     var start: number
     var line = 2
     for m in command_markers
         start = 0
         while true
+            # result is button boundaries for highlight/rollover.
             var result = matchstrpos(m,
                 '\v(A+)|(B+)|(C+)|(D+)|(E+)|(F+)|(G+)', start)
             if result[1] == -1 | break | endif
+
+            var actKey = command_action_keys[cmd_idx]
+
+            # 1 - Extract displayed command names, discard like: "u1: "
+            var t = command_display[line - 1]->slice(result[1], result[2])
+            command_display_names[actKey] = matchlist(t, '\v.*:\s+(.*)')[1]
+
+            # 2 - Create actions button parameters for text propertiess
             # Add one to make the column values 1 based.
-            t_actions[cmds->remove(0)] = [ line,
+            t_actions[actKey] = [ line,
                 actions_offset + result[1] + 1,
                 actions_offset + result[2] + 1]
+
             start = result[2]
+            cmd_idx += 1
         endwhile
         line += 1
     endfor
@@ -390,17 +409,16 @@ def BuildBaseActions(): dict<list<number>>
     # From modes add in the Grid, Loupe, ... actions
     for [ k, v ] in modes->items()
         # make key Grid, not grid, to correspond to command name
-        var name = k[0]->toupper() .. k[1 : ]
+        var actKey = k[0]->toupper() .. k[1 : ]
         var [lino, col] = [ v.m_line, v.m_col ]
         # +1 makes it 1 based, +1 to skip activation position
         col += 2
-        t_actions[name] = [ lino, col, col + v.m_len ]
+        t_actions[actKey] = [ lino, col, col + v.m_len ]
+        command_display_names[actKey] = k
     endfor
 
+    unlockvar! command_markers
     command_markers = null_list
-    # TODO: null out action_by_index ?
-    #actions = t_actions
-    #lockvar! actions
     return t_actions
 enddef
 
@@ -424,27 +442,27 @@ def AddHeaderProps(d: dict<any> = null_dict)
         highlight: hl_command,
         priority: 100,
         combine: false,
-        }
+    }
     var props_roll = {
         highlight: hl_rollover,
         priority: 110,
         combine: false,
-        }
+    }
     var props_lab = {
         highlight: hl_label,
         priority: 100,
         combine: false,
-        }
+    }
     var props_sep = {
         highlight: hl_sep,
         priority: 100,
         combine: false,
-        }
+    }
     var props_act = {
         highlight: hl_active,
         priority: 100,
         combine: false,
-        }
+    }
     props_com->extend(d)
     props_roll->extend(d)
     props_lab->extend(d)
@@ -459,6 +477,52 @@ def AddHeaderProps(d: dict<any> = null_dict)
 
     did_action_props = true
 enddef
+
+# DoInit_1 doesn't depend on hudbufnr.
+# This is only done once during startup
+var did_init_1 = false
+def DoInit_1()
+    if did_init_1 | return | endif
+    FindMaxLayoutWidth()
+
+    layout_offset = modes_section[0]->len()  + sep->len()
+    actions_offset = layout_offset + layout_width + sep->len()
+    lockvar layout_offset
+    lockvar actions_offset
+
+    base_actions = BuildBaseActions()
+
+    # The UseHunk1 location is also used for UseHunk
+    # Remove any UseHunk from base actions
+    var tmp = base_actions->remove(u_h1)
+    hunk_action2[u_h1] = tmp
+    hunk_action1[u_h] = tmp
+
+    tmp = base_actions->remove(u_h2)
+    hunk_action2[u_h2] = tmp
+
+    # add the displayed name for UseHunk
+    command_display_names[u_h] = matchlist(u_h_name, '\v.*:\s+(.*)')[1]
+
+    # add some special commands
+    base_actions[btn_display_commands] = [ 1,
+        actions_offset + 1, actions_offset + 1 + label_commands->len() ]
+
+    lockvar! base_actions
+    lockvar! hunk_action2
+    lockvar! hunk_action1
+    lockvar! command_display_names
+    #echo string(base_actions)
+    #echo string(hunk_action2)
+    #echo string(hunk_action1)
+
+    did_init_1 = true
+enddef
+
+################################################################
+#
+# create the HUD, recreated for each state change
+#
 
 # Add the action textprop to each command in HUD.
 def HighlightActions(bnr: number)
@@ -547,25 +611,30 @@ enddef
 
 def BuildHud(mode: string, layout: number,
         vari_files: list<string>): list<string>
-    var diagram = BuildLayoutDiagram(mode, layout, vari_files)
+    var layout_display = BuildLayoutDiagram(mode, layout, vari_files)
     var result = []
-    var modes_dia = modes_diagram->deepcopy()
+    var modes_display = modes_section->deepcopy()
     var v = modes->get(mode)
     var [ active_line, active_col ] = [ v.m_line, v.m_col ]
     # get line 0 based
     active_line -= 1
-    modes_dia[active_line] = modes_dia[active_line]
+    modes_display[active_line] = modes_display[active_line]
                 \->Replace(active_col, '*')
 
     var j = 0
     while j < 3
-        result->add(modes_dia[j] .. sep
-            .. diagram[j] .. sep
-            .. commands[j] ..  sep)
+        result->add(modes_display[j] .. sep
+            .. layout_display[j] .. sep
+            .. command_display[j] ..  sep)
         j += 1
     endwhile
     return result
 enddef
+
+################################################################
+#
+# Mouse rollover/click
+#
 
 # An actions item.
 var current_hud_rollover = null_list
@@ -644,6 +713,7 @@ def RefreshMouseCache()
     Move()
 enddef
 
+################################################################
 #
 # Main
 #
@@ -716,42 +786,13 @@ export def AnyThing()
     Log('THIS IS FROM AnyThing IN HUD.VIM')
 enddef
 
-# The init_1 doesn't depend on hudbufnr
-var did_init_1 = false
-def DoInit_1()
-    if did_init_1 | return | endif
-    FindMaxLayoutWidth()
-
-    layout_offset = modes_diagram[0]->len()  + sep->len()
-    actions_offset = layout_offset + layout_width + sep->len()
-    lockvar layout_offset
-    lockvar actions_offset
-
-    base_actions = BuildBaseActions()
-
-    # The UseHunk1 location is also used for UseHunk
-    var tmp = base_actions->remove(u_h1)
-    hunk_action2[u_h1] = tmp
-    hunk_action1[u_h] = tmp
-
-    tmp = base_actions->remove(u_h2)
-    hunk_action2[u_h2] = tmp
-    lockvar! base_actions
-    lockvar! hunk_action2
-    lockvar! hunk_action1
-    #echo string(base_actions)
-    #echo string(hunk_action2)
-    #echo string(hunk_action1)
-
-    did_init_1 = true
-enddef
-
 def DoInit_2(mode: string, bnr: number)
     unlockvar! actions
     actions = base_actions->copy()
     if mode == 'grid'
         actions->extend(hunk_action2)
     else
+        # not Grid, UseHunk replace UseHunk1, erase UseHunk2
         actions->extend(hunk_action1)
         With(ModifiableEE.new(bnr), (arg) => {
             var tmp = hunk_action2[u_h1]
@@ -770,6 +811,10 @@ def DoInit_2(mode: string, bnr: number)
     HighlightLabels(bnr)
     HighlightMode(mode, bnr)
 
+    #for s in CreateCurrentMappings()
+    #    echo s
+    #endfor
+
     # only map click release in hud
     nnoremap <buffer><special> <LeftRelease> <ScriptCmd>Release()<CR>
 
@@ -777,6 +822,56 @@ def DoInit_2(mode: string, bnr: number)
     # would not be detected when the vim focus is in a different buffer.
     nnoremap <special> <MouseMove> <ScriptCmd>Move()<CR>
 enddef
+
+# for popup
+export def CreateCurrentMappings(): list<string>
+    # create a separate list for each column
+    var act_keys: list<string>
+    var defaults: list<string>
+    var mappings: list<string>
+    var act_names: list<string>
+    # ['Grid', ['<M-x>', '<M-g>'], 'g']
+    for mappings_item in MappingsList()->AddSeparators(() => [])
+        if !! mappings_item
+            var [ act_key, mings, dflt ] = mappings_item
+            var first_ming = true
+            for ming in mings
+                mappings->add(ming)
+                if first_ming
+                    act_keys->add(act_key)
+                    defaults->add(dflt)
+                    act_names->add("'" .. command_display_names[act_key] .. "'")
+                else
+                    act_keys->add('')
+                    defaults->add('')
+                    act_names->add('')
+                endif
+                first_ming = false
+            endfor
+        else
+            act_keys->add('')
+            defaults->add('')
+            mappings->add('')
+            act_names->add('')
+        endif
+    endfor
+    defaults->Pad('r')
+    act_names->Pad('l')
+    act_keys->Pad('r')
+    mappings->Pad('l')
+    var ret: list<string>
+    for i in range(len(mappings))
+        ret->add(printf("%s %s %s   %s",
+            defaults[i], act_names[i], act_keys[i], mappings[i]))
+    endfor
+    return ret
+enddef
+
+SpliceBtnDisplayCommands = () => {
+    var text = CreateCurrentMappings()
+    ui.PopupMessage(text, 'Splice Shortcuts')
+}
+lockvar! SpliceBtnDisplayCommands
 
 if ! testing
     finish
@@ -803,10 +898,6 @@ var hud_args = [
     ['path',    1, ['fn6'] ],
 ]
 
-def DebugDrawHud(idx: number)
-    call(DrawHUD, [ true, hud_args[idx] ]->flattennew())
-enddef
-
 var hud_idx = 0
 
 def NextHud(forw: bool = true)
@@ -823,7 +914,7 @@ def NextHud(forw: bool = true)
     hud_idx += 1
     hud_idx %= len(hud_args)
 
-    DebugDrawHud(use_idx)
+    call(DrawHUD, [ true, hud_args[use_idx] ]->flattennew())
     return
 enddef
 
@@ -842,6 +933,8 @@ defcompile
 :1wincmd w
 new __Splice_HUD__
 wincmd J
+#nnoremap <buffer> q <ScriptCmd>Release()<CR>
+nnoremap <buffer> q :q<CR>
 NextHud()
 
 finish
@@ -898,11 +991,11 @@ if false
     echo 'actions_offset:' actions_offset  
 
     # just the offset
-    echo match(modes_diagram[1], '\v \[g\]')
-    echo match(modes_diagram[1], '\v \[c\]')
-    echo matchstrpos(modes_diagram[1], '\v \[g\]')
-    echo matchstrpos(modes_diagram[1], '\v \[c\]')
-    #echo searchpos(modes_diagram[1], '\v \[g\]')
+    echo match(modes_section[1], '\v \[g\]')
+    echo match(modes_section[1], '\v \[c\]')
+    echo matchstrpos(modes_section[1], '\v \[g\]')
+    echo matchstrpos(modes_section[1], '\v \[c\]')
+    #echo searchpos(modes_section[1], '\v \[g\]')
 
     echo command_markers[0]
     echo ruler0
@@ -922,3 +1015,4 @@ echo ruler
 var cmd_props = prop_list(1, {bufnr: hudbufnr, end_lnum: -1, types: [prop_action]})
 DumpProps(cmd_props)
 
+# vim:ts=8:sts=4:

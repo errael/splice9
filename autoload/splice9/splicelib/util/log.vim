@@ -1,14 +1,16 @@
 vim9script
 
 var standalone_exp = false
-if getcwd() =~ '^/home/err/experiment/vim' 
+if expand('<script>:p') =~ '^/home/err/experiment/vim/splice'
     standalone_exp = true
 endif
 
 if ! standalone_exp
     import autoload '../../splice.vim'
+    import autoload './ui.vim'
 else
     import './splice.vim'
+    import './ui.vim'
 endif
 
 # export Log, LogInit
@@ -67,38 +69,12 @@ const E = {
     ENOCONFLICT: ["No more conflicts"],
 }
 
-# dismiss on any key
-def FilterClose(winid: number, key: string): bool
-    popup_close(winid)
-    return true
-enddef
-
-def PopupError(msg: list<string>, other: list<any> = [])
-
-    var options = {
-        minwidth: 20,
-        tabpage: -1,
-        zindex: 300,
-        border: [],
-        padding: [1, 2, 1, 2],
-        highlight: splice.hl_alert_popup,
-        close: 'click',
-        mousemoved: 'any', moved: 'any',
-        mapping: false, filter: FilterClose
-        }
-    if len(other) > 0
-        options.title = ' ' .. other[0] .. ' '
-    endif
-
-    popup_create(msg, options)
-enddef
-
 
 export def SplicePopup(e_idx: string, ...extra: list<any>)
     var err = E[e_idx]
     var msg = call('printf', [ err[0] ] + extra)
     Log(msg)
-    PopupError([msg], err[ 1 : ])
+    ui.PopupError([msg], err[ 1 : ])
 enddef
 
 #defcompile

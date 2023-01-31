@@ -24,6 +24,7 @@ export var hl_command = 'SpliceCommand'
 export var hl_rollover = 'Pmenu'
 export var hl_active = 'Keyword'
 export var hl_alert_popup = 'Pmenu'
+export var hl_popup = 'ColorColumn'
 
 highlight SpliceCommand term=bold cterm=bold gui=bold
 highlight SpliceLabel term=underline ctermfg=6 guifg=DarkCyan

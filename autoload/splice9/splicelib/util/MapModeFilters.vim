@@ -4,11 +4,11 @@ if !has("patch-8.2.4861")
 endif
 
 var standalone_exp = false
-if getcwd() =~ '^/home/err/experiment/vim' 
+if expand('<script>:p') =~ '^/home/err/experiment/vim/splice'
     standalone_exp = true
 endif
 
-const debug_test = standalone_exp
+const debug_test = false
 
 #
 # MapModeFilter(modes, pattern, exact = true, field = lhs)
