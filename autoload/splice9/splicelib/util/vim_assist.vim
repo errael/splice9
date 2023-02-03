@@ -16,70 +16,111 @@ endif
 # Not exported
 # DictUniqueCopy, DictUnique
 
-
+# TODO: enter return is passed to exit by With.
+#       Necessary? Could just have member variable if needed,
+#       and pass BaseEE to the user function.
 export class BaseEE
-    def Enter(): any
-        return null
+    def Enter(): void
     enddef
-    def Exit(resource: any): void
+    def Exit(): void
     enddef
 endclass
 
+# For now (vim9 issue), must use Child class directly, see below
+#export def With(ee: BaseEE, F: func)
+#    var r = ee.Enter()
+#    defer ee.Exit(r)
+#    F(r)
+#enddef
+
 export class ModifiableEE extends BaseEE
     this._bnr: number
-    this._prevId = -1
-    this._restore: bool
+    this._is_modifiable: bool
+
     def new(this._bnr)
         #echo 'ModifiableEE: new(arg):' this._bnr
     enddef
 
-    def Enter(): number
+    def Enter()
+        this._is_modifiable = getbufvar(this._bnr, '&modifiable')
         #echo 'ModifiableEE: Enter:' this._bnr
-        # first find a window that holds this buffer, prefer current window
-        var curId = win_getid()
-        var wins = win_findbuf(this._bnr)
-        if wins->len() < 1
-            throw "ModifiableEE: buffer not in a window"
-        endif
-        var idx = wins->index(curId)
-        if idx < 0
-            # need to switch windows
-            #echo 'ModifiableEE: SWITCHING WINDOWS'
-            this._prevId = curId
-            if ! win_gotoid(wins[0])
-                throw "ModifiableEE: win_gotoid failed"
-            endif
-        endif
-        if ! &modifiable
+        if ! this._is_modifiable
             #echo 'ModifiableEE: TURNING MODIFIABLE ON'
-            &modifiable = true
-            this._restore = true
+            setbufvar(this._bnr, '&modifiable', true)
         endif
-        return this._bnr
     enddef
 
-    def Exit(resource: number): void
+    def Exit(): void
         #echo 'ModifiableEE: Exit'
-        if this._restore
+        if ! this._is_modifiable
             #echo 'ModifiableEE: RESTORING MODIFIABLE OFF'
-            &modifiable = false
+            setbufvar(this._bnr, '&modifiable', false)
         endif
-        if this._prevId < 0
-            #echo 'ModifiableEE: Exit: same window'
-            return
-        endif
-        if ! win_gotoid(this._prevId)
-            throw "ModifiableEE:Exit: win_gotoid failed"
-        endif
-        #echo 'ModifiableEE: Exit: restored window:' this._prevId
+        #echo 'ModifiableEE: Exit: restored window:'
     enddef
 endclass
 
+# For now, must use Child class directly
+# TODO: test how F can cast ee to the right thing
 export def With(ee: ModifiableEE, F: func)
-    var r = ee.Enter()
-    defer ee.Exit(r)
-    F(r)
+    ee.Enter()
+    defer ee.Exit()
+    F(ee)
 enddef
+
+# The following saves/restores focused window
+# to get the specified buffer current,
+# it also does modifiable juggling.
+# Not needed since can use [gs]etbufvar.
+#class ModifiableEEXXX extends BaseEE
+#    this._bnr: number
+#    this._prevId = -1
+#    this._restore: bool
+#    def new(this._bnr)
+#        #echo 'ModifiableEE: new(arg):' this._bnr
+#    enddef
+#
+#    def Enter(): number
+#        #echo 'ModifiableEE: Enter:' this._bnr
+#        # first find a window that holds this buffer, prefer current window
+#        var curId = win_getid()
+#        var wins = win_findbuf(this._bnr)
+#        if wins->len() < 1
+#            throw "ModifiableEE: buffer not in a window"
+#        endif
+#        var idx = wins->index(curId)
+#        if idx < 0
+#            # need to switch windows
+#            #echo 'ModifiableEE: SWITCHING WINDOWS'
+#            this._prevId = curId
+#            if ! win_gotoid(wins[0])
+#                throw "ModifiableEE: win_gotoid failed"
+#            endif
+#        endif
+#        if ! &modifiable
+#            #echo 'ModifiableEE: TURNING MODIFIABLE ON'
+#            &modifiable = true
+#            this._restore = true
+#        endif
+#        return this._bnr
+#    enddef
+#
+#    def Exit(resource: number): void
+#        #echo 'ModifiableEE: Exit'
+#        if this._restore
+#            #echo 'ModifiableEE: RESTORING MODIFIABLE OFF'
+#            &modifiable = false
+#        endif
+#        if this._prevId < 0
+#            #echo 'ModifiableEE: Exit: same window'
+#            return
+#        endif
+#        if ! win_gotoid(this._prevId)
+#            throw "ModifiableEE:Exit: win_gotoid failed"
+#        endif
+#        #echo 'ModifiableEE: Exit: restored window:' this._prevId
+#    enddef
+#endclass
 
 
 # Remove the common key/val from each dict.
@@ -354,3 +395,4 @@ enddef
 #    return quot ? "'" .. out .. "'" : out
 #enddef
 
+# vim:ts=8:sts=4:
