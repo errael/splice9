@@ -5,6 +5,8 @@ if expand('<script>:p') =~ '^/home/err/experiment/vim/splice'
     standalone_exp = true
 endif
 
+var testing = standalone_exp
+
 # NOTE: simplification/rewrite when vim9 classes. "class Mode"
 #   TODO:   HUD query what commands are allowed
 #           current mode, 
@@ -14,8 +16,7 @@ endif
 # TODO: o, r, 1, 2 are not always valid, maybe grey when not valid
 # TODO: other items might be subject to greying out,
 # TODO: for example, diffs may not be valid in loupe mode.
-
-var testing = standalone_exp
+# TODO: in layout diagram, highlight which files are part of diff
 
 var hl_label: string
 var hl_sep: string
@@ -96,8 +97,13 @@ var layout_offset: number
 var actions_offset: number
 
 # actions is the locations of actions/commands in the HUD
-# actions[name] = [ lnum, col0, col1 ]
+# actions[name] = [ lnum, col0, col1, id ]
+# id is used for prop_add
 var actions: dict<list<number>>
+# actions_ids[id] === actions[actions_ids[id]][3]
+# which lets found property map to action name
+var actions_ids: dict<string>
+var actions_id_next = 1
 var base_actions: dict<list<number>>
 var hunk_action1: dict<list<number>>
 var hunk_action2: dict<list<number>>
@@ -156,10 +162,11 @@ augroup hud
 augroup END
 
 
-def ExecuteCommand(cmd: string)
+def ExecuteCommand(cmd: string, id: number)
     if testing
         RestoreWinPos()
-        echo 'Execute: ' .. cmd
+        #echo printf('Execute: %s %d %s', cmd, id, actions_ids[id])
+        echo printf('Execute: %s', cmd)
         if special_cmds->index(cmd) >= 0
             execute 'Splice' .. cmd .. '()'
         endif
@@ -237,9 +244,6 @@ command_display->insert(label_commands)->Pad()
 lockvar! command_display
 lockvar! command_markers
 lockvar! command_actions
-
-# The hunks are dynamically selected based on mode
-const hunks = [ ' u: use hunk', 'u1: use hunk', 'u2:  hunk2  ' ]
 
 ################################################################
 #
@@ -368,6 +372,14 @@ def FindMaxLayoutWidth()
     lockvar layout_width
 enddef
 
+# Allocate and return the id associated with the action command
+def AddActionPropId(actKey: string): number
+    var id = actions_id_next
+    actions_id_next += 1
+    actions_ids[id] = actKey
+    return id
+enddef
+
 # 1 - Extract displayed command names
 # 2 - Create actions button parameters for highlight/rollover text properties.
 # actions['Action'] = [line, start, end]. Action like 'Grid'/'Next'/'Quit'
@@ -398,7 +410,8 @@ def BuildBaseActions(): dict<list<number>>
             # Add one to make the column values 1 based.
             t_actions[actKey] = [ line,
                 actions_offset + result[1] + 1,
-                actions_offset + result[2] + 1]
+                actions_offset + result[2] + 1,
+                AddActionPropId(actKey) ]
 
             start = result[2]
             cmd_idx += 1
@@ -413,7 +426,7 @@ def BuildBaseActions(): dict<list<number>>
         var [lino, col] = [ v.m_line, v.m_col ]
         # +1 makes it 1 based, +1 to skip activation position
         col += 2
-        t_actions[actKey] = [ lino, col, col + v.m_len ]
+        t_actions[actKey] = [ lino, col, col + v.m_len, AddActionPropId(actKey) ]
         command_display_names[actKey] = k
     endfor
 
@@ -478,10 +491,10 @@ def AddHeaderProps(d: dict<any> = null_dict)
     did_action_props = true
 enddef
 
-# DoInit_1 doesn't depend on hudbufnr.
+# StartupInit doesn't depend on hudbufnr.
 # This is only done once during startup
 var did_init_1 = false
-def DoInit_1()
+def StartupInit()
     if did_init_1 | return | endif
     FindMaxLayoutWidth()
 
@@ -494,9 +507,11 @@ def DoInit_1()
 
     # The UseHunk1 location is also used for UseHunk
     # Remove any UseHunk from base actions
+    # dicts: one for UsingHunk[12] and one for UseHunk
     var tmp = base_actions->remove(u_h1)
     hunk_action2[u_h1] = tmp
-    hunk_action1[u_h] = tmp
+    hunk_action1[u_h] = tmp->copy()
+    hunk_action1[u_h][3] = AddActionPropId(u_h)
 
     tmp = base_actions->remove(u_h2)
     hunk_action2[u_h2] = tmp
@@ -506,22 +521,22 @@ def DoInit_1()
 
     # add some special commands
     base_actions[btn_display_commands] = [ 1,
-        actions_offset + 1, actions_offset + 1 + label_commands->len() ]
+        actions_offset + 1,
+        actions_offset + 1 + label_commands->len(),
+        AddActionPropId(btn_display_commands) ]
 
     lockvar! base_actions
     lockvar! hunk_action2
     lockvar! hunk_action1
     lockvar! command_display_names
-    #echo string(base_actions)
-    #echo string(hunk_action2)
-    #echo string(hunk_action1)
+    lockvar! actions_ids
 
     did_init_1 = true
 enddef
 
 ################################################################
 #
-# create the HUD, recreated for each state change
+# create the HUD, recreated for each major state change
 #
 
 # Add the action textprop to each command in HUD.
@@ -529,8 +544,9 @@ def HighlightActions(bnr: number)
     var props = {type: prop_action, bufnr: bnr, all: true}
     prop_remove(props)
 
-    for [ line, start, end ] in actions->values()
+    for [ line, start, end, id ] in actions->values()
         props.end_col = end
+        props.id = id
         prop_add(line, start, props)
     endfor
 enddef
@@ -633,114 +649,36 @@ enddef
 
 ################################################################
 #
-# Mouse rollover/click
-#
-
-# An actions item.
-var current_hud_rollover = null_list
-
-# NOTE: if return needs to differentiate wrong window
-#       then could return null vs []
-# NOTE: <buffer> <LeftRelease> works, but <buffer> <MouseMove>
-#        doesn't work, so must do bnr != hudbufnr
-
-# Return null or item from actions dictionary.
-# Could do a binary search within each line,
-# or modify prop_find to add an "exact" with lnum/col
-# or do a builtin prop_at({lnum},{col}).
-def GetHudItemUnderMouse(mpos: dict<number>): list<any>
-    if winbufnr(mpos.winid) != hudbufnr
-        return null_list
-    endif
-
-    var mpos_line = mpos.line
-    var mpos_col = mpos.column
-
-    # check if mouse in current rollover
-    if current_hud_rollover != null
-        var [ i_line, i_start, i_end ] = current_hud_rollover[1]
-        if mpos_line == i_line && mpos_col >= i_start && mpos_col < i_end
-            return current_hud_rollover
-        endif
-    endif
-
-    # search for action containing mouse pos
-    for item in actions->items()
-        var [ i_line, i_start, i_end ] = item[1]
-        if mpos_line == i_line && mpos_col >= i_start && mpos_col < i_end
-            return item
-        endif
-    endfor
-    return null_list
-enddef
-
-# Mouse button, look for command action.
-def Release()
-    var item = getmousepos()->GetHudItemUnderMouse()
-    #echomsg string(item) ####################################
-    if item != null
-        ExecuteCommand(item[0])
-    else
-        # Click in hud that's not a command. Forget last position
-        ClearWinPos()
-    endif
-enddef
-
-# Mouse move, handle command button rollover
-def Move()
-    var item = getmousepos()->GetHudItemUnderMouse()
-    if current_hud_rollover != null
-        if current_hud_rollover is item
-            # echo 'cache hit:' item
-            return
-        else
-            prop_remove({type: prop_rollover, bufnr: hudbufnr, all: true},
-                current_hud_rollover[1][0])
-            current_hud_rollover = null_list
-        endif
-    endif
-    if item != null
-        var [ line, start, end ] = item[1]
-        prop_add(line, start,
-            {end_col: end, type: prop_rollover, bufnr: hudbufnr, all: true})
-        current_hud_rollover = item
-    endif
-enddef
-
-# This is only for after replacing the hud lines with new hud lines
-def RefreshMouseCache()
-    current_hud_rollover = null_list
-    Move()
-enddef
-
-################################################################
-#
 # Main
 #
 
-var created_hud: list<number>
-
 var hudbufnr: number = -1
 
-def InitHudBuffer()
-    &swapfile = false
-    &modifiable = false
-    &buflisted = false
-    &buftype = 'nofile'
-    &undofile = false
-    &list = false
-    &filetype = 'splice'
-    &wrap = false
-    resize 3
-    &winfixheight = true
-    wincmd =
+def LogDrawHUD(mode: string, layout: number,
+    vari_files: list<string>, bnr: number)
+    Log(printf("DrawHUD: mode: '%s', layout %d, vari_files %s, bnr %d",
+        mode, layout, vari_files, bnr))
 enddef
 
+#
+# This is invoked when the HUD is the current buffer
+#
+export def DrawHUD(use_vim: bool, mode: string, layout: number,
+        ...vari_files: list<string>)
+    var b = bufnr()
+    LogDrawHUD(mode, layout, vari_files, b)
+
+    if hudbufnr >= 0 && hudbufnr != b
+        throw 'HUD buffer mismatch'
+    endif
+
+    InstallHUD(mode, layout, bufnr(), vari_files)
+enddef
 
 # vari_files replace X+, Y+ in layout diagram
 def InstallHUD(mode: string, layout: number, bnr: number,
         vari_files: list<string>)
-    DoInit_1()
+    StartupInit() # Does stuff first time called
 
     InitHudBuffer()
     var hud = BuildHud(mode, layout, vari_files)
@@ -757,36 +695,26 @@ def InstallHUD(mode: string, layout: number, bnr: number,
     &modifiable = false
 
     hudbufnr = bnr
-    DoInit_2(mode, bnr)
+    HudActionsPropertiesAndHighlights(mode, bnr)
     RefreshMouseCache()
 enddef
 
-def LogDrawHUD(mode: string, layout: number,
-    vari_files: list<string>, bnr: number)
-    Log(printf("DrawHUD: mode: '%s', layout %d, vari_files %s, bnr %d",
-        mode, layout, vari_files, bnr))
+def InitHudBuffer()
+    &swapfile = false
+    &modifiable = false
+    &buflisted = false
+    &buftype = 'nofile'
+    &undofile = false
+    &list = false
+    # TODO: get rid of splice filetype
+    &filetype = 'splice'
+    &wrap = false
+    resize 3
+    &winfixheight = true
+    wincmd =
 enddef
 
-#
-# This is invoked from python when the HUD is the current buffer
-#
-export def DrawHUD(use_vim: bool, mode: string, layout: number,
-        ...vari_files: list<string>)
-    var b = bufnr()
-    LogDrawHUD(mode, layout, vari_files, b)
-
-    if hudbufnr >= 0 && hudbufnr != b
-        throw 'HUD buffer mismatch'
-    endif
-
-    InstallHUD(mode, layout, bufnr(), vari_files)
-enddef
-
-export def AnyThing()
-    Log('THIS IS FROM AnyThing IN HUD.VIM')
-enddef
-
-def DoInit_2(mode: string, bnr: number)
+def HudActionsPropertiesAndHighlights(mode: string, bnr: number)
     unlockvar! actions
     actions = base_actions->copy()
     if mode == 'grid'
@@ -811,10 +739,6 @@ def DoInit_2(mode: string, bnr: number)
     HighlightLabels(bnr)
     HighlightMode(mode, bnr)
 
-    #for s in CreateCurrentMappings()
-    #    echo s
-    #endfor
-
     # only map click release in hud
     nnoremap <buffer><special> <LeftRelease> <ScriptCmd>Release()<CR>
 
@@ -823,7 +747,87 @@ def DoInit_2(mode: string, bnr: number)
     nnoremap <special> <MouseMove> <ScriptCmd>Move()<CR>
 enddef
 
-# for popup
+export def AnyThing()
+    Log('THIS IS FROM AnyThing IN HUD.VIM')
+enddef
+
+################################################################
+#
+# Mouse rollover/click
+# Interactive
+#
+
+# The action name currently highlighted.
+var current_hud_rollover = null_string
+
+# NOTE: if return needs to differentiate wrong window
+#       then could return null vs []
+# NOTE: <buffer> <LeftRelease> works, but <buffer> <MouseMove>
+#        doesn't work, so must do bnr != hudbufnr
+
+# Return null or action command name
+def GetActionUnderMouse(mpos: dict<number>): string
+    var mpos_line = mpos.line
+    if winbufnr(mpos.winid) != hudbufnr || mpos.line == 0
+        return null_string
+    endif
+    var mpos_col = mpos.column
+
+    # prop_find never has to look far in the HUD; always fast in this situation.
+    var prop = prop_find({type: prop_action, bufnr: hudbufnr,
+        lnum: mpos_line, col: mpos_col})
+
+    var actKey = null_string
+    if prop->has_key('id')
+        # check if prop covers the mouse, optim since started search at col
+        if mpos_line == prop.lnum && mpos_col >= prop.col
+            actKey = actions_ids[prop.id]
+        endif
+    endif
+
+    return actKey
+enddef
+
+# Mouse click, execute action
+def Release()
+    var actKey = getmousepos()->GetActionUnderMouse()
+    #echomsg string(item) ####################################
+    if actKey != null
+        ExecuteCommand(actKey, 0)
+    else
+        # Click in hud that's not a command. Forget last position
+        ClearWinPos()
+    endif
+enddef
+
+# Mouse move, handle command button rollover
+def Move()
+    var actKey = getmousepos()->GetActionUnderMouse()
+    if current_hud_rollover != null
+        if current_hud_rollover == actKey
+            # echo 'cache hit:' item
+            return
+        else
+            prop_remove({type: prop_rollover, bufnr: hudbufnr, all: true},
+                actions[current_hud_rollover][0])
+            current_hud_rollover = null_string
+        endif
+    endif
+    if actKey != null
+        var [ line, start, end; rest ] = actions[actKey]
+        prop_add(line, start,
+            {end_col: end, type: prop_rollover, bufnr: hudbufnr})
+        current_hud_rollover = actKey
+    endif
+enddef
+
+# This is only for after replacing the hud lines with new hud lines
+def RefreshMouseCache()
+    current_hud_rollover = null_string
+    Move()
+enddef
+
+# for displaying mappings in a popup
 export def CreateCurrentMappings(): list<string>
     # create a separate list for each column
     var act_keys: list<string>
@@ -908,7 +912,6 @@ def NextHud(forw: bool = true)
         if hud_idx < 0
             hud_idx += len(hud_args)
         endif
-        echom 'hud_idx:' hud_idx
         use_idx = hud_idx
     endif
     hud_idx += 1
@@ -919,23 +922,34 @@ def NextHud(forw: bool = true)
 enddef
 
 command! -nargs=0 NN {
+    var w = win_getid()
     win_gotoid(bufwinid(hudbufnr))
     NextHud()
+    w->win_gotoid()
 }
 
 command! -nargs=0 BB {
+    var w = win_getid()
     win_gotoid(bufwinid(hudbufnr))
     NextHud(false)
+    w->win_gotoid()
 }
 
 defcompile
 
-:1wincmd w
-new __Splice_HUD__
-wincmd J
-#nnoremap <buffer> q <ScriptCmd>Release()<CR>
-nnoremap <buffer> q :q<CR>
-NextHud()
+def StartupDebug()
+    var w = win_getid()
+    :1wincmd w
+    new __Splice_HUD__
+    wincmd J
+    #nnoremap <buffer> q <ScriptCmd>Release()<CR>
+    nnoremap <buffer> q :q<CR>
+    NextHud()
+    w->win_gotoid()
+enddef
+
+StartupDebug()
+
 
 finish
 
