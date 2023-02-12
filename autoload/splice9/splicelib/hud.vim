@@ -18,6 +18,8 @@ var testing = standalone_exp
 # TODO: for example, diffs may not be valid in loupe mode.
 # TODO: in layout diagram, highlight which files are part of diff
 
+export const hud_name = '__Splice_HUD__'
+
 var hl_label: string
 var hl_sep: string
 var hl_command: string
@@ -71,7 +73,8 @@ if exists('&mousemoveevent')
 endif
 
 const With = vim_assist.With
-const ModifiableEE  = vim_assist.ModifiableEE 
+const ModifyBufEE  = vim_assist.ModifyBufEE 
+const KeepWindowEE  = vim_assist.KeepWindowEE 
 const Pad = vim_assist.Pad
 const Replace = vim_assist.Replace
 const ReplaceBuf = vim_assist.ReplaceBuf
@@ -604,7 +607,7 @@ def BuildLayoutDiagram(mode: string, layout: number,
                 t = substitute(t, '\v\CY+', vari_files[1], '')
             endif
             return t
-            })
+        })
     endif
 
     # get the width after subsitution
@@ -665,23 +668,26 @@ enddef
 #
 export def DrawHUD(use_vim: bool, mode: string, layout: number,
         ...vari_files: list<string>)
-    var b = bufnr()
-    LogDrawHUD(mode, layout, vari_files, b)
 
-    if hudbufnr >= 0 && hudbufnr != b
-        throw 'HUD buffer mismatch'
+    var bnr = bufnr(hud_name)
+    LogDrawHUD(mode, layout, vari_files, bnr)
+
+    if bnr < 0
+        throw 'HUD buffer not found'
     endif
 
-    InstallHUD(mode, layout, bufnr(), vari_files)
-enddef
+    if hudbufnr < 0
+        hudbufnr = bnr
+    endif
 
-# vari_files replace X+, Y+ in layout diagram
-def InstallHUD(mode: string, layout: number, bnr: number,
-        vari_files: list<string>)
+    if hudbufnr != bnr
+        throw 'HUD buffer changed'
+    endif
+
     StartupInit() # Does stuff first time called
 
     InitHudBuffer()
-    var hud = BuildHud(mode, layout, vari_files)
+    var hud_lines = BuildHud(mode, layout, vari_files)
 
     #...
 
@@ -691,10 +697,9 @@ def InstallHUD(mode: string, layout: number, bnr: number,
 
     &modifiable = true
     #deletebufline('', 1, '$')
-    setline(1, hud)
+    setline(1, hud_lines)
     &modifiable = false
 
-    hudbufnr = bnr
     HudActionsPropertiesAndHighlights(mode, bnr)
     RefreshMouseCache()
 enddef
@@ -722,7 +727,7 @@ def HudActionsPropertiesAndHighlights(mode: string, bnr: number)
     else
         # not Grid, UseHunk replace UseHunk1, erase UseHunk2
         actions->extend(hunk_action1)
-        With(ModifiableEE.new(bnr), (arg) => {
+        With(ModifyBufEE.new(bnr), (arg) => {
             var tmp = hunk_action2[u_h1]
             ReplaceBuf(bnr, tmp[0], tmp[1], u_h_name)
             tmp = hunk_action2[u_h2]
@@ -938,14 +943,14 @@ command! -nargs=0 BB {
 defcompile
 
 def StartupDebug()
-    var w = win_getid()
-    :1wincmd w
-    new __Splice_HUD__
-    wincmd J
-    #nnoremap <buffer> q <ScriptCmd>Release()<CR>
-    nnoremap <buffer> q :q<CR>
-    NextHud()
-    w->win_gotoid()
+    With(KeepWindowEE.new(), (arg) => {
+        :1wincmd w
+        execute('new ' .. hud_name)
+        wincmd J
+        #nnoremap <buffer> q <ScriptCmd>Release()<CR>
+        nnoremap <buffer> q :q<CR>
+        NextHud()
+    })
 enddef
 
 StartupDebug()
