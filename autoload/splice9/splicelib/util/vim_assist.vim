@@ -5,6 +5,8 @@ if expand('<script>:p') =~ '^/home/err/experiment/vim/splice'
     standalone_exp = true
 endif
 
+var testing = false
+
 # export Set, PutIfAbsent, Keys2str,
 # Pad, PropRemoveIds
 # FindInList, FetchFromList
@@ -12,61 +14,97 @@ endif
 # Replace, ReplaceBuf
 # ##### HexString
 # With(EE,func), ModifiableEE(bnr)
+# IsSameType
 
 # Not exported
 # DictUniqueCopy, DictUnique
 
-# TODO: enter return is passed to exit by With.
+export def IsSameType(o: any, type: string): bool
+    return type(o) == v:t_object && type == typename(o)[7 : -2]
+    #return type(o) == v:t_object && type == string(o)->split()[2]
+enddef
+
+# TODO: enter return is passed to exit by With?
+#
 #       Necessary? Could just have member variable if needed,
 #       and pass BaseEE to the user function.
-export class BaseEE
+# Note that Enter can be empty, and all the "Enter" work done in constructor.
+#
+export interface BaseEE
     def Enter(): void
-    enddef
     def Exit(): void
-    enddef
-endclass
+endinterface
 
-# For now (vim9 issue), must use Child class directly, see below
-#export def With(ee: BaseEE, F: func)
-#    var r = ee.Enter()
-#    defer ee.Exit(r)
-#    F(r)
-#enddef
+# TODO: test how F can declare/cast ee to the right thing
+#
+# It's possible, but can be tricky, to reuse a BaseEE object,
+# recursion is an issue, best to avoid, but for example:
+#       var ee = ChildBaseEE.new() # has Setup(args) returns this
+#       With(ee.Setup(args), F)
+#
+export def With(ee: BaseEE, F: func)
+    ee.Enter()
+    defer ee.Exit()
+    F(ee)
+enddef
 
-export class ModifiableEE extends BaseEE
+# Save/restore '&modifiable' if needed
+export class ModifyBufEE implements BaseEE
     this._bnr: number
     this._is_modifiable: bool
 
     def new(this._bnr)
-        #echo 'ModifiableEE: new(arg):' this._bnr
+        #echo 'ModifyBufEE: new(arg):' this._bnr
     enddef
+
+    # if want to reuse object, but no recursion
+    ### #def Setup(a_bnr: number): ModifyBufEE
+    ### def Setup(a_bnr: number): BaseEE
+    ###     this._bnr = a_bnr
+    ###     return this
+    ### enddef
 
     def Enter()
         this._is_modifiable = getbufvar(this._bnr, '&modifiable')
-        #echo 'ModifiableEE: Enter:' this._bnr
+        #echo 'ModifyBufEE: Enter:' this._bnr
         if ! this._is_modifiable
-            #echo 'ModifiableEE: TURNING MODIFIABLE ON'
+            #echo 'ModifyBufEE: TURNING MODIFIABLE ON'
             setbufvar(this._bnr, '&modifiable', true)
         endif
     enddef
 
     def Exit(): void
-        #echo 'ModifiableEE: Exit'
+        #echo 'ModifyBufEE: Exit'
         if ! this._is_modifiable
-            #echo 'ModifiableEE: RESTORING MODIFIABLE OFF'
+            #echo 'ModifyBufEE: RESTORING MODIFIABLE OFF'
             setbufvar(this._bnr, '&modifiable', false)
         endif
-        #echo 'ModifiableEE: Exit: restored window:'
+        #echo 'ModifyBufEE: Exit: restored window:'
     enddef
 endclass
 
-# For now, must use Child class directly
-# TODO: test how F can cast ee to the right thing
-export def With(ee: ModifiableEE, F: func)
-    ee.Enter()
-    defer ee.Exit()
-    F(ee)
-enddef
+# Keep window, topline, cursor as possible
+export class KeepWindowEE implements BaseEE
+    this._w: dict<any>
+    this._pos: list<number>
+
+    def new()
+        this._w = win_getid()->getwininfo()[0]
+        this._pos = getpos('.')
+    enddef
+
+    def Enter(): void
+    enddef
+
+    def Exit(): void
+        this._w.winid->win_gotoid()
+        if setpos('.', [0, this._w.topline, 0, 0]) == 0
+            execute("normal z\r")
+            setpos('.', this._pos)
+        endif
+        #execute('normal z.')
+    enddef
+endclass
 
 # The following saves/restores focused window
 # to get the specified buffer current,
@@ -166,22 +204,23 @@ enddef
 # NOTE: setbufline looses text properties.
 
 
-# Overwrite characters in a buffer, if doesn't fit print error, do nothing.
+# Overwrite characters in a buffer, if doesn't fit print error and do nothing.
 # NOTE: col starts at 1
 export def ReplaceBuf(bnr: number, lino: number,
         col: number, newtext: string)
+    if bnr != bufnr()
+        echoerr printf('ReplaceBuf(%d): different buffer: curbuf %d', bnr, bufnr())
+        return
+    endif
     if col - 1 + len(newtext) > len(getbufoneline(bnr, lino))
-            echoerr 'ReplaceBuf: past end' bnr lino col newtext
+            echoerr printf(
+                "ReplaceBuf: past end: bnr %d, lino %d '%s', col %d '%s'",
+                bnr, lino, getbufoneline(bnr, lino), col, newtext)
             return
     endif
     setpos('.', [bnr, lino, col, 0])
     execute('normal R' .. newtext)
 enddef
-#export def ReplaceBuf(bnr: number, lino: number,
-#        pos1: number, pos2: number, newtext: string)
-#    getbufline(bnr, lino)[0]
-#        ->Replace(pos1, pos2, newtext)->setbufline(bnr, lino)
-#enddef
 
 # https://github.com/vim/vim/issues/10022
 export def EQ(lhs: any, rhs: any): bool
@@ -394,5 +433,43 @@ enddef
 #    endfor
 #    return quot ? "'" .. out .. "'" : out
 #enddef
+
+if  !testing
+    finish
+endif
+
+############################################################################
+############################################################################
+############################################################################
+
+# With these 3 lines in a buffer (starting with 0) source this from that buffer
+# -->12345678
+# -->12345678
+# -->12345678
+# -->12345678
+
+def RepStr(inp: string, col: number, repStr: string)
+    var rv = Replace(inp, col, repStr)
+    echo printf("col %d '%s', '%s' --> '%s'", col, repStr, inp, rv)
+enddef
+
+def T1()
+    var inp = '12345678'
+    RepStr(inp, 3, 'foo')
+    RepStr(inp, 5, 'foo')
+    RepStr(inp, 6, 'foo') # one char too many
+enddef
+
+def T2()
+    ReplaceBuf(bufnr(), 1, 3, 'foo') # somewhere in the middle
+    ReplaceBuf(bufnr(), 2, 6, 'foo') # fits, to end of line
+    ReplaceBuf(bufnr(), 3, 7, 'foo') # overlaps end of line
+    ReplaceBuf(bufnr(), 3, 6, 'X')
+    ReplaceBuf(bufnr(), 3, 6, 'Z')
+    ReplaceBuf(bufnr(), 3, 0, 'Y') # there is no column 0, ends up at 1
+
+enddef
+
+T1()
 
 # vim:ts=8:sts=4:
