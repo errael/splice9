@@ -24,32 +24,98 @@ endif
 # NOTE: the log file is never trunctated, persists, grows without limit
 #
 
-#
-# global for simple access from python
-# TODO: AddExclude/AddInclude methods then these can forward to python
-#       and won't need global
-#
-g:splice_logging_exclude = [ 'focus' ]
+g:splice_logging_exclude = [ 'focus', 'result' ]
+#g:splice_logging_exclude = []
 
 var fname: string
 var logging_enabled: bool = false
+
+# TODO: popup
+def Logging_problem(s: string)
+    echomsg expand("<stack>")
+    echomsg s
+enddef
+
 #
-# Invoked as either Log(msg) or Log(category, msg).
+# Invoked as either
+#       - Log(msg)
+#       - Log(func(): string)
+#       - Log(category, msg)
+#       - Log(category, func(): string)
 # Check to see if category should be logged.
+# NOTE: category is checked with ignore case
 #
-export def Log(arg1: string, arg2: string = null_string)
+export def Log(...args: list<any>)
     if ! logging_enabled
         return
     endif
-    # typical case one arg; arg1 is msg
-    var msg = arg1
-    var category: string = null_string
-    if arg2 != null
-        category = arg1
-        msg = arg2
+    var len = args->len()
+    if len < 1 || len > 2
+        Logging_problem(printf("LOGGING ARGS PROBLEM (PLEASE REPORT): %s.", args))
+        return
+    endif
+    var category: any
+    var MsgOrFunc: any
+    if len == 1
+        category = ''
+        MsgOrFunc = args[0]
+    else
+        [ category, MsgOrFunc ] = args
+        if type(category) != v:t_string
+            Logging_problem(printf("LOGGING CATEGORY PROBLEM (PLEASE REPORT): %s.", category))
+            category = ''
+        endif
+    endif
+    if g:splice_logging_exclude->index(category, 0, true) >= 0
+        return
+    endif
+    var msg_type = type(MsgOrFunc)
+    var msg: string
+    if msg_type == v:t_string 
+        msg = MsgOrFunc
+    elseif msg_type == v:t_func
+        try
+            msg = MsgOrFunc()
+        catch /.*/
+            Logging_problem(printf("LOGGING ARG FUNC PROBLEM (PLEASE REPORT): %s.", args))
+            return
+        endtry
+    else
+            Logging_problem(printf("LOGGING ARG TYPE PROBLEM (PLEASE REPORT): %s.", args))
+            return
     endif
 
+    if !!category
+        category = category->toupper() .. ': '
+    endif
+
+    msg = category .. msg
+
     writefile([ msg ], fname, 'a')
+enddef
+### #
+### # Invoked as either Log(msg) or Log(category, msg).
+### # Check to see if category should be logged.
+### #
+### export def Log(arg1: string, arg2: string = null_string)
+###     if ! logging_enabled
+###         return
+###     endif
+###     # typical case one arg; arg1 is msg
+###     var msg = arg1
+###     if arg2 != null
+###         # category is arg1
+###         if g:splice_logging_exclude->index(arg1) >= 0
+###             return
+###         endif
+###         msg = arg2
+###     endif
+### 
+###     writefile([ msg ], fname, 'a')
+### enddef
+
+export def LogStack(tag: string = '')
+    Log(tag .. ': ' .. expand('<stack>'))
 enddef
 
 var log_init = false

@@ -6,13 +6,15 @@ vim9script
 # License:     MIT X11
 # ============================================================================
 
-import autoload './splicelib/util/keys.vim' as keys_oops
+# import keys.vim, without "as", causes keys() usage to get an error
+import autoload './splicelib/util/keys.vim' as i_keys
 import autoload './splicelib/util/log.vim'
 import autoload './splicelib/util/search.vim'
 import autoload './splicelib/util/vim_assist.vim'
 import autoload './splicelib/hud.vim'
+import autoload './splicelib/init.vim'
+import autoload './splicelib/settings.vim'
 
-var PutIfAbsent = vim_assist.PutIfAbsent
 var Log = log.Log
 
 #
@@ -191,101 +193,6 @@ def UserConfigError(msg: list<string>)
     #setbufline(bufnr, 2, "HOW COOL")
 enddef
 
-# Assume VAL already quoted by string() method.
-var bad_var_template =<< trim END
-    For 'GLOB', value 'VAL' not allowed.
-        Must be OKVALS.
-END
-
-def BadVarMsg(glob: string, val: string, okvals: string): list<string>
-    var s1 = bad_var_template[0]->substitute('\CGLOB', glob, '')
-    s1 = s1->substitute('\CVAL', val, '')
-    return [ '', s1, bad_var_template[1]->substitute('\COKVALS', okvals, '') ]
-enddef
-
-# ToString, call string() on arg, unless arg is string. Avoids extra '.
-def TS(a: any): any
-    if type(a) == v:t_string | return a | endif
-    return string(a)
-enddef
-
-# return like: 'a', 'b', 'c'
-def QuoteList(slist: list<any>): string
-    return slist->mapnew((_, v) => string(v))->join(", ")
-enddef
-
-# Return true if use setting is ok, otherwise add errormsg to startup_error_msgs.
-# 
-# If a problem, the setting is assigned the default value.
-#
-# If the call wan't some additional message massaging, One way
-# is to use the GetDefault() to put in a tag and edit it.
-def CheckOneOfSetting(setting: string, ok: list<any>, default: any): bool
-    #log.Log('checking: ' .. string(setting) .. " " .. string(ok) .. " " ..  string(GetDefault))
-    var msg = []
-    var val = g:->get(setting, null)
-    if val != null && ok->index(val) == -1
-        msg = BadVarMsg('g:' .. setting, TS(val),
-            "one of " .. QuoteList(ok))
-        if default != null
-            msg->add("    Using: " .. default)
-            g:[setting] = default
-        endif
-        startup_error_msgs->extend(msg)
-        return false
-    endif
-    return true
-enddef
-
-# Configuration variables
-
-
-# TODO:
-# Rather than having defaults in vim global space,
-# may want to set up default in one place, then use a
-# separate dictionary just for python. Not worth the bother
-# since Splice *owns* vim when it runs, no problem polluting g:.
-
-# { setting-name: [ [ ok_values... ], default_val ]
-# NOTE: 'splice_wrap' default val is computed based on '&wrap'
-var setting_info = {
-    splice_disable:                    [ [ 0, 1, false, true ], false ],
-    splice_initial_mode:
-        [ [ 'grid', 'loupe', 'compare', 'path' ], 'grid' ],
-
-    splice_initial_layout_grid:        [ [ 0, 1, 2 ], 0 ],
-    splice_initial_layout_loupe:       [ [ 0 ],       0 ],
-    splice_initial_layout_compare:     [ [ 0, 1 ],    0 ],
-    splice_initial_layout_path:        [ [ 0, 1 ],    0 ],
-
-    splice_initial_diff_grid:          [ [ 0, 1 ],          0 ],
-    splice_initial_diff_loupe:         [ [ 0 ],             0 ],
-    splice_initial_diff_compare:       [ [ 0, 1 ],          0 ],
-    splice_initial_diff_path:          [ [ 0, 1, 2, 3, 4 ], 0 ],
-
-    splice_initial_scrollbind_grid:    [ [ 0, 1, false, true ], false ],
-    splice_initial_scrollbind_loupe:   [ [ 0, 1, false, true ], false ],
-    splice_initial_scrollbind_compare: [ [ 0, 1, false, true ], false ],
-    splice_initial_scrollbind_path:    [ [ 0, 1, false, true ], false ],
-
-    splice_wrap:                       [ [ 'wrap', 'nowrap' ], '' ],
-}
-# Make the default splice_wrap the vimrc wrap setting
-setting_info.splice_wrap[1] = &wrap ? 'wrap' : 'nowrap'
-lockvar setting_info
-
-def InitSettings()
-    # TODO: splice_leader is new. Needed?
-    var t = exists('g:splice_leader') ? g:splice_leader : '-'
-    g:->PutIfAbsent('splice_prefix', t)
-
-    for [ setting, info ] in setting_info->items()
-        echo 'putIfAbsent' setting info[1]
-        g:->PutIfAbsent(setting, info[1])
-        CheckOneOfSetting(setting, info[0], info[1])
-    endfor
-enddef
-
 def ReportStartupIssues()
     if startup_error_msgs != []
         # TODO: timer_start, 200ms?
@@ -316,12 +223,12 @@ def SetupSpliceCommands()
     command! -nargs=0 SpliceUseHunk1 SplicePython SpliceUse1()
     command! -nargs=0 SpliceUseHunk2 SplicePython SpliceUse2()
 
-    command! -nargs=0 SpliceQuit keys_oops.SpliceQuit()
-    command! -nargs=0 SpliceCancel keys_oops.SpliceCancel()
+    command! -nargs=0 SpliceQuit i_keys.SpliceQuit()
+    command! -nargs=0 SpliceCancel i_keys.SpliceCancel()
 
     # The ISxxx come in from python
-    command! -nargs=0 ISpliceActivateGridBindings keys_oops.ActivateGridBindings()
-    command! -nargs=0 ISpliceDeactivateGridBindings keys_oops.DeactivateGridBindings()
+    command! -nargs=0 ISpliceActivateGridBindings i_keys.ActivateGridBindings()
+    command! -nargs=0 ISpliceDeactivateGridBindings i_keys.DeactivateGridBindings()
     command! -nargs=? ISpliceNextConflict search.MoveToConflict(<args>)
     command! -nargs=0 ISpliceAllConflict search.HighlightConflict()
     command! -nargs=* ISpliceDrawHUD hud.DrawHUD(<args>)
@@ -333,28 +240,19 @@ def SpliceInit9()
     log.Log('SpliceInit')
     set guioptions+=l
     # startup_error_msgs should already be empty
-    startup_error_msgs = []
-    InitSettings()
+    startup_error_msgs = settings.InitSettings()
     var python_module = fnameescape(globpath(&runtimepath, 'autoload/splice9Dev/splice.py'))
     echom python_module
     exe splice_pyfile python_module
     SetupSpliceCommands()
-    keys_oops.InitializeBindings()
+    i_keys.InitializeBindings()
     ReportStartupIssues()
     log.Log('starting splice')
+
+    init.Init()
     SplicePython SpliceInit()
 enddef
 
 Main = SpliceInit9
-
-def TestSettings()
-    echo "TESTING..."
-    InitSettings()
-    echo startup_error_msgs->join("\n")
-    echo ' '
-    for k in setting_info->keys()
-        echo printf("k: %s, v: %s\n", k, g:->get(k))
-    endfor
-enddef
 
 #TestSettings()
