@@ -19,6 +19,42 @@ var testing = false
 # Not exported
 # DictUniqueCopy, DictUnique
 
+# NOTE: no recursion using Bounce, COULD SET UP A STACK
+var bounce_obj: any
+export def BounceMethodCall(obj: any, method_and_args: string)
+    bounce_obj = obj
+    execute "bounce_obj." .. method_and_args
+enddef
+# Example:
+# class C
+#     def M1(s: string)
+#         echo s
+#     enddef
+# endclass
+# 
+# def F()
+#     var inDef = C.new()
+#     # run inDef.M1('xxx') where method name is created dynamically
+#     BounceMethodCall(inDef, "M" .. 1 .. "('compiled bounce')")
+# enddef
+# F()
+
+# experimental, would need another version that returns a value
+export def WrapCall(fcall: string): func
+    var x =<< trim eval [CODE]
+        g:SomeRandomFunction = () => {{
+            {fcall}
+            }}
+    [CODE]
+
+    execute(x)
+    var t = g:SomeRandomFunction    
+    unlet g:SomeRandomFunction
+    return t
+enddef
+#var X = WrapCall('inScript.M1("Wrap Lambda")')
+#X()
+
 export def IsSameType(o: any, type: string): bool
     return type(o) == v:t_object && type == typename(o)[7 : -2]
     #return type(o) == v:t_object && type == string(o)->split()[2]
@@ -89,11 +125,11 @@ export class KeepWindowEE implements BaseEE
     this._pos: list<number>
 
     def new()
-        this._w = win_getid()->getwininfo()[0]
-        this._pos = getpos('.')
     enddef
 
     def Enter(): void
+        this._w = win_getid()->getwininfo()[0]
+        this._pos = getpos('.')
     enddef
 
     def Exit(): void
@@ -103,6 +139,25 @@ export class KeepWindowEE implements BaseEE
             setpos('.', this._pos)
         endif
         #execute('normal z.')
+    enddef
+endclass
+
+# Keep buffer (partly here because can't define (yet) in splice's bufferlib.vim)
+export class SpliceKeepBufferEE implements BaseEE
+    this._bnr: number
+    this._pos: list<number>
+
+    def new()
+    enddef
+
+    def Enter(): void
+        this._bnr = bufnr('%')
+        this._pos = getpos('.')
+    enddef
+
+    def Exit(): void
+        execute string(this._bufnr) .. 'buffer'
+        setpos('.', this._pos)
     enddef
 endclass
 
