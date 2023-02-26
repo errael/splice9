@@ -28,6 +28,7 @@ var hl_active: string
 # TODO: use hl_active for current mode, diff on, scrollbind on
 
 var Log: func
+var LogCmd: func
 
 if ! testing
     import autoload './util/log.vim'
@@ -45,6 +46,7 @@ if ! testing
     hl_active = splice.hl_active
 
     Log = log.Log
+    LogCmd = log.LogCmd
 else
     import './vim_assist.vim'
     import './hud_sub.vim'
@@ -667,7 +669,7 @@ enddef
 # This is invoked when the HUD is the current buffer
 #
 export def DrawHUD(use_vim: bool, mode: string, layout: number,
-        ...vari_files: list<string>)
+        vari_files: list<string>)
 
     var bnr = bufnr(hud_name)
     LogDrawHUD(mode, layout, vari_files, bnr)

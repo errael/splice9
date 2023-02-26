@@ -7,18 +7,29 @@ endif
 
 var testing = false
 
-# export Set, PutIfAbsent, Keys2str,
-# Pad, PropRemoveIds
-# FindInList, FetchFromList
-# EQ, IS
-# Replace, ReplaceBuf
+# Strings and lists of strings
+#       Pad, IndentLtoS, IndentLtoL
+#       Replace, ReplaceBuf
+# Dictionary
+#       PutIfAbsent
+#       Set (DEPRECATED)
+#       DictUniqueCopy, DictUnique (NOT EXPORTED)
+# Lists, nested lists
+#       FindInList, FetchFromList
+# Keystrokes
+#       Keys2str
+# Text properties
+#       PropRemoveIds
+# General
+#       Scripts
+#       EQ, IS
+#       With(EE,func), ModifiableEE(bnr)
+#       Bounce, IsSameType (TEMP WORKAROUND)
 # ##### HexString
-# With(EE,func), ModifiableEE(bnr)
-# IsSameType
 
-# Not exported
-# DictUniqueCopy, DictUnique
-
+###
+### TEMPORARY WORKAROUND
+###
 # NOTE: no recursion using Bounce, COULD SET UP A STACK
 var bounce_obj: any
 export def BounceMethodCall(obj: any, method_and_args: string)
@@ -40,7 +51,7 @@ enddef
 # F()
 
 # experimental, would need another version that returns a value
-export def WrapCall(fcall: string): func
+def WrapCall(fcall: string): func
     var x =<< trim eval [CODE]
         g:SomeRandomFunction = () => {{
             {fcall}
@@ -58,6 +69,35 @@ enddef
 export def IsSameType(o: any, type: string): bool
     return type(o) == v:t_object && type == typename(o)[7 : -2]
     #return type(o) == v:t_object && type == string(o)->split()[2]
+enddef
+
+###
+### General
+###
+
+# Create/update scripts dictionary.
+# Example: var fname = Scripts()[SID/SNR]
+export def Scripts(scripts: dict<string> = {}): dict<string>
+    for info in getscriptinfo()
+        if scripts->has_key(info.sid)
+            continue
+        endif
+        scripts[info.sid] = info.name
+    endfor
+    return scripts
+enddef
+#def DumpScripts(scripts: dict<string>)
+#    for i in scripts->keys()->map((_, i) => str2nr(i))->sort('f')
+#        echo i scripts[i]
+#    endfor
+#enddef
+
+# https://github.com/vim/vim/issues/10022 (won't fix)
+export def EQ(lhs: any, rhs: any): bool
+    return type(lhs) == type(rhs) && lhs == rhs
+enddef
+export def IS(lhs: any, rhs: any): bool
+    return type(lhs) == type(rhs) && lhs is rhs
 enddef
 
 # TODO: enter return is passed to exit by With?
@@ -156,7 +196,7 @@ export class SpliceKeepBufferEE implements BaseEE
     enddef
 
     def Exit(): void
-        execute string(this._bufnr) .. 'buffer'
+        execute 'buffer' this._bnr
         setpos('.', this._pos)
     enddef
 endclass
@@ -215,6 +255,20 @@ endclass
 #    enddef
 #endclass
 
+###
+### Dictionary
+###
+
+export def PutIfAbsent(d: dict<any>, k: string, v: any)
+    if ! d->has_key(k)
+        d[k] = v
+    endif
+enddef
+
+# 8.2.4589 can now do g:[key] = val
+def Set(d: dict<any>, k: string, v: any)
+    d[k] = v
+enddef
 
 # Remove the common key/val from each dict.
 # Note: the dicts are modified
@@ -237,53 +291,10 @@ export def DictUniqueCopy(d1: dict<any>, d2: dict<any>): list<dict<any>>
     return [ d1_copy, d2_copy ]
 enddef
 
-# Overwrite characters in string, if doesn't fit print error, do nothing.
-# Return new string, input string not modified.
-# NOTE: col starts at 0
-export def Replace(s: string, col0: number, newtext: string): string
-    if col0 + len(newtext) > len(s)
-            echoerr 'Replace: past end' s col0 newtext
-            return s->copy()
-    endif
-    return col0 != 0
-        ? s[ : col0 - 1] .. newtext .. s[col0 + len(newtext) : ]
-        : newtext .. s[len(newtext) : ]
-enddef
-#export def Replace(s: string,
-#        pos1: number, pos2: number, newtext: string): string
-#    return pos1 != 0
-#        ? s[ : pos1 - 1] .. newtext .. s[pos2 + 1 : ]
-#        : newtext .. s[pos2 + 1 : ]
-#enddef
-
-# NOTE: setbufline looses text properties.
-
-
-# Overwrite characters in a buffer, if doesn't fit print error and do nothing.
-# NOTE: col starts at 1
-export def ReplaceBuf(bnr: number, lino: number,
-        col: number, newtext: string)
-    if bnr != bufnr()
-        echoerr printf('ReplaceBuf(%d): different buffer: curbuf %d', bnr, bufnr())
-        return
-    endif
-    if col - 1 + len(newtext) > len(getbufoneline(bnr, lino))
-            echoerr printf(
-                "ReplaceBuf: past end: bnr %d, lino %d '%s', col %d '%s'",
-                bnr, lino, getbufoneline(bnr, lino), col, newtext)
-            return
-    endif
-    setpos('.', [bnr, lino, col, 0])
-    execute('normal R' .. newtext)
-enddef
-
-# https://github.com/vim/vim/issues/10022
-export def EQ(lhs: any, rhs: any): bool
-    return type(lhs) == type(rhs) && lhs == rhs
-enddef
-export def IS(lhs: any, rhs: any): bool
-    return type(lhs) == type(rhs) && lhs is rhs
-enddef
+###
+### working with nested lists
+###     A path is used to traverse the nested list, see FetchFromList.
+###
 
 # FindInList: find target in list using '==', return false if not found
 # Each target found is identified by a list of indexes into the search list,
@@ -325,49 +336,9 @@ export def FetchFromList(path: list<number>, l: list<any>): any
     return result
 enddef
 
-# flattennew fixed #10012
-# I think this preserves items that are brought up to the top level,
-# so that "is" comparison return true
-# https://github.com/vim/vim/issues/10012
-def Flatten(l: list<any>, maxdepth: number = 999999): list<any>
-    function FlattenInternal(il, id)
-        return flatten(a:il,a:id)
-    endfu
-    return FlattenInternal(copy(l), maxdepth)
-enddef
-
-# flattennew fixed #10012
-# builtin flatten,flattennew: a mess
-# https://github.com/vim/vim/issues/10020
-# Not Needed 10020 fixed, use Flatten.
-# Keep it around just in case
-def FlattenVim9(l: list<any>, maxdepth: number = 999999): list<any>
-    var result = []
-    def FInternal(l2: list<any>, curdepth: number)
-        var i = 0
-        while i < len(l2)
-            if type(l2[i]) == v:t_list && curdepth < maxdepth
-                FInternal(l2[i], curdepth + 1)
-            else
-                result->add(l2[i])
-            endif
-            i += 1
-        endwhile
-    enddef
-    FInternal(l, 0)
-    return result
-enddef
-
-# 8.2.4589 can now do g:[key] = val
-def Set(d: dict<any>, k: string, v: any)
-    d[k] = v
-enddef
-
-export def PutIfAbsent(d: dict<any>, k: string, v: any)
-    if ! d->has_key(k)
-        d[k] = v
-    endif
-enddef
+###
+### Text properties
+###
 
 # not correctly implememnted, if it should be...
 #export def DeleteHighlightType(type: string, d: dict<any> = null_dict)
@@ -383,6 +354,10 @@ export def PropRemoveIds(ids: list<number>, d: dict<any> = null_dict)
         return false
         })
 enddef
+
+###
+### Keystrokes
+###
 
 #
 # if a character is > 0xff, this will probably fail
@@ -439,6 +414,70 @@ export def Keys2Str(k: string): string
     return result
 enddef
 
+###
+### Strings and lists of strings
+###
+
+
+# Overwrite characters in string, if doesn't fit print error, do nothing.
+# Return new string, input string not modified.
+# NOTE: col starts at 0
+export def Replace(s: string, col0: number, newtext: string): string
+    if col0 + len(newtext) > len(s)
+            echoerr 'Replace: past end' s col0 newtext
+            return s->copy()
+    endif
+    return col0 != 0
+        ? s[ : col0 - 1] .. newtext .. s[col0 + len(newtext) : ]
+        : newtext .. s[len(newtext) : ]
+enddef
+#export def Replace(s: string,
+#        pos1: number, pos2: number, newtext: string): string
+#    return pos1 != 0
+#        ? s[ : pos1 - 1] .. newtext .. s[pos2 + 1 : ]
+#        : newtext .. s[pos2 + 1 : ]
+#enddef
+
+# NOTE: setbufline looses text properties.
+
+# Overwrite characters in a buffer, if doesn't fit print error and do nothing.
+# NOTE: col starts at 1
+export def ReplaceBuf(bnr: number, lino: number,
+        col: number, newtext: string)
+    if bnr != bufnr()
+        echoerr printf('ReplaceBuf(%d): different buffer: curbuf %d', bnr, bufnr())
+        return
+    endif
+    if col - 1 + len(newtext) > len(getbufoneline(bnr, lino))
+            echoerr printf(
+                "ReplaceBuf: past end: bnr %d, lino %d '%s', col %d '%s'",
+                bnr, lino, getbufoneline(bnr, lino), col, newtext)
+            return
+    endif
+    setpos('.', [bnr, lino, col, 0])
+    execute('normal R' .. newtext)
+enddef
+
+
+# Indent each element of list<string>, return a single string
+export def IndentLtoS(l: list<string>, nIndent: number = 4): string
+    if !l
+        return ''
+    endif
+    var indent = repeat(' ', nIndent)
+    l[0] = indent .. l[0]
+    return l->join("\n" .. indent)
+enddef
+
+# indent each element of l in place
+def IndentLtoL(l: list<string>, nIndent: number = 4): list<string>
+    if !l
+        return l
+    endif
+    var indent = repeat(' ', nIndent)
+    return l->map((_, v) => indent .. v)
+enddef
+
 #export def MaxW(l: list<string>): number
 #    return max(l->mapnew((_, v) => len(v)))
 #enddef
@@ -469,6 +508,8 @@ export def Pad(l: list<string>, a: string = 'l',
             })
     endif
 enddef
+
+
 #for l1 in Pad(['x', 'dd', 'sss', 'eeee', 'fffff', 'gggggg'], 'c', 12)
 #    echo l1
 #endfor
@@ -526,5 +567,44 @@ def T2()
 enddef
 
 T1()
+
+############################################################################
+############################################################################
+############################################################################
+
+# Retired, could be a workaround that's no longer needed
+
+# flattennew fixed #10012
+# I think this preserves items that are brought up to the top level,
+# so that "is" comparison return true
+# https://github.com/vim/vim/issues/10012
+def Flatten(l: list<any>, maxdepth: number = 999999): list<any>
+    function FlattenInternal(il, id)
+        return flatten(a:il,a:id)
+    endfu
+    return FlattenInternal(copy(l), maxdepth)
+enddef
+
+flattennew fixed #10012
+builtin flatten,flattennew: a mess
+https://github.com/vim/vim/issues/10020
+Not Needed 10020 fixed, use Flatten.
+Keep it around just in case
+def FlattenVim9(l: list<any>, maxdepth: number = 999999): list<any>
+    var result = []
+    def FInternal(l2: list<any>, curdepth: number)
+        var i = 0
+        while i < len(l2)
+            if type(l2[i]) == v:t_list && curdepth < maxdepth
+                FInternal(l2[i], curdepth + 1)
+            else
+                result->add(l2[i])
+            endif
+            i += 1
+        endwhile
+    enddef
+    FInternal(l, 0)
+    return result
+enddef
 
 # vim:ts=8:sts=4:

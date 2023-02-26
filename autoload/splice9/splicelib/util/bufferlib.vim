@@ -1,24 +1,22 @@
 vim9script
 
-#var testing = false
-
 import autoload './windows.vim'
 import autoload './log.vim'
 import autoload './vim_assist.vim'
-const Log = log.Log
 
+const Log = log.Log
 #const BaseEE = vim_assist.BaseEE
 
 #var KeepWindowEE = vim_assist.KeepWindowEE
-var SpliceKeepBufferEE = vim_assist.SpliceKeepBufferEE
+const SpliceKeepBufferEE = vim_assist.SpliceKeepBufferEE
 # TODO
-var nullo = null_object
 
 # There are 5 buffers 4 hold merge files, 1 is the HUD.
 
 export class Buffer
     this._bufnr: number
-    this._label: string
+    this.label: string
+    this._name: string
 
     # TODO: "): Buffer"
     #           TODO: static referencing class privates
@@ -30,9 +28,12 @@ export class Buffer
     #    return o
     #enddef
 
-    def new(this._bufnr, this._label)
+    # this._name is set from bufnr
+    def new(this._bufnr, this.label)
         #Log(printf('Buffer.new(%d, %s)', this._bufnr, this._label))
-        if ! bufexists(this._bufnr)
+        if bufexists(this._bufnr)
+            this._name = bufname(this._bufnr)
+        else
             Log(printf('Buffer: %d does not exist', this._bufnr))
             this._bufnr = -1
         endif
@@ -48,6 +49,10 @@ export class Buffer
             #execute string(this._bufnr) .. 'buffer'
             execute 'buffer' this._bufnr
         endif
+    enddef
+
+    def Winnr()
+        return bufwinnr(this._bufnr)
     enddef
 
     ## TODO: "other: Buffer"
@@ -78,6 +83,8 @@ endclass
 #    enddef
 #endclass
 
+export const nullBuffer = Buffer.new(-1, 'NULL_BUFFER')
+
 class BufferList
     # TODO
     #this.original = Buffer.new(1, 'Original')
@@ -91,7 +98,6 @@ class BufferList
     this.result: Buffer
     this.hud: Buffer
     this.all: list<Buffer>
-    this.didHudInitBuf = false
 
     def new()
         this.original = Buffer.new(1, 'Original')
@@ -99,30 +105,27 @@ class BufferList
         this.two = Buffer.new(3, 'Two')
         this.result = Buffer.new(4, 'Result')
         #this.hud = Buffer.new(5, 'HUD')
+        this.hud = nullBuffer
 
         const l = [ this.original, this.one, this.two, this.result ]
         this.all = l
     enddef
 
-    def InitHudBuffer()
-        # TODO: start this.hud as null_object
-        if this.didHudInitBuf
-            return
+    def InitHudBuffer(bnr: number)
+        if this.hud == nullBuffer
+            this.hud = Buffer.new(bnr, 'HUD')
         endif
-        this.hud = Buffer.new(5, 'HUD')
-        this.didHudInitBuf = true
     enddef
 
     # TODO
     #def Current(): Buffer
-    def Current(): any
+    def Current(): Buffer
         var bnr = bufnr('')
         if bnr >= 1 && bnr <= 4
             return this.all[bnr - 1]
         endif
         # TODO
-        #return null_object
-        return nullo
+        return nullBuffer
     enddef
 
     #def Remain(): BaseEE
@@ -131,6 +134,24 @@ class BufferList
         # TODO: use KeepWindowEE instead buffer vs window, shouldn't matter here
         return SpliceKeepBufferEE.new()
     enddef
+
+endclass
+
+export final buffers = BufferList.new()
+
+#echo buffers.all
+#echo buffers.Remain()
+#echo "current: " buffers.Current()
+
+
+#echo null_object
+#echo type(null_object)
+#echo typename(null_object)
+#echo buffers.Current()
+
+
+
+
 
     #def all(): list<Buffer>
     #    const l = [ this.original, this.one, this.two, this.result ]
@@ -177,17 +198,4 @@ class BufferList
     #def all(): list<Buffer>
     #    return this._buflist->copy()[:-1]
     #enddef
-
-endclass
-
-export final buffers = BufferList.new()
-
-echo buffers.all
-echo buffers.Remain()
-echo "current: " buffers.Current()
-
-#echo null_object
-#echo type(null_object)
-#echo typename(null_object)
-#echo buffers.Current()
 
