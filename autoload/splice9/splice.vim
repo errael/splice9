@@ -12,7 +12,7 @@ import autoload './splicelib/util/log.vim'
 import autoload './splicelib/util/search.vim'
 import autoload './splicelib/util/vim_assist.vim'
 import autoload './splicelib/hud.vim'
-import autoload './splicelib/init.vim'
+import autoload './splicelib/init.vim' as i_init
 import autoload './splicelib/settings.vim'
 
 var Log = log.Log
@@ -249,8 +249,8 @@ def SpliceInit9()
     ReportStartupIssues()
     log.Log('starting splice')
 
-    init.Init()
-    SplicePython SpliceInit()
+    i_init.Init()
+    #SplicePython SpliceInit()
 enddef
 
 Main = SpliceInit9

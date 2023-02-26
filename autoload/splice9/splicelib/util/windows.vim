@@ -28,28 +28,28 @@ export def Focus(wnr: number)
     endif
 enddef
 
-export def CloseAll()
+export def Close_all()
     Focus(1)
     :only
 enddef
 
-def Split()
+export def Split()
     :split
 enddef
 
-def Vsplit()
+export def Vsplit()
     :vsplit
 enddef
 
-def Currentnr(): number
+export def Currentnr(): number
     return winnr()
 enddef
 
-def Pos(): list<number>
+export def Pos(): list<number>
     return getpos('.')
 enddef
 
-def Remain(): any
+export def Remain(): any
     return KeepWindowEE.new()
 enddef
 

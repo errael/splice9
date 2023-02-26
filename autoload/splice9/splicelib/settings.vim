@@ -6,15 +6,24 @@ if expand('<script>:p') =~ '^/home/err/experiment/vim/splice'
 endif
 
 if ! standalone_exp
+    import autoload './util/log.vim' as i_log
     import autoload './util/vim_assist.vim'
 else
     import './vim_assist.vim'
 endif
 
+const Log = i_log.Log
+
 var PutIfAbsent = vim_assist.PutIfAbsent
 
 export def Setting(setting: string): any
-    return g:->get('splice_' .. setting, null)
+    var key = 'splice_' .. setting
+    Log($"Setting: key: {key}")
+    if ! g:->has_key(key)
+        throw $"Setting unknown: '{key}'"
+    endif
+    Log($"Setting: get(key): '{g:->get(key)}', type {type(g:->get(key))}")
+    return g:->get(key)
 enddef
 
 var settings_errors: list<string>
