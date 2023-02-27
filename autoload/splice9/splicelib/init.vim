@@ -61,7 +61,7 @@ export def Init_cur_window_wrap()
     var setting = i_settings.Setting('wrap')
     if setting != null
         &wrap = setting == 'wrap' ? true : false
-        Log('&wrap set to ' .. &wrap)
+        Log('setting', () => '&wrap set to ' .. &wrap)
     endif
 enddef
 

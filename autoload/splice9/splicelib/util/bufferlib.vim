@@ -14,9 +14,9 @@ const SpliceKeepBufferEE = vim_assist.SpliceKeepBufferEE
 # There are 5 buffers 4 hold merge files, 1 is the HUD.
 
 export class Buffer
-    this._bufnr: number
+    this.bufnr: number
     this.label: string
-    this._name: string
+    this.name: string
 
     # TODO: "): Buffer"
     #           TODO: static referencing class privates
@@ -28,14 +28,14 @@ export class Buffer
     #    return o
     #enddef
 
-    # this._name is set from bufnr
-    def new(this._bufnr, this.label)
-        #Log(printf('Buffer.new(%d, %s)', this._bufnr, this._label))
-        if bufexists(this._bufnr)
-            this._name = bufname(this._bufnr)
+    # this.name is set from bufnr
+    def new(this.bufnr, this.label)
+        #Log(printf('Buffer.new(%d, %s)', this.bufnr, this._label))
+        if bufexists(this.bufnr)
+            this.name = bufname(this.bufnr)
         else
-            Log(printf('Buffer: %d does not exist', this._bufnr))
-            this._bufnr = -1
+            Log(printf('Buffer: %d does not exist', this.bufnr))
+            this.bufnr = -1
         endif
     enddef
 
@@ -45,14 +45,14 @@ export class Buffer
             windows.focus(winnr)
             # execute string(winnr) .. 'wincmd w'
         endif
-        if this._bufnr >= 0
-            #execute string(this._bufnr) .. 'buffer'
-            execute 'buffer' this._bufnr
+        if this.bufnr >= 0
+            #execute string(this.bufnr) .. 'buffer'
+            execute 'buffer' this.bufnr
         endif
     enddef
 
     def Winnr()
-        return bufwinnr(this._bufnr)
+        return bufwinnr(this.bufnr)
     enddef
 
     ## TODO: "other: Buffer"

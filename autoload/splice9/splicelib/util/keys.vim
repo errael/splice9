@@ -6,9 +6,9 @@ if expand('<script>:p') =~ '^/home/err/experiment/vim/splice'
 endif
 
 # set 'testing' to true and source this file for testing
-var testing = true
+var testing = false
 
-import autoload './log.vim'
+import autoload './log.vim' as i_log
 import autoload './vim_assist.vim'
 import autoload './MapModeFilters.vim'
 
@@ -18,9 +18,9 @@ const MapModeFilter = MapModeFilters.MapModeFilter
 const Keys2Str = vim_assist.Keys2Str
 
 if standalone_exp
-    log.LogInit($HOME .. '/play/SPLICE_LOG')
-    log.Log('=== ' .. strftime('%c') .. ' ===')
-    log.Log('=== Unit Testing ===')
+    i_log.LogInit($HOME .. '/play/SPLICE_LOG')
+    i_log.Log('=== ' .. strftime('%c') .. ' ===')
+    i_log.Log('=== Unit Testing ===')
 endif
 
 #
@@ -130,21 +130,21 @@ enddef
 def Bind(key: string)
     var mapping = GetMapping(key)
     if mapping == ''
-        log.Log("Bind-Map: SKIP '" .. key .. "'")
+        i_log.Log("Bind-Map: SKIP '" .. key .. "'")
         return
     endif
     var t = ':Splice' .. key .. '<cr>'
-    log.Log("Bind-Map: '" .. mapping .. "' -> '" .. t .. "'")
+    i_log.Log("Bind-Map: '" .. mapping .. "' -> '" .. t .. "'")
     execute 'nnoremap' mapping t
 enddef
 
 def UnBind(key: string)
     var mapping = GetMapping(key)
     if mapping == ''
-        log.Log("Bind-UnMap: SKIP '" .. key .. "'")
+        i_log.Log("Bind-UnMap: SKIP '" .. key .. "'")
         return
     endif
-    log.Log("Bind-UnMap: '" .. mapping .. "'")
+    i_log.Log("Bind-UnMap: '" .. mapping .. "'")
     execute 'unmap' mapping
 enddef
 
@@ -208,6 +208,7 @@ enddef
 # Initialize all bindings except for UseHunk1/UseHunk2
 
 export def InitializeBindings()
+    i_log.LogCmd('InitializeBindings()', '', '', true)
     # The default state is UseHunk; UseHunk?(1|2) are dynamically handled,
     # see ActivateGridBindings, DeactivateGridBindings
     var initBindings = actions_info->keys()
@@ -222,14 +223,14 @@ export def InitializeBindings()
 enddef
 
 export def ActivateGridBindings()
-    log.Log('ActivateGridBindings')
+    i_log.Log('ActivateGridBindings')
     UnBind('UseHunk')
     Bind('UseHunk1')
     Bind('UseHunk2')
 enddef
 
 export def DeactivateGridBindings()
-    log.Log('DectivateGridBindings')
+    i_log.Log('DectivateGridBindings')
     UnBind('UseHunk1')
     UnBind('UseHunk2')
     Bind('UseHunk')
@@ -368,11 +369,11 @@ def BindingList2(): list<string>
 enddef
 
 def RandomTesting()
-    log.Log('INIT')
+    i_log.Log('INIT')
     InitializeBindings()
-    log.Log('ACTIVATE-GRID')
+    i_log.Log('ACTIVATE-GRID')
     ActivateGridBindings()
-    log.Log('DE-ACTIVATE-GRID')
+    i_log.Log('DE-ACTIVATE-GRID')
     DeactivateGridBindings()
 
     # Have two grid mappings found

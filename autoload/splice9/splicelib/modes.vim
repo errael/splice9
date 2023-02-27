@@ -22,7 +22,7 @@ const Log = i_log.Log
 Log("TOP OF MODE")
 
 export class Mode
-    this._id: string
+    this.id: string
     this._lay_first: string
     this._lay_second: string
 
@@ -142,6 +142,20 @@ export class Mode
 
 
     def Key_use()
+        Log('warn', "Key_use: mode: " .. current_mode.id)
+    enddef
+
+    def Key_use1()
+        Log('warn', "Key_use1: mode: " .. current_mode.id)
+    enddef
+
+    def Key_use2()
+        Log('warn', "Key_use2: mode: " .. current_mode.id)
+    enddef
+
+
+    def Goto_result()
+        Log('warn', "Goto_result: mode: " .. current_mode.id)
     enddef
 
 
@@ -163,14 +177,14 @@ export class Mode
 
 
     def Key_next()
-        self.Goto_result()
-        i_search.MoveToConflict true
+        this.Goto_result()
+        i_search.MoveToConflict(true)
         #vim.command(r'exe "silent! normal! /\\v^\\=\\=\\=\\=\\=\\=\\=*$\<cr>"')
     enddef
 
     def Key_prev()
-        self.Goto_result()
-        i_search.MoveToConflict false
+        this.Goto_result()
+        i_search.MoveToConflict(false)
         #vim.command(r'exe "silent! normal! ?\\v^\\=\\=\\=\\=\\=\\=\\=*$\<cr>"')
     enddef
 
@@ -193,7 +207,7 @@ export class Mode
             # use the stack trace for why redraw hud called twice per command
             # log_stack(traceback.format_stack(None, 6))
 
-            var mod = this._id
+            var mod = this.id
             # baaad programmer
             if mod == 'loup'
                 mod = 'loupe'
@@ -246,7 +260,7 @@ class GridMode extends Mode
     # +-------------------+    +--------------------------+    +---------------+
 
     def new()
-        this._id = 'grid'
+        this.id = 'grid'
         this._current_layout = Setting('initial_layout_grid')
         this._current_diff_mode = Setting('initial_diff_grid')
         this._current_scrollbind = Setting('initial_scrollbind_grid')
@@ -432,9 +446,10 @@ class GridMode extends Mode
             this.M_key_use_12(1)
         endif
 
-        if buffers.current == buffers.result
+        var curbuf = buffers.Current()
+        if curbuf == buffers.result
             :diffget
-        elseif buffers.current in [buffers.one, buffers.two]
+        elseif [buffers.one, buffers.two]->index(curbuf) >= 0
             :diffput
         endif
 
@@ -452,9 +467,10 @@ class GridMode extends Mode
             this.M_key_use_12(2)
         endif
 
-        if buffers.current == buffers.result
+        var curbuf = buffers.Current()
+        if curbuf == buffers.result
             :diffget
-        elseif buffers.current in [buffers.one, buffers.two]
+        elseif [buffers.one, buffers.two]->index(curbuf) >= 0
             :diffput
         endif
 
@@ -474,7 +490,7 @@ class GridMode extends Mode
         var w2 = buffers.result.Winnr()
         if w2 != winnr
             Log($'mode.goto_result: ERROR: winnr: {winnr}, w2: {w2}')
-        Log($'mode.{this._id}.goto_result: winnr: {winnr}, w2: {w2}')
+        Log($'mode.{this.id}.goto_result: winnr: {winnr}, w2: {w2}')
 
         windows.Focus(winnr)
     enddef
@@ -501,7 +517,7 @@ Log("DEFINED: class GridMode")
 
 class LoupeMode extends Mode
     def new()
-        this._id = 'loup'
+        this.id = 'loup'
         this._current_layout = Setting('initial_layout_loupe')
         this._current_diff_mode = Setting('initial_diff_loupe')
         this._current_scrollbind = Setting('initial_scrollbind_loupe')
@@ -566,8 +582,11 @@ class LoupeMode extends Mode
     enddef
 
 
-    def Key_use()
-    enddef
+    # TODO: don't display "use unk" in loupe mode
+    #def Key_use()
+    #    # BUG? this should use superclass
+    #    Log('warn', "Loupe: Key_use: mode: " .. current_mode.id)
+    #enddef
 
 
     def Goto_result()
@@ -586,7 +605,7 @@ Log("DEFINED: class LoupeMode")
 
 class CompareMode extends Mode
     def new()
-        this._id = 'comp'
+        this.id = 'comp'
         this._current_layout = Setting('initial_layout_compare')
         this._current_diff_mode = Setting('initial_diff_compare')
         this._current_scrollbind = Setting('initial_scrollbind_compare')
@@ -627,10 +646,10 @@ class CompareMode extends Mode
 
         # Put the buffers in the appropriate windows
         windows.Focus(1)
-        this.M_current_buffer_first.open()
+        this._current_buffer_first.Open()
 
         windows.Focus(2)
-        this.M_current_buffer_second.open()
+        this._current_buffer_second.Open()
 
         this.Open_hud(3)
 
@@ -647,10 +666,10 @@ class CompareMode extends Mode
 
         # Put the buffers in the appropriate windows
         windows.Focus(1)
-        this.M_current_buffer_first.open()
+        this._current_buffer_first.Open()
 
         windows.Focus(2)
-        this.M_current_buffer_second.open()
+        this._current_buffer_second.Open()
 
         this.Open_hud(3)
 
@@ -686,21 +705,21 @@ class CompareMode extends Mode
 
         # If file one is showing, go to it.
         windows.Focus(2)
-        if buffers.current == buffers.one
+        if buffers.Current() == buffers.one
             return
         endif
 
         windows.focus(3)
-        if buffers.current == buffers.one
+        if buffers.Current() == buffers.one
             return
         endif
 
         # If both the original and result are showing, open file one in the
         # current window.
         windows.Focus(2)
-        if buffers.current == buffers.original
+        if buffers.Current() == buffers.original
             windows.Focus(3)
-            if buffers.current == buffers.result
+            if buffers.Current() == buffers.result
                 Open_one(curwindow)
                 return
             endif
@@ -708,7 +727,7 @@ class CompareMode extends Mode
 
         # If file two is in window 1, then we open file one in window 1.
         windows.Focus(2)
-        if buffers.current == buffers.two
+        if buffers.Current() == buffers.two
             Open_one(2)
             return
         endif
@@ -719,14 +738,14 @@ class CompareMode extends Mode
 
     def Key_two()
         def Open_two(winnr: number)
-            buffers.two.open(winnr)
+            buffers.two.Open(winnr)
             if winnr == 2
-                self._current_buffer_first = buffers.two
+                this._current_buffer_first = buffers.two
             else
-                self._current_buffer_second = buffers.two
+                this._current_buffer_second = buffers.two
             endif
-            self.Diff(self._current_diff_mode)
-            self.Redraw_hud()
+            this.Diff(this._current_diff_mode)
+            this.Redraw_hud()
         enddef
 
         curwindow = windows.Currentnr()
@@ -736,21 +755,21 @@ class CompareMode extends Mode
 
         # If file two is showing, go to it.
         windows.Focus(2)
-        if buffers.current == buffers.two
+        if buffers.Current() == buffers.two
             return
         endif
 
         windows.Focus(3)
-        if buffers.current == buffers.two
+        if buffers.Current() == buffers.two
             return
         endif
 
         # If both the original and result are showing, open file two in the
         # current window.
         windows.Focus(2)
-        if buffers.current == buffers.original
+        if buffers.Current() == buffers.original
             windows.Focus(3)
-            if buffers.current == buffers.result
+            if buffers.Current() == buffers.result
                 Open_two(curwindow)
                 return
             endif
@@ -759,9 +778,9 @@ class CompareMode extends Mode
         # If file one and the result are showing, then we open file two in the
         # current window.
         windows.Focus(2)
-        if buffers.current == buffers.one
+        if buffers.Current() == buffers.one
             windows.Focus(3)
-            if buffers.current == buffers.result
+            if buffers.Current() == buffers.result
                 Open_two(curwindow)
                 return
             endif
@@ -769,7 +788,7 @@ class CompareMode extends Mode
 
         # If file one is in window 2, then we open file two in window 2.
         windows.Focus(3)
-        if buffers.current == buffers.two
+        if buffers.Current() == buffers.two
             Open_two(3)
             return
         endif
@@ -804,9 +823,10 @@ class CompareMode extends Mode
             this.M_diff_1()  # diff the windows
         })
 
-        if buffers.current == buffers.result
+        var curbuf = buffers.Current()
+        if curbuf == buffers.result
             :diffget
-        elseif [buffers.one, buffers.two]->index(buffers.current) >= 0
+        elseif [buffers.one, buffers.two]->index(curbuf) >= 0
             :diffput
         endif
 
@@ -831,7 +851,7 @@ Log("DEFINED: class CompareMode")
 
 class PathMode extends Mode
     def new()
-        this._id = 'path'
+        this.id = 'path'
         this._current_layout = Setting('initial_layout_path')
         this._current_diff_mode = Setting('initial_diff_path')
         this._current_scrollbind = Setting('initial_scrollbind_path')
@@ -954,7 +974,7 @@ class PathMode extends Mode
         windows.Focus(3)
         buffers.one.Open()
         this._current_mid_buffer = buffers.one
-        this.diff(this._current_diff_mode)
+        this.Diff(this._current_diff_mode)
         windows.Focus(3)
         this.Redraw_hud()
     enddef
@@ -963,7 +983,7 @@ class PathMode extends Mode
         windows.Focus(3)
         buffers.two.Open()
         this._current_mid_buffer = buffers.two
-        this.diff(this._current_diff_mode)
+        this.Diff(this._current_diff_mode)
         windows.Focus(3)
         this.Redraw_hud()
     enddef
@@ -977,7 +997,7 @@ class PathMode extends Mode
 
     def Key_use()
         if buffers.Current() == nullBuffer
-            var bname = buffers.hud.bnr == bufnr() ? 'Splice_HUD' : bufname()
+            var bname = buffers.hud.bufnr == bufnr() ? 'Splice_HUD' : bufname()
             # TODO: test
             i_log.SplicePopup('ENOTFILE', bname, 'UseHunk')
             return
@@ -988,9 +1008,10 @@ class PathMode extends Mode
             this.M_diff_3()  # diff the middle and result windows
         })
 
-        if buffers.current == buffers.result
+        var curbuf = buffers.Current()
+        if curbuf == buffers.result
             :diffget
-        elseif [buffers.one, buffers.two]->index(buffers.current ) >= 0
+        elseif [buffers.one, buffers.two]->index(curbuf) >= 0
             :diffput
         endif
 
@@ -1016,10 +1037,10 @@ class PathMode extends Mode
 endclass
 Log("DEFINED: class PathMode")
 
-const grid = GridMode.new()
-const loupe = LoupeMode.new()
-const compare = CompareMode.new()
-const path = PathMode.new()
+final grid = GridMode.new()
+final loupe = LoupeMode.new()
+final compare = CompareMode.new()
+final path = PathMode.new()
 
 export var current_mode: Mode
 
@@ -1031,26 +1052,58 @@ export def SetInitialMode(initial_mode: string)
     Log(() => $"CURRENT_MODE: {string(current_mode)}")
 enddef
 
-def Key_grid()
-    current_mode.deactivate()
+export def Key_grid()
+    Log('SpliceGrid')
+    current_mode.Deactivate()
     current_mode = grid
-    grid.activate()
+    grid.Activate()
 enddef
 
-def Key_loupe()
-    current_mode.deactivate()
+export def Key_loupe()
+    Log('SpliceLoupe')
+    current_mode.Deactivate()
     current_mode = loupe
-    loupe.activate()
+    loupe.Activate()
 enddef
 
-def Key_compare()
-    current_mode.deactivate()
+export def Key_compare()
+    Log('SpliceCompare')
+    current_mode.Deactivate()
     current_mode = compare
-    compare.activate()
+    compare.Activate()
 enddef
 
-def Key_path()
-    current_mode.deactivate()
+export def Key_path()
+    Log('SplicePath')
+    current_mode.Deactivate()
     current_mode = path
-    path.activate()
+    path.Activate()
 enddef
+
+const dispatch = {
+    SpliceOriginal: () => current_mode.Key_original(),
+    SpliceOne:      () => current_mode.Key_one(),
+    SpliceTwo:      () => current_mode.Key_two(),
+    SpliceResult:   () => current_mode.Key_result(),
+
+    SpliceDiff:     () => current_mode.Key_diff(),
+    SpliceDiffOff:  () => current_mode.Key_diffoff(),
+    SpliceScroll:   () => current_mode.Key_scrollbind(),
+    SpliceLayout:   () => current_mode.Key_layout(),
+    SpliceNext:     () => current_mode.Key_next(),
+    SplicePrev:     () => current_mode.Key_prev(),
+    SpliceUse:      () => current_mode.Key_use(),
+    SpliceUse1:     () => current_mode.Key_use1(),
+    SpliceUse2:     () => current_mode.Key_use2(),
+}
+
+export def ModesDispatch(op: string)
+    Log(() => printf("%s: %s", op, current_mode.id))
+    var F = dispatch->get(op, null_function)
+    if F != null
+        F()
+    else
+        Log('error', () => "ModesDispatch: unknown operation: " .. op)
+    endif
+enddef
+
