@@ -5,6 +5,8 @@ if expand('<script>:p') =~ '^/home/err/experiment/vim/splice'
     standalone_exp = true
 endif
 
+import autoload './log.vim' as i_log
+
 var testing = false
 
 # Strings and lists of strings
@@ -24,17 +26,26 @@ var testing = false
 #       Scripts
 #       EQ, IS
 #       With(EE,func), ModifiableEE(bnr)
-#       Bounce, IsSameType (TEMP WORKAROUND)
+#       BounceMethodCall, IsSameType (TEMP WORKAROUND)
 # ##### HexString
 
 ###
 ### TEMPORARY WORKAROUND
 ###
 # NOTE: no recursion using Bounce, COULD SET UP A STACK
-var bounce_obj: any
+var count = 0
+var bounce_obj: any = null_object
 export def BounceMethodCall(obj: any, method_and_args: string)
+    if bounce_obj != null_object
+        throw "BounceMethodCall: bounce_obj not null " .. typename(bounce_obj)
+    endif
+    var i = count + 1
+    count = i
+    #i_log.LogCmd(printf("BounceMethodCall-%d '%s' '%s' [%s]", i, typename(obj), method_and_args, typename(bounce_obj)), '', '', true)
     bounce_obj = obj
     execute "bounce_obj." .. method_and_args
+    #i_log.LogCmd(printf("BounceMethodCall-%d finish", i))
+    bounce_obj = null_object
 enddef
 # Example:
 # class C
@@ -79,10 +90,9 @@ enddef
 # Example: var fname = Scripts()[SID/SNR]
 export def Scripts(scripts: dict<string> = {}): dict<string>
     for info in getscriptinfo()
-        if scripts->has_key(info.sid)
-            continue
+        if ! scripts->has_key(info.sid)
+            scripts[info.sid] = info.name
         endif
-        scripts[info.sid] = info.name
     endfor
     return scripts
 enddef

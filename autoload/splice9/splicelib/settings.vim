@@ -18,11 +18,11 @@ var PutIfAbsent = vim_assist.PutIfAbsent
 
 export def Setting(setting: string): any
     var key = 'splice_' .. setting
-    Log($"Setting: key: {key}")
+    Log('setting', () => $"Setting: key: {key}")
     if ! g:->has_key(key)
         throw $"Setting unknown: '{key}'"
     endif
-    Log($"Setting: get(key): '{g:->get(key)}', type {type(g:->get(key))}")
+    Log('setting', () => $"Setting: get(key): '{g:->get(key)}', type {type(g:->get(key))}")
     return g:->get(key)
 enddef
 
@@ -122,7 +122,6 @@ export def InitSettings(): list<string>
     g:->PutIfAbsent('splice_prefix', t)
 
     for [ setting, info ] in setting_info->items()
-        echo 'putIfAbsent' setting info[1]
         g:->PutIfAbsent(setting, info[1])
         CheckOneOfSetting(setting, info[0], info[1])
     endfor

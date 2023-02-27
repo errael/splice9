@@ -14,6 +14,7 @@ import autoload './splicelib/util/vim_assist.vim'
 import autoload './splicelib/hud.vim'
 import autoload './splicelib/init.vim' as i_init
 import autoload './splicelib/settings.vim'
+import autoload './splicelib/modes.vim' as i_modes
 
 var Log = log.Log
 
@@ -46,10 +47,6 @@ highlight SpliceLabel term=underline ctermfg=6 guifg=DarkCyan
 #         Otherwise the initialization code is executed.
 #
 # NOTE: if startup_error_msgs is not empty, there has been a fatal error
-
-# assume the worst
-var has_supported_python = 0
-var splice_pyfile: string
 
 var startup_error_msgs: list<string>
 
@@ -96,14 +93,12 @@ def SpliceBootError()
     for msg in startup_error_msgs
         log.Log('ERROR: ' .. msg)
     endfor
-    if has_supported_python != 0
-        delcommand SplicePython
-    endif
     SpliceDidNotLoad()
 enddef
 
 var Main: func
 
+# TODO: GET RID OF THE TIMER TRAMPOLINE
 var startup_col: number
 def Trampoline(id: number)
     if startup_col != &co
@@ -117,7 +112,7 @@ enddef
 export def SpliceBoot()
     log.Log('SpliceBoot')
     log.Log('SpliceBoot DEV')
-    if !!has_supported_python && startup_error_msgs->empty()
+    if startup_error_msgs->empty()
         startup_col = &columns
         timer_start(50, Trampoline)
         return
@@ -126,30 +121,6 @@ export def SpliceBoot()
     # A FATAL ERROR
     SpliceBootError()
 enddef
-
-# Now the boot/startup functions are defined,
-# check if we've got a usable python.
-# And it's ok to finish
-
-if has('python3')
-    has_supported_python = 3
-    splice_pyfile = 'py3file'
-    command! -nargs=1 SplicePython python3 <args>
-elseif has('python')
-    has_supported_python = 2
-python << trim ENDPYTHON
-    import sys, vim
-    if sys.version_info[:2] < (2, 5):
-        vim.command('has_supported_python = 0')
-ENDPYTHON
-    splice_pyfile = 'pyfile'
-    command! -nargs=1 SplicePython python <args>
-endif
-
-if has_supported_python == 0
-    startup_error_msgs += [ "Splice requires Vim to be compiled with Python 2.5+" ]
-    finish
-endif
 
 #
 # Examine stuff looking for problems.
@@ -189,8 +160,6 @@ def UserConfigError(msg: list<string>)
         })
 
     var bufnr = winbufnr(winid)
-    #echo 'winid:' winid 'bufer:' bufnr
-    #setbufline(bufnr, 2, "HOW COOL")
 enddef
 
 def ReportStartupIssues()
@@ -203,28 +172,28 @@ enddef
 
 
 def SetupSpliceCommands()
-    command! -nargs=0 SpliceGrid     SplicePython SpliceGrid()
-    command! -nargs=0 SpliceLoupe    SplicePython SpliceLoupe()
-    command! -nargs=0 SpliceCompare  SplicePython SpliceCompare()
-    command! -nargs=0 SplicePath     SplicePython SplicePath()
+    command! -nargs=0 SpliceGrid     i_modes.Key_grid()
+    command! -nargs=0 SpliceLoupe    i_modes.Key_loupe()
+    command! -nargs=0 SpliceCompare  i_modes.Key_compare()
+    command! -nargs=0 SplicePath     i_modes.Key_path()
 
-    command! -nargs=0 SpliceOriginal SplicePython SpliceOriginal()
-    command! -nargs=0 SpliceOne      SplicePython SpliceOne()
-    command! -nargs=0 SpliceTwo      SplicePython SpliceTwo()
-    command! -nargs=0 SpliceResult   SplicePython SpliceResult()
+    command! -nargs=0 SpliceOriginal i_modes.ModesDispatch('SpliceOriginal')
+    command! -nargs=0 SpliceOne      i_modes.ModesDispatch('SpliceOne')
+    command! -nargs=0 SpliceTwo      i_modes.ModesDispatch('SpliceTwo')
+    command! -nargs=0 SpliceResult   i_modes.ModesDispatch('SpliceResult')
 
-    command! -nargs=0 SpliceDiff     SplicePython SpliceDiff()
-    command! -nargs=0 SpliceDiffOff  SplicePython SpliceDiffOff()
-    command! -nargs=0 SpliceScroll   SplicePython SpliceScroll()
-    command! -nargs=0 SpliceLayout   SplicePython SpliceLayout()
-    command! -nargs=0 SpliceNext     SplicePython SpliceNext()
-    command! -nargs=0 SplicePrevious SplicePython SplicePrev()
-    command! -nargs=0 SpliceUseHunk  SplicePython SpliceUse()
-    command! -nargs=0 SpliceUseHunk1 SplicePython SpliceUse1()
-    command! -nargs=0 SpliceUseHunk2 SplicePython SpliceUse2()
+    command! -nargs=0 SpliceDiff     i_modes.ModesDispatch('SpliceDiff')
+    command! -nargs=0 SpliceDiffOff  i_modes.ModesDispatch('SpliceDiffOff')
+    command! -nargs=0 SpliceScroll   i_modes.ModesDispatch('SpliceScroll')
+    command! -nargs=0 SpliceLayout   i_modes.ModesDispatch('SpliceLayout')
+    command! -nargs=0 SpliceNext     i_modes.ModesDispatch('SpliceNext')
+    command! -nargs=0 SplicePrevious i_modes.ModesDispatch('SplicePrev')
+    command! -nargs=0 SpliceUseHunk  i_modes.ModesDispatch('SpliceUse')
+    command! -nargs=0 SpliceUseHunk1 i_modes.ModesDispatch('SpliceUse1')
+    command! -nargs=0 SpliceUseHunk2 i_modes.ModesDispatch('SpliceUse2')
 
-    command! -nargs=0 SpliceQuit i_keys.SpliceQuit()
-    command! -nargs=0 SpliceCancel i_keys.SpliceCancel()
+    command! -nargs=0 SpliceQuit     i_keys.SpliceQuit()
+    command! -nargs=0 SpliceCancel   i_keys.SpliceCancel()
 
     # The ISxxx come in from python
     command! -nargs=0 ISpliceActivateGridBindings i_keys.ActivateGridBindings()
@@ -241,16 +210,12 @@ def SpliceInit9()
     set guioptions+=l
     # startup_error_msgs should already be empty
     startup_error_msgs = settings.InitSettings()
-    var python_module = fnameescape(globpath(&runtimepath, 'autoload/splice9Dev/splice.py'))
-    echom python_module
-    exe splice_pyfile python_module
     SetupSpliceCommands()
     i_keys.InitializeBindings()
     ReportStartupIssues()
     log.Log('starting splice')
 
     i_init.Init()
-    #SplicePython SpliceInit()
 enddef
 
 Main = SpliceInit9

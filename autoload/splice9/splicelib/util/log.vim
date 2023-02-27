@@ -31,7 +31,9 @@ const Scripts = vim_assist.Scripts
 #
 
 # TODO: put this somewhere else: maybe copy it to g:loggin_exclude
-g:splice_logging_exclude = [ 'focus', 'result' ]
+#
+g:splice_logging_exclude = [ 'focus', 'result', 'setting' ]
+#
 #g:splice_logging_exclude = []
 
 var fname: string
