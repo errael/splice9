@@ -41,12 +41,11 @@ var logging_enabled: bool = false
 
 # TODO: popup?
 def Logging_problem(s: string)
+    Log(s, 'internal_error', true, '')
     echomsg expand("<stack>")
     echomsg s
 enddef
 
-#
-# TODO: make category an optional 2nd arg default ''
 #
 # Conditionally log to a file based on enable and optional category.
 # The message is split by "\n" and passed to writefile()
@@ -54,60 +53,62 @@ enddef
 # Output example: "CATEGORY: The log msg"
 # NOTE: category is checked with ignore case, output as upper case
 #
-#   - Log(msg: string [, category = ''[, command = ''[, stack = false]]])
-#   - Log(func(): string [, category = ''[, command = ''[, stack = false]]])
+#   - Log(msg: string [, category = ''[, stack = true[, command = '']]])
+#   - Log(func(): string [, category = ''[, stack = true[, command = '']]])
 #
-### #       - Log(func(): string [, category])
-### #       - Log(category, msg)
-### #       - Log(category, func(): string)
+# If optional stack is true, the stacktrace from where Log is called
+# is output to the log.
 #
+# If optional command, the command is run using execute() and the command
+# output is output to the log.
 #
-export def Log(...args: list<any>)
+export def Log(msgOrFunc: any, category: string = '',
+        stack: bool = false, command: string = '')
     if ! logging_enabled
         return
     endif
-    var len = args->len()
-    if len < 1 || len > 2
-        Logging_problem(printf("LOGGING USAGE BUG: NARGS: %s.", args))
+    if !!category && g:splice_logging_exclude->index(category, 0, true) >= 0
         return
     endif
-    var category: any
-    var MsgOrFunc: any
-    if len == 1
-        category = ''
-        MsgOrFunc = args[0]
-    else
-        [ category, MsgOrFunc ] = args
-        if type(category) != v:t_string
-            Logging_problem(printf("LOGGING USAGE BUG: CATEGORY: %s.", category))
-            category = ''
-        endif
-    endif
-    if g:splice_logging_exclude->index(category, 0, true) >= 0
-        return
-    endif
-    var msg_type = type(MsgOrFunc)
+
     var msg: string
+    if !!category
+        msg = category->toupper() .. ': '
+    endif
+
+    var msg_type = type(msgOrFunc)
     if msg_type == v:t_string 
-        msg = MsgOrFunc
+        msg ..= <string>msgOrFunc
     elseif msg_type == v:t_func
         try
-            msg = MsgOrFunc()
+            var F: func = msgOrFunc
+            msg ..= F()
         catch /.*/
-            Logging_problem(printf("LOGGING USAGE BUG: FUNC: %s.", args))
+            Logging_problem(printf("LOGGING USAGE BUG: FUNC: %s, caught %s.",
+                typename(msg), v:exception))
             return
         endtry
     else
-            Logging_problem(printf("LOGGING USAGE BUG: ARG TYPE: %s.", args))
+            Logging_problem(printf("LOGGING USAGE BUG: msg TYPE: %s.", typename(msgOrFunc)))
             return
     endif
 
-    if !!category
-        #category = category->toupper() .. ': '
-        msg = category->toupper() .. ': ' .. msg
+    if stack
+        msg ..= "\n  stack:"
+        var stack_info = StackTrace()->slice(1)
+        msg ..= "\n" .. IndentLtoS(stack_info)
     endif
 
-    #msg = category .. msg
+    if !!command
+        msg ..= "\n" .. "  command '" .. command .. "' output:"
+        try
+            msg ..= "\n" .. execute(command)->split("\n")->IndentLtoS()
+        catch /.*/
+            Logging_problem(printf("LOGGING USAGE BUG: command : %s, caught: %s.",
+                command, v:exception))
+            return
+        endtry
+    endif
 
     writefile(msg->split("\n"), fname, 'a')
 enddef
@@ -120,20 +121,20 @@ enddef
 # NOTE: this implementation builds a string and minimizes direct list
 #       manipulation, I think this a performance improvement,
 #       for example, IndentLtoS(list<string>) uses list->join("\n    ").
-export def LogCmd(msg: string, category: string = '',
-        cmd: string = '', do_stack: bool = false)
-    var accum = msg
-    if do_stack
-        accum ..= "\n  stack:"
-        var stack = StackTrace()->slice(1)
-        accum ..= "\n" .. IndentLtoS(stack)
-    endif
-    if !!cmd
-        accum ..= "\n" .. "  command '" .. cmd .. "' output"
-        accum ..= "\n" .. execute(cmd)->split("\n")->IndentLtoS()
-    endif
-    Log(category, accum)
-enddef
+##### export def LogCmd(msg: string, category: string = '',
+#####         cmd: string = '', do_stack: bool = false)
+#####     var accum = msg
+#####     if do_stack
+#####         accum ..= "\n  stack:"
+#####         var stack = StackTrace()->slice(1)
+#####         accum ..= "\n" .. IndentLtoS(stack)
+#####     endif
+#####     if !!cmd
+#####         accum ..= "\n" .. "  command '" .. cmd .. "' output"
+#####         accum ..= "\n" .. execute(cmd)->split("\n")->IndentLtoS()
+#####     endif
+#####     Log(category, accum)
+##### enddef
 
 # Run a comand and log it. Optionally include a stack trace
 #export def LogCmd(tag: string, cmd: string, do_stack: bool = false)
@@ -164,17 +165,22 @@ export def StackTrace(): list<string>
     return stack
 enddef
 def FixStackFrame(frame: string): string
+    # nPath is the number of path components to include
+    const nPath = 2
     var m = matchlist(frame, '\v\<SNR\>(\d+)_')
     if !!m
         for _ in [1, 2]
             var path = scripts_cache->get(m[1], '')
             if !!path
-                # NOTE: [-2 : ] means include last 2 path components
-                var p = path->split('[/\\]')[-2 : ]->join('/')
+                var p = path->split('[/\\]')[- nPath : ]->join('/')
                 return substitute(frame, '\v\<SNR\>\d+_', p .. '::', '')
             endif
             Scripts(scripts_cache) # executes first iteration, 2nd breaks
         endfor
+    elseif frame->stridx('#') >= 0
+        var path = frame->split('#')
+        var function = path->remove(-1)
+        return '#' .. path[- nPath : ]->join('/') .. '.vim::' .. function
     endif
     return frame
 enddef
@@ -208,24 +214,3 @@ export def SplicePopup(e_idx: string, ...extra: list<any>)
     ui.PopupError([msg], err[ 1 : ])
 enddef
 
-#defcompile
-### #
-### # Invoked as either Log(msg) or Log(category, msg).
-### # Check to see if category should be logged.
-### #
-### export def Log(arg1: string, arg2: string = null_string)
-###     if ! logging_enabled
-###         return
-###     endif
-###     # typical case one arg; arg1 is msg
-###     var msg = arg1
-###     if arg2 != null
-###         # category is arg1
-###         if g:splice_logging_exclude->index(arg1) >= 0
-###             return
-###         endif
-###         msg = arg2
-###     endif
-### 
-###     writefile([ msg ], fname, 'a')
-### enddef

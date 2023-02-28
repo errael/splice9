@@ -41,10 +41,10 @@ export def BounceMethodCall(obj: any, method_and_args: string)
     endif
     var i = count + 1
     count = i
-    #i_log.LogCmd(printf("BounceMethodCall-%d '%s' '%s' [%s]", i, typename(obj), method_and_args, typename(bounce_obj)), '', '', true)
+    #i_log.Log(() => printf("BounceMethodCall-%d '%s' '%s' [%s]", i, typename(obj), method_and_args, typename(bounce_obj)), '', true, '')
     bounce_obj = obj
     execute "bounce_obj." .. method_and_args
-    #i_log.LogCmd(printf("BounceMethodCall-%d finish", i))
+    #i_log.Log(() => printf("BounceMethodCall-%d finish", i))
     bounce_obj = null_object
 enddef
 # Example:

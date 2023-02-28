@@ -91,7 +91,7 @@ def SpliceBootError()
     END
     startup_error_msgs->extend(instrs)
     for msg in startup_error_msgs
-        log.Log('ERROR: ' .. msg)
+        log.Log(msg, 'error')
     endfor
     SpliceDidNotLoad()
 enddef
@@ -102,8 +102,8 @@ var Main: func
 var startup_col: number
 def Trampoline(id: number)
     if startup_col != &co
-        Log(printf("COLUMN MISMATCH: after pause: startup_col: %d, col: %d",
-            startup_col, &co))
+        Log(() => printf("COLUMN MISMATCH: after pause: startup_col: %d, col: %d",
+            startup_col, &co), 'error')
         &columns = startup_col
     endif
     Main()
