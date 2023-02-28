@@ -130,21 +130,21 @@ enddef
 def Bind(key: string)
     var mapping = GetMapping(key)
     if mapping == ''
-        i_log.Log("Bind-Map: SKIP '" .. key .. "'")
+        i_log.Log(() => "Bind-Map: SKIP '" .. key .. "'")
         return
     endif
     var t = ':Splice' .. key .. '<cr>'
-    i_log.Log("Bind-Map: '" .. mapping .. "' -> '" .. t .. "'")
+    i_log.Log(() => "Bind-Map: '" .. mapping .. "' -> '" .. t .. "'")
     execute 'nnoremap' mapping t
 enddef
 
 def UnBind(key: string)
     var mapping = GetMapping(key)
     if mapping == ''
-        i_log.Log("Bind-UnMap: SKIP '" .. key .. "'")
+        i_log.Log(() => "Bind-UnMap: SKIP '" .. key .. "'")
         return
     endif
-    i_log.Log("Bind-UnMap: '" .. mapping .. "'")
+    i_log.Log(() => "Bind-UnMap: '" .. mapping .. "'")
     execute 'unmap' mapping
 enddef
 
@@ -208,7 +208,7 @@ enddef
 # Initialize all bindings except for UseHunk1/UseHunk2
 
 export def InitializeBindings()
-    i_log.LogCmd('InitializeBindings()', '', '', true)
+    i_log.Log('InitializeBindings()', '', true, '')
     # The default state is UseHunk; UseHunk?(1|2) are dynamically handled,
     # see ActivateGridBindings, DeactivateGridBindings
     var initBindings = actions_info->keys()

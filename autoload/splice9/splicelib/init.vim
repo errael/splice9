@@ -11,7 +11,6 @@ import autoload './util/bufferlib.vim'
 const buffers = bufferlib.buffers
 const Buffer = bufferlib.Buffer
 const Log = log.Log
-const LogCmd = log.LogCmd
 const Mode = i_modes.Mode
 
 const CONFLICT_MARKER_START = '<<<<<<<'
@@ -23,16 +22,16 @@ var CONFLICT_MARKER_MARK_PATTERN  = '^' .. CONFLICT_MARKER_MARK
 var CONFLICT_MARKER_END_PATTERN   = '^' .. CONFLICT_MARKER_END
 
 def Process_result()
-    LogCmd('Process_result()', '', ':ls', true)
+    Log('Process_result()', '', true, ':ls')
     windows.Close_all()
-    LogCmd('Process_result() after Close_all', '', ':ls', true)
+    Log('Process_result() after Close_all', '', true, ':ls')
     buffers.result.Open()
-    LogCmd('Process_result() after Open', '', ':ls', true)
+    Log('Process_result() after Open', '', true, ':ls')
 
     var lines = []
     var in_conflict = false
     for line in getline(1, '$')
-        Log('result', line)
+        Log(line, 'result')
         if in_conflict
             if line =~ CONFLICT_MARKER_MARK_PATTERN
                 lines->add(line)
@@ -40,13 +39,13 @@ def Process_result()
             if line =~ CONFLICT_MARKER_END_PATTERN
                 in_conflict = false
             endif
-            Log('result', 'DISCARD1: ' .. line)
+            Log(() => 'DISCARD1: ' .. line, 'result')
             continue
         endif
 
         if line =~ CONFLICT_MARKER_START_PATTERN
             in_conflict = true
-            Log('result', 'DISCARD2: ' .. line)
+            Log(() => 'DISCARD2: ' .. line, 'result')
             continue
         endif
 
@@ -61,7 +60,7 @@ export def Init_cur_window_wrap()
     var setting = i_settings.Setting('wrap')
     if setting != null
         &wrap = setting == 'wrap' ? true : false
-        Log('setting', () => '&wrap set to ' .. &wrap)
+        Log(() => '&wrap set to ' .. &wrap, 'setting')
     endif
 enddef
 
@@ -89,12 +88,12 @@ enddef
 
 export def Init()
     Process_result()
-    LogCmd('Init() after Process_result', '', ':ls', true)
+    Log('Init() after Process_result', '', true, ':ls')
 
     # There's a funny dance, can't do the "new" until after Process_result()
     execute 'new' '__Splice_HUD__'
     buffers.InitHudBuffer(bufnr())
-    LogCmd('Init() after buffers.InitHudBuffer()', '', ':ls', true)
+    Log('Init() after buffers.InitHudBuffer()', '', true, ':ls')
 
     Setlocal_buffers()
 

@@ -10,14 +10,14 @@ var KeepWindowEE = vim_assist.KeepWindowEE
 
 export def Focus(wnr: number)
     var wid = win_getid(wnr)
-    Log('focus', 'WIN: focus ' .. string(wnr))
+    Log(() => 'WIN: ' .. string(wnr), 'focus')
 
     var err = wid == 0
     if ! err
         err = ! win_gotoid(wid) 
     endif
     if err
-        Log(printf("ERROR: Focus: wnr %d", wnr))
+        Log(() => printf("ERROR: Focus: wnr %d", wnr))
     endif
 enddef
 

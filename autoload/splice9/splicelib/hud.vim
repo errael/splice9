@@ -28,7 +28,6 @@ var hl_active: string
 # TODO: use hl_active for current mode, diff on, scrollbind on
 
 var Log: func
-var LogCmd: func
 
 if ! testing
     import autoload './util/log.vim'
@@ -46,7 +45,6 @@ if ! testing
     hl_active = splice.hl_active
 
     Log = log.Log
-    LogCmd = log.LogCmd
 else
     import './vim_assist.vim'
     import './hud_sub.vim'
@@ -178,7 +176,7 @@ def ExecuteCommand(cmd: string, id: number)
     else
         RestoreWinPos()
         var splice_cmd = 'Splice' .. cmd
-        Log('Execute: ' .. splice_cmd)
+        Log(() => 'Execute: ' .. splice_cmd)
         if special_cmds->index(cmd) >= 0
             splice_cmd ..= '()'
         endif
@@ -661,7 +659,7 @@ var hudbufnr: number = -1
 
 def LogDrawHUD(mode: string, layout: number,
     vari_files: list<string>, bnr: number)
-    Log(printf("DrawHUD: mode: '%s', layout %d, vari_files %s, bnr %d",
+    Log(() => printf("DrawHUD: mode: '%s', layout %d, vari_files %s, bnr %d",
         mode, layout, vari_files, bnr))
 enddef
 

@@ -142,20 +142,20 @@ export class Mode
 
 
     def Key_use()
-        Log('warn', "Key_use: mode: " .. current_mode.id)
+        Log(() => "Key_use: mode: " .. current_mode.id, 'warn')
     enddef
 
     def Key_use1()
-        Log('warn', "Key_use1: mode: " .. current_mode.id)
+        Log(() => "Key_use1: mode: " .. current_mode.id, 'warn')
     enddef
 
     def Key_use2()
-        Log('warn', "Key_use2: mode: " .. current_mode.id)
+        Log(() => "Key_use2: mode: " .. current_mode.id, 'warn')
     enddef
 
 
     def Goto_result()
-        Log('warn', "Goto_result: mode: " .. current_mode.id)
+        Log(() => "Goto_result: mode: " .. current_mode.id, 'warn')
     enddef
 
 
@@ -264,7 +264,7 @@ class GridMode extends Mode
         this._current_layout = Setting('initial_layout_grid')
         this._current_diff_mode = Setting('initial_diff_grid')
         this._current_scrollbind = Setting('initial_scrollbind_grid')
-        Log($"MODES: initial_scrollbind_grid: {this._current_scrollbind}")
+        Log(() => $"MODES: initial_scrollbind_grid: {this._current_scrollbind}")
 
         this._number_of_diff_modes = 2
         this._number_of_layouts = 3
@@ -489,8 +489,8 @@ class GridMode extends Mode
         endif
         var w2 = buffers.result.Winnr()
         if w2 != winnr
-            Log($'mode.goto_result: ERROR: winnr: {winnr}, w2: {w2}')
-        Log($'mode.{this.id}.goto_result: winnr: {winnr}, w2: {w2}')
+            Log(() => $'mode.goto_result: ERROR: winnr: {winnr}, w2: {w2}')
+        Log(() => $'mode.{this.id}.goto_result: winnr: {winnr}, w2: {w2}')
 
         windows.Focus(winnr)
     enddef
@@ -521,7 +521,7 @@ class LoupeMode extends Mode
         this._current_layout = Setting('initial_layout_loupe')
         this._current_diff_mode = Setting('initial_diff_loupe')
         this._current_scrollbind = Setting('initial_scrollbind_loupe')
-        Log($"MODES: 'initial_scrollbind_loupe: {this._current_scrollbind}")
+        Log(() => $"MODES: 'initial_scrollbind_loupe: {this._current_scrollbind}")
 
         this._number_of_diff_modes = 1
         this._number_of_layouts = 1
@@ -609,7 +609,7 @@ class CompareMode extends Mode
         this._current_layout = Setting('initial_layout_compare')
         this._current_diff_mode = Setting('initial_diff_compare')
         this._current_scrollbind = Setting('initial_scrollbind_compare')
-        Log($"MODES: 'initial_scrollbind_compare: {this._current_scrollbind}")
+        Log(() => $"MODES: 'initial_scrollbind_compare: {this._current_scrollbind}")
 
         this._number_of_diff_modes = 2
         this._number_of_layouts = 2
@@ -855,7 +855,7 @@ class PathMode extends Mode
         this._current_layout = Setting('initial_layout_path')
         this._current_diff_mode = Setting('initial_diff_path')
         this._current_scrollbind = Setting('initial_scrollbind_path')
-        Log($"MODES: 'initial_scrollbind_path: {this._current_scrollbind}")
+        Log(() => $"MODES: 'initial_scrollbind_path: {this._current_scrollbind}")
 
         this._number_of_diff_modes = 5
         this._number_of_layouts = 2
@@ -1103,7 +1103,7 @@ export def ModesDispatch(op: string)
     if F != null
         F()
     else
-        Log('error', () => "ModesDispatch: unknown operation: " .. op)
+        Log(() => "ModesDispatch: unknown operation: " .. op, 'error')
     endif
 enddef
 

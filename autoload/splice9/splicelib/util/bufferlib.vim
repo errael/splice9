@@ -34,7 +34,7 @@ export class Buffer
         if bufexists(this.bufnr)
             this.name = bufname(this.bufnr)
         else
-            Log(printf('Buffer: %d does not exist', this.bufnr))
+            Log(() => printf('Buffer: %d does not exist', this.bufnr))
             this.bufnr = -1
         endif
     enddef
