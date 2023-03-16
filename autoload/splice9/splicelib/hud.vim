@@ -29,7 +29,7 @@ var hl_active: string
 
 var Log: func
 
-if ! testing
+if ! standalone_exp
     import autoload './util/log.vim'
     import autoload './util/vim_assist.vim'
     import autoload './util/keys.vim'
@@ -46,11 +46,11 @@ if ! testing
 
     Log = log.Log
 else
-    import './vim_assist.vim'
-    import './hud_sub.vim'
     import './log.vim'
+    import './vim_assist.vim'
     import './keys.vim'
     import './ui.vim'
+    import './hud_sub.vim'
 
     const DumpDia = hud_sub.DumpDia
     const DisplayHuds = hud_sub.DisplayHuds
@@ -666,6 +666,7 @@ enddef
 #
 # This is invoked when the HUD is the current buffer
 #
+# TODO: get rid of use_vim
 export def DrawHUD(use_vim: bool, mode: string, layout: number,
         vari_files: list<string>)
 
@@ -922,7 +923,7 @@ def NextHud(forw: bool = true)
     hud_idx += 1
     hud_idx %= len(hud_args)
 
-    call(DrawHUD, [ true, hud_args[use_idx] ]->flattennew())
+    call(DrawHUD, [ true, hud_args[use_idx] ]->flattennew(1))
     return
 enddef
 

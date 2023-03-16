@@ -38,10 +38,10 @@ endif
 # each action has
 #   a_dflt:     default binding character(s)
 #   a_dsply:    order in which to display values
-#   a_cidx:     order in HUD "Splice Commands"
 
 # Lists are built and cached from following
 
+# The key is action name
 const actions_info = {
     Grid:     { a_dflt: 'g',       a_dsply:  0, },
     Loupe:    { a_dflt: 'l',       a_dsply:  1, },
@@ -69,11 +69,14 @@ const actions_info = {
 }
 
 var actionsSortedBy: dict<list<string>>
+
+# return action names list sorted by "actions_info[act_name][field]"
+# cache the returned value for re-use.
 export def ActionsSortedBy(field: string): list<string>
     if ! actionsSortedBy->has_key(field)
         var x = actions_info->keys()
-            ->map((i, v) => [ v, actions_info[v][field] ])    # [ Grid, sort ]
-            ->filter((i, v) => v[1] != 88)
+            ->map((i, act_name) => [ act_name, actions_info[v][field] ])
+            ### ->filter((i, v) => v[1] != 88)
             ->sort((a1, a2) => a1[1] - a2[1])
             ->map((i, v) => v[0])
         unlockvar 2 actionsSortedBy
@@ -109,18 +112,29 @@ export def SpliceCancel()
 enddef
 
 # would like to return null, but string can't be null
+# TODO: instead of 'splice_bind_', how about 'splice_map_'? Maybe not.
 def GetMapping(key: string): string
     var mapping = g:->get('splice_bind_' .. key, null)
     if mapping == 'None' || mapping == ''
         return ''
+    elseif mapping != null
+        return mapping
     endif
-    #if mapping == null
-    #    mapping = g:->get('splice_prefix', '-')
-    #        .. defaultBindings->get(key)
-    #endif
-    if mapping == null
-        mapping = g:->get('splice_prefix', '-')
-            .. actions_info[key]['a_dflt']
+
+    # Use the default taking prefix into account, unless use meta
+    var dflt = actions_info[key]['a_dflt']
+    if ! !!g:->get('splice_bind_use_meta', false)
+        return g:->get('splice_prefix', '-') .. dflt
+    endif
+
+    # Use the Meta Key with the defaults.
+    if dflt == '<Space>'
+        mapping = "\u16\uA0"
+    else
+        mapping = ''
+        for c in dflt
+            mapping ..= '<M-' .. c .. '>'
+        endfor
     endif
     return mapping
 enddef
@@ -168,6 +182,7 @@ export def MappingsList(): list<any>
     endfor
     for [k, v] in maplist()->filter(FilterSpliceMap)
             ->map((i, m) => MappingPair(m['rhs'], m['lhs']))
+        # only include known splice commands
         if mappings->has_key(k)
             mappings[k]->add(v)
         endif
@@ -208,7 +223,7 @@ enddef
 # Initialize all bindings except for UseHunk1/UseHunk2
 
 export def InitializeBindings()
-    i_log.Log('InitializeBindings()', '', true, '')
+    i_log.Log('InitializeBindings()')
     # The default state is UseHunk; UseHunk?(1|2) are dynamically handled,
     # see ActivateGridBindings, DeactivateGridBindings
     var initBindings = actions_info->keys()

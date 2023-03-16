@@ -124,6 +124,7 @@ export class Mode
 
     def Key_layout(diffmode: number = -1) # diffmode not used
         var next_layout = (this._current_layout + 1) % this._number_of_layouts
+        Log(() => $'Mode: Key_layout: next_layout {next_layout}', 'layout')
         this.Layout(next_layout)
     enddef
 
@@ -1080,28 +1081,42 @@ export def Key_path()
     path.Activate()
 enddef
 
+# TODO WORKAROUND: was: () => current_mode.Key_original()
 const dispatch = {
-    SpliceOriginal: () => current_mode.Key_original(),
-    SpliceOne:      () => current_mode.Key_one(),
-    SpliceTwo:      () => current_mode.Key_two(),
-    SpliceResult:   () => current_mode.Key_result(),
+    SpliceOriginal: (cur_mode: Mode) => cur_mode.Key_original(),
+    SpliceOne:      (cur_mode: Mode) => cur_mode.Key_one(),
+    SpliceTwo:      (cur_mode: Mode) => cur_mode.Key_two(),
+    SpliceResult:   (cur_mode: Mode) => cur_mode.Key_result(),
 
-    SpliceDiff:     () => current_mode.Key_diff(),
-    SpliceDiffOff:  () => current_mode.Key_diffoff(),
-    SpliceScroll:   () => current_mode.Key_scrollbind(),
-    SpliceLayout:   () => current_mode.Key_layout(),
-    SpliceNext:     () => current_mode.Key_next(),
-    SplicePrev:     () => current_mode.Key_prev(),
-    SpliceUse:      () => current_mode.Key_use(),
-    SpliceUse1:     () => current_mode.Key_use1(),
-    SpliceUse2:     () => current_mode.Key_use2(),
+    SpliceDiff:     (cur_mode: Mode) => cur_mode.Key_diff(),
+    SpliceDiffOff:  (cur_mode: Mode) => cur_mode.Key_diffoff(),
+    SpliceScroll:   (cur_mode: Mode) => cur_mode.Key_scrollbind(),
+    SpliceLayout:   (cur_mode: Mode) => cur_mode.Key_layout(),
+    SpliceNext:     (cur_mode: Mode) => cur_mode.Key_next(),
+    SplicePrev:     (cur_mode: Mode) => cur_mode.Key_prev(),
+    SpliceUse:      (cur_mode: Mode) => cur_mode.Key_use(),
+    SpliceUse1:     (cur_mode: Mode) => cur_mode.Key_use1(),
+    SpliceUse2:     (cur_mode: Mode) => cur_mode.Key_use2(),
 }
 
 export def ModesDispatch(op: string)
+    if current_mode == null_object
+        Log(() => printf("NULL current_mode: %s: %s", op, current_mode.id))
+        return
+    endif
+    if op == 'SpliceLayout'
+        Log('special dispatch for SpliceLayout', 'layout')
+        current_mode.Key_layout()
+        Log('special dispatch return', 'layout')
+        return
+    endif
+
     Log(() => printf("%s: %s", op, current_mode.id))
     var F = dispatch->get(op, null_function)
     if F != null
-        F()
+        Log(printf('dispatching %s', op), 'layout')
+        F(current_mode)
+        Log(printf('returned %s', op), 'layout')
     else
         Log(() => "ModesDispatch: unknown operation: " .. op, 'error')
     endif
