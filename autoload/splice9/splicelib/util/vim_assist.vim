@@ -5,7 +5,11 @@ if expand('<script>:p') =~ '^/home/err/experiment/vim/splice'
     standalone_exp = true
 endif
 
+if ! standalone_exp
 import autoload './log.vim' as i_log
+else
+import './log.vim' as i_log
+endif
 
 var testing = false
 
@@ -13,10 +17,11 @@ var testing = false
 #       Pad, IndentLtoS, IndentLtoL
 #       Replace, ReplaceBuf
 # Dictionary
-#       PutIfAbsent
+#       PutIfAbsent (DEPRECATED)
 #       Set (DEPRECATED)
 #       DictUniqueCopy, DictUnique (NOT EXPORTED)
 # Lists, nested lists
+#       ListRandomize
 #       FindInList, FetchFromList
 # Keystrokes
 #       Keys2str
@@ -30,7 +35,9 @@ var testing = false
 # ##### HexString
 
 ###
-### TEMPORARY WORKAROUND
+### TODO: WORKAROUND:
+### https://github.com/vim/vim/issues/12054
+### vim9class: "execute 'obj.Method()'" fails when obj defined in function bug #12054
 ###
 # NOTE: no recursion using Bounce, COULD SET UP A STACK
 var count = 0
@@ -41,6 +48,7 @@ export def BounceMethodCall(obj: any, method_and_args: string)
     endif
     var i = count + 1
     count = i
+    i_log.Log(() => printf("BounceMethodCall-%d '%s' '%s' [%s]", i, typename(obj), method_and_args, typename(bounce_obj)))
     #i_log.Log(() => printf("BounceMethodCall-%d '%s' '%s' [%s]", i, typename(obj), method_and_args, typename(bounce_obj)), '', true, '')
     bounce_obj = obj
     execute "bounce_obj." .. method_and_args
@@ -97,7 +105,7 @@ export def Scripts(scripts: dict<string> = {}): dict<string>
     return scripts
 enddef
 #def DumpScripts(scripts: dict<string>)
-#    for i in scripts->keys()->map((_, i) => str2nr(i))->sort('f')
+#    for i in scripts->keys()->sort('N')
 #        echo i scripts[i]
 #    endfor
 #enddef
@@ -269,13 +277,14 @@ endclass
 ### Dictionary
 ###
 
-export def PutIfAbsent(d: dict<any>, k: string, v: any)
+#DEPRECATED: use d->extend({[k]: v}, "keep")
+def PutIfAbsent(d: dict<any>, k: string, v: any)
     if ! d->has_key(k)
         d[k] = v
     endif
 enddef
 
-# 8.2.4589 can now do g:[key] = val
+#DEPRECATED: 8.2.4589 can now do g:[key] = val
 def Set(d: dict<any>, k: string, v: any)
     d[k] = v
 enddef
@@ -305,6 +314,16 @@ enddef
 ### working with nested lists
 ###     A path is used to traverse the nested list, see FetchFromList.
 ###
+
+def ListRandomize(l: list<any>): list<any>
+    srand()
+    var v_list: list<func> = l->copy()
+    var random_order_list: list<any>
+    while v_list->len() > 0
+        random_order_list->add(v_list->remove(rand() % v_list->len()))
+    endwhile
+    return random_order_list
+enddef
 
 # FindInList: find target in list using '==', return false if not found
 # Each target found is identified by a list of indexes into the search list,

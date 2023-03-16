@@ -14,8 +14,6 @@ endif
 
 const Log = i_log.Log
 
-var PutIfAbsent = vim_assist.PutIfAbsent
-
 export def Setting(setting: string): any
     var key = 'splice_' .. setting
     Log(() => $"Setting: key: {key}", 'setting')
@@ -51,37 +49,49 @@ def QuoteList(slist: list<any>): string
     return slist->mapnew((_, v) => string(v))->join(", ")
 enddef
 
+# NOTE: "ok_vals_msg" overrides "ok"
+def RecordSettingError(setting: string, default: any, ok: list<any> = [],
+        ok_vals_msg: string = null_string)
+    var val = g:->get(setting, null)
+    var msg = BadVarMsg('g:' .. setting, TS(val),
+        ok_vals_msg ?? "one of " .. QuoteList(ok))
+    if default != null
+        msg->add("    Using: '" .. default .. "'")
+        g:[setting] = default
+    endif
+    settings_errors->extend(msg)
+enddef
+
 # Return true if use setting is ok, otherwise add errormsg to settings_errors.
 # 
 # If a problem, the setting is assigned the default value.
 #
 # If the call wan't some additional message massaging, One way
 # is to use the GetDefault() to put in a tag and edit it.
-def CheckOneOfSetting(setting: string, ok: list<any>, default: any): bool
+def CheckOneOfSetting(setting: string, default: any, ok: list<any>): bool
     #log.Log('checking: ' .. string(setting) .. " " .. string(ok) .. " " ..  string(GetDefault))
-    var msg = []
+    #var msg = []
     var val = g:->get(setting, null)
     if val != null && ok->index(val) == -1
-        msg = BadVarMsg('g:' .. setting, TS(val),
-            "one of " .. QuoteList(ok))
-        if default != null
-            msg->add("    Using: " .. default)
-            g:[setting] = default
-        endif
-        settings_errors->extend(msg)
+        RecordSettingError(setting, default, ok)
+        return false
+    endif
+    return true
+enddef
+
+# ok is a list of types, 
+def CheckTypeOfSetting(setting: any, default: any, ok: list<number>): bool
+    #log.Log('checking: ' .. string(setting) .. " " .. string(ok) .. " " ..  string(GetDefault))
+    var val = g:->get(setting, null)
+    # TODO: could map 'ok' list to list of types
+    if val != null && ok->index(type(val)) == -1
+        RecordSettingError(setting, default, v:none, 'correct type')
         return false
     endif
     return true
 enddef
 
 # Configuration variables
-
-
-# TODO:
-# Rather than having defaults in vim global space,
-# may want to set up default in one place, then use a
-# separate dictionary just for python. Not worth the bother
-# since Splice *owns* vim when it runs, no problem polluting g:.
 
 # { setting-name: [ [ ok_values... ], default_val ]
 # NOTE: 'splice_wrap' default val is computed based on '&wrap'
@@ -111,19 +121,23 @@ var setting_info = {
 setting_info.splice_wrap[1] = &wrap ? 'wrap' : 'nowrap'
 lockvar setting_info
 
-var settings_init = false
+var did_settings_init = false
 export def InitSettings(): list<string>
-    if settings_init
+    if did_settings_init
         return null_list
     endif
 
-    # TODO: splice_leader is new. Needed?
-    var t = exists('g:splice_leader') ? g:splice_leader : '-'
-    g:->PutIfAbsent('splice_prefix', t)
+
+    # Splice doc says to use "g:splice_prefix", but the original has a
+    # dance to secondarily check "g:splice_leader".
+    if !exists('g:splice_prefix')
+        g:splice_prefix = exists('g:splice_leader') ? g:splice_leader : '-'
+    endif
+    CheckTypeOfSetting('splice_prefix', '-', [ v:t_string ])
 
     for [ setting, info ] in setting_info->items()
-        g:->PutIfAbsent(setting, info[1])
-        CheckOneOfSetting(setting, info[0], info[1])
+        g:->extend({[setting]: info[1]}, 'keep')
+        CheckOneOfSetting(setting, info[1], info[0])
     endfor
     return settings_errors
 enddef

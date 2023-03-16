@@ -16,8 +16,6 @@ else
     import './vim_assist.vim'
 endif
 
-# export Log, LogInit
-
 const IndentLtoS = vim_assist.IndentLtoS
 const Scripts = vim_assist.Scripts
 
@@ -47,7 +45,7 @@ def Logging_problem(s: string)
 enddef
 
 #
-# Conditionally log to a file based on enable and optional category.
+# Conditionally log to a file based on logging enabled and optional category.
 # The message is split by "\n" and passed to writefile()
 # Output example: "The log msg"
 # Output example: "CATEGORY: The log msg"
@@ -113,48 +111,6 @@ export def Log(msgOrFunc: any, category: string = '',
     writefile(msg->split("\n"), fname, 'a')
 enddef
 
-#
-# TODO: integrate into Log(msg, cat, cmd, stack)
-#
-# Run a command, and put it into the log.
-# Optionally include stacktrace, optionally specify logging category
-# NOTE: this implementation builds a string and minimizes direct list
-#       manipulation, I think this a performance improvement,
-#       for example, IndentLtoS(list<string>) uses list->join("\n    ").
-##### export def LogCmd(msg: string, category: string = '',
-#####         cmd: string = '', do_stack: bool = false)
-#####     var accum = msg
-#####     if do_stack
-#####         accum ..= "\n  stack:"
-#####         var stack = StackTrace()->slice(1)
-#####         accum ..= "\n" .. IndentLtoS(stack)
-#####     endif
-#####     if !!cmd
-#####         accum ..= "\n" .. "  command '" .. cmd .. "' output"
-#####         accum ..= "\n" .. execute(cmd)->split("\n")->IndentLtoS()
-#####     endif
-#####     Log(category, accum)
-##### enddef
-
-# Run a comand and log it. Optionally include a stack trace
-#export def LogCmd(tag: string, cmd: string, do_stack: bool = false)
-#    echo tag
-#    if !!do_stack
-#        echo '  stack:'
-#        var stack = StackTrace()->slice(1)
-#        echo IndentLtoS(stack)
-#    endif
-#    echo "  '" .. cmd .. "' output"
-#    echo execute(cmd)->split("\n")->IndentLtoS()
-#enddef
-
-# return list of stack frame titles, TOS first, don't include StackTrace()
-# optionally convert <SNR>##_ to file name
-#export def StackTrace(do_fname: bool = false): list<string>
-#    # slice(1) to remove this function from the trace
-#    # TODO: using Scripts do filename
-#    return expand('<stack>')->split('\.\.')->reverse()->slice(1)
-#enddef
 var scripts_cache = Scripts()
 export def StackTrace(): list<string>
     # slice(1): don't include this function in trace
@@ -164,6 +120,7 @@ export def StackTrace(): list<string>
     })
     return stack
 enddef
+
 def FixStackFrame(frame: string): string
     # nPath is the number of path components to include
     const nPath = 2
@@ -213,4 +170,5 @@ export def SplicePopup(e_idx: string, ...extra: list<any>)
     Log(msg)
     ui.PopupError([msg], err[ 1 : ])
 enddef
+
 
