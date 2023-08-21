@@ -24,6 +24,16 @@ export def Setting(setting: string): any
     return g:->get(key)
 enddef
 
+# NOTE: This was in init.vim, import hell.
+#       Seems to actually belong here anyway.
+export def Init_cur_window_wrap()
+    var setting = Setting('wrap')
+    if setting != null
+        &wrap = setting == 'wrap' ? true : false
+        Log(() => '&wrap set to ' .. &wrap, 'setting')
+    endif
+enddef
+
 var settings_errors: list<string>
 
 # Assume VAL already quoted by string() method.

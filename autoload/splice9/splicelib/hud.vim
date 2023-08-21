@@ -720,6 +720,9 @@ def InitHudBuffer()
     wincmd =
 enddef
 
+#
+# The HUD has just been drawn.
+#
 def HudActionsPropertiesAndHighlights(mode: string, bnr: number)
     unlockvar! actions
     actions = base_actions->copy()

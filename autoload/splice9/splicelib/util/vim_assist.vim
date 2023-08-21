@@ -34,12 +34,18 @@ var testing = false
 #       BounceMethodCall, IsSameType (TEMP WORKAROUND)
 # ##### HexString
 
-###
-### TODO: WORKAROUND:
-### https://github.com/vim/vim/issues/12054
-### vim9class: "execute 'obj.Method()'" fails when obj defined in function bug #12054
-###
-# NOTE: no recursion using Bounce, COULD SET UP A STACK
+#
+# The idea is to do invoke an object method with args where the
+# args and method are passed in as a single string. Using execute, the
+# local context is not available, put the object in a script variable "bounce_obj".
+# (see https://github.com/vim/vim/issues/12054)
+#
+# Better to use a lambda that invokes the object and method, () => obj.method,
+# assuming don't actually have to construct the name from a string.
+# There could be problem if arguments use BounceMethodCall (directly/indirectly)
+# since bounce_obj is not on the stack. Maybe could save/restore bounce_obj,
+# not worth verifying that works at this time.
+#       
 var count = 0
 var bounce_obj: any = null_object
 export def BounceMethodCall(obj: any, method_and_args: string)
@@ -278,16 +284,16 @@ endclass
 ###
 
 #DEPRECATED: use d->extend({[k]: v}, "keep")
-def PutIfAbsent(d: dict<any>, k: string, v: any)
-    if ! d->has_key(k)
-        d[k] = v
-    endif
-enddef
+#def PutIfAbsent(d: dict<any>, k: string, v: any)
+#    if ! d->has_key(k)
+#        d[k] = v
+#    endif
+#enddef
 
 #DEPRECATED: 8.2.4589 can now do g:[key] = val
-def Set(d: dict<any>, k: string, v: any)
-    d[k] = v
-enddef
+#def Set(d: dict<any>, k: string, v: any)
+#    d[k] = v
+#enddef
 
 # Remove the common key/val from each dict.
 # Note: the dicts are modified
