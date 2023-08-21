@@ -11,6 +11,8 @@ import autoload './util/bufferlib.vim'
 const buffers = bufferlib.buffers
 const Buffer = bufferlib.Buffer
 const Log = log.Log
+# TODO: if following line is taken out, weird errors,
+#       "Dictionary required"
 const Mode = i_modes.Mode
 
 const CONFLICT_MARKER_START = '<<<<<<<'
@@ -56,20 +58,12 @@ def Process_result()
     setbufline('', 1, lines)
 enddef
 
-export def Init_cur_window_wrap()
-    var setting = i_settings.Setting('wrap')
-    if setting != null
-        &wrap = setting == 'wrap' ? true : false
-        Log(() => '&wrap set to ' .. &wrap, 'setting')
-    endif
-enddef
-
 def Setlocal_fixed_buffer(b: Buffer, filetype: string)
     b.Open()
     &swapfile = false
     &modifiable = false
     &filetype = filetype
-    Init_cur_window_wrap()
+    i_settings.Init_cur_window_wrap()
 enddef
 
 def Setlocal_buffers()
@@ -81,7 +75,7 @@ def Setlocal_buffers()
     Setlocal_fixed_buffer(buffers.two, filetype)
 
     buffers.result.Open()
-    Init_cur_window_wrap()
+    i_settings.Init_cur_window_wrap()
 
     Log("SKIPPING LOCAL HUD INIT")
 enddef
@@ -105,7 +99,8 @@ export def Init()
     #modes.current_mode = getattr(modes, initial_mode)
     i_modes.SetInitialMode(initial_mode)
     # TODO: report/check following failed with "Exxx dictionary required"
-    #           before class Mode was imported
+    #       before class Mode was imported at the top
+    Log(() => printf("INIT I_MODES CURRENT_MODE %s", i_modes.current_mode))
     i_modes.current_mode.Activate()
 enddef
 

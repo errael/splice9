@@ -42,16 +42,17 @@ export class Buffer
     # Make this buffer the current buffer.
     def Open(winnr = -1): void
         if winnr >= 0
-            windows.focus(winnr)
+            windows.Focus(winnr)
             # execute string(winnr) .. 'wincmd w'
         endif
         if this.bufnr >= 0
             #execute string(this.bufnr) .. 'buffer'
+            # TODO: get rid of "execute"
             execute 'buffer' this.bufnr
         endif
     enddef
 
-    def Winnr()
+    def Winnr(): number
         return bufwinnr(this.bufnr)
     enddef
 
@@ -128,6 +129,7 @@ class BufferList
         return nullBuffer
     enddef
 
+    # TODO: try changing the type to BaseEE
     #def Remain(): BaseEE
     def Remain(): any
         #return RemainEE.new()

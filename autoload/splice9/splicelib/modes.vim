@@ -14,7 +14,6 @@ const buffers = i_bufferlib.buffers
 const nullBuffer = i_bufferlib.nullBuffer
 const Buffer = i_bufferlib.Buffer
 const With = vim_assist.With
-const BounceMethodCall = vim_assist.BounceMethodCall
 const DrawHUD = i_hud.DrawHUD
 const Setting = i_settings.Setting
 const Log = i_log.Log
@@ -26,9 +25,11 @@ export class Mode
     this._lay_first: string
     this._lay_second: string
 
-    this._number_of_layouts: number
-    this._number_of_diff_modes: number
     this._number_of_windows: number
+
+    # funcs to do the layout and the diffs: 0 to n-1
+    this._layouts: list<func(): void>
+    this._diffs: list<func(): void>
 
     this._current_diff_mode: number
     this._current_layout: number
@@ -45,10 +46,7 @@ export class Mode
     def Diff(diffmode: number)
         With(buffers.Remain(), (_) => {
             With(windows.Remain(), (_) => {
-                #getattr(self, '_diff_%d' % diffmode)()
-                #execute '_diff_' .. diffmode .. '()'
-                # M_diff_0(), M_diff_1(), ...
-                BounceMethodCall(this, 'M_diff_' .. diffmode .. '()')
+                this._diffs[diffmode]()
             })
         })
 
@@ -60,7 +58,7 @@ export class Mode
 
     # NOTE: diffmode not used
     def Key_diff(diffmode: number = -1)
-        var next_diff_mode = (this._current_diff_mode + 1) % this._number_of_diff_modes
+        var next_diff_mode = (this._current_diff_mode + 1) % len(this._diffs)
         Log(() => $'Key_diff: next_diff_mode: {next_diff_mode}')
         this.Diff(next_diff_mode)
     enddef
@@ -75,7 +73,7 @@ export class Mode
                 for buffer in buffers.all
                     buffer.Open()
                     :diffoff
-                    i_init.Init_cur_window_wrap()
+                    i_settings.Init_cur_window_wrap()
                 endfor
 
                 curbuffer.Open()
@@ -117,13 +115,18 @@ export class Mode
 
     def Layout(layoutnr: number)
         #getattr(self, '_layout_%d' % layoutnr)()
-        BounceMethodCall(this, 'M_layout_' .. layoutnr .. '()')
+        this._layouts[layoutnr]()
+
         this.Diff(this._current_diff_mode)
         this.Redraw_hud()
     enddef
 
+    # TODO: NOTE that _current_layout is not saved here,
+    #       it is saved at the target.
+    #       Why not save it here, or in Layout above, instead of the several places M_layout_#?
     def Key_layout(diffmode: number = -1) # diffmode not used
-        var next_layout = (this._current_layout + 1) % this._number_of_layouts
+        var next_layout = (this._current_layout + 1) % len(this._layouts)
+        Log(printf("Key_layout: id: %s, next %d, %s", this.id, next_layout, this._layouts))
         Log(() => $'Mode: Key_layout: next_layout {next_layout}', 'layout')
         this.Layout(next_layout)
     enddef
@@ -143,24 +146,25 @@ export class Mode
 
 
     def Key_use()
-        Log(() => "Key_use: mode: " .. current_mode.id, 'warn')
+        Log(() => "Key_use: mode: " .. current_mode.id, 'error')
     enddef
 
     def Key_use1()
-        Log(() => "Key_use1: mode: " .. current_mode.id, 'warn')
+        Log(() => "Key_use1: mode: " .. current_mode.id, 'error')
     enddef
 
     def Key_use2()
-        Log(() => "Key_use2: mode: " .. current_mode.id, 'warn')
+        Log(() => "Key_use2: mode: " .. current_mode.id, 'error')
     enddef
 
 
     def Goto_result()
-        Log(() => "Goto_result: mode: " .. current_mode.id, 'warn')
+        Log(() => "Goto_result: mode: " .. current_mode.id, 'error')
     enddef
 
 
     def S_Activate()
+        Log(printf("S_Activate: this._diffs: id: %s, %s", this.id, this._diffs))
         this.Layout(this._current_layout)
         this.Diff(this._current_diff_mode)
         this.Scrollbind(this._current_scrollbind)
@@ -216,28 +220,8 @@ export class Mode
                 mod = 'compare'
             endif
 
-            # TODO: get rid of the list, just have two file args, handle empty
-            #           in HUD
-            #var vari_files: list<string>
-            #if !! this._lay_first | vari_files->add(this._lay_first) | endif
-            #if !! this._lay_second | vari_files->add(this._lay_second) | endif
-            # DrawHUD(true, mod, this._current_layout, vari_files)
-            #     this._lay_first, this._lay_second)
-
             DrawHUD(true, mod, this._current_layout,
                 [this._lay_first, this._lay_second]->filter((_, v) => v != ''))
-
-            #tmp = $"ISpliceDrawHUD 1, '{mod}', {this._current_layout}"
-            #    .. ! this._lay_first ? "" : $", '{this._lay_first}'"
-            #    .. ! this._lay_second ? "" : $", '{this._lay_second}'"
-            #Log(tmp)
-            #execute tmp
-
-            #tmp = f"ISpliceDrawHUD 1, " \
-            #        + f"'{mod}', {self._current_layout}" \
-            #        + ("" if not self._lay_first else f", '{self._lay_first}'") \
-            #        + ("" if not self._lay_second else f", '{self._lay_second}'")
-            # AND WE'RE DONE ON THIS SIDE
         })
     enddef
 
@@ -267,10 +251,10 @@ class GridMode extends Mode
         this._current_scrollbind = Setting('initial_scrollbind_grid')
         Log(() => $"MODES: initial_scrollbind_grid: {this._current_scrollbind}")
 
-        this._number_of_diff_modes = 2
-        this._number_of_layouts = 3
+        this._layouts = [ () => this.M_layout_0(), () => this.M_layout_1(),
+                            () => this.M_layout_2() ]
+        this._diffs = [ () => this.M_diff_0(), () => this.M_diff_1() ]
     enddef
-
 
     def M_layout_0()
         this._number_of_windows = 4
@@ -368,7 +352,7 @@ class GridMode extends Mode
 
     def Key_original()
         if this._current_layout == 0
-            windows.focus(2)
+            windows.Focus(2)
         elseif this._current_layout == 1
             return
         elseif this._current_layout == 2
@@ -416,7 +400,7 @@ class GridMode extends Mode
             windows.Focus(5)
             :diffthis
 
-            windows.focus(targetwin)
+            windows.Focus(targetwin)
             :diffthis
         })
     enddef
@@ -490,7 +474,8 @@ class GridMode extends Mode
         endif
         var w2 = buffers.result.Winnr()
         if w2 != winnr
-            Log(() => $'mode.goto_result: ERROR: winnr: {winnr}, w2: {w2}')
+            Log(() => $'mode.goto_result: winnr: {winnr}, w2: {w2}', 'error')
+        endif
         Log(() => $'mode.{this.id}.goto_result: winnr: {winnr}, w2: {w2}')
 
         windows.Focus(winnr)
@@ -524,8 +509,8 @@ class LoupeMode extends Mode
         this._current_scrollbind = Setting('initial_scrollbind_loupe')
         Log(() => $"MODES: 'initial_scrollbind_loupe: {this._current_scrollbind}")
 
-        this._number_of_diff_modes = 1
-        this._number_of_layouts = 1
+        this._layouts = [ () => this.M_layout_0() ]
+        this._diffs = [ () => this.M_diff_0() ]
 
         this._current_buffer = buffers.result
     enddef
@@ -612,8 +597,8 @@ class CompareMode extends Mode
         this._current_scrollbind = Setting('initial_scrollbind_compare')
         Log(() => $"MODES: 'initial_scrollbind_compare: {this._current_scrollbind}")
 
-        this._number_of_diff_modes = 2
-        this._number_of_layouts = 2
+        this._layouts = [ () => this.M_layout_0(), () => this.M_layout_1() ]
+        this._diffs = [ () => this.M_diff_0(), () => this.M_diff_1() ]
 
         this._current_buffer_first = buffers.original
         this._current_buffer_second = buffers.result
@@ -699,7 +684,7 @@ class CompareMode extends Mode
             this.Redraw_hud()
         enddef
 
-        curwindow = windows.Currentnr()
+        var curwindow = windows.Currentnr()
         if curwindow == 1
             curwindow = 2
         endif
@@ -710,7 +695,7 @@ class CompareMode extends Mode
             return
         endif
 
-        windows.focus(3)
+        windows.Focus(3)
         if buffers.Current() == buffers.one
             return
         endif
@@ -749,7 +734,7 @@ class CompareMode extends Mode
             this.Redraw_hud()
         enddef
 
-        curwindow = windows.Currentnr()
+        var curwindow = windows.Currentnr()
         if curwindow == 1
             curwindow = 2
         endif
@@ -858,8 +843,10 @@ class PathMode extends Mode
         this._current_scrollbind = Setting('initial_scrollbind_path')
         Log(() => $"MODES: 'initial_scrollbind_path: {this._current_scrollbind}")
 
-        this._number_of_diff_modes = 5
-        this._number_of_layouts = 2
+        this._layouts = [ () => this.M_layout_0(), () => this.M_layout_1() ]
+        this._diffs = [ () => this.M_diff_0(), () => this.M_diff_1(),
+            () => this.M_diff_2(), () => this.M_diff_3(),
+            () => this.M_diff_4() ]
 
         this._current_mid_buffer = buffers.one
     enddef
@@ -1043,60 +1030,69 @@ final loupe = LoupeMode.new()
 final compare = CompareMode.new()
 final path = PathMode.new()
 
+var modes: dict<Mode> = {
+    grid: grid,
+    loupe: loupe,
+    compare: compare,
+    path: path
+}
+
+
+# TODO: don't export, provide a getter
 export var current_mode: Mode
 
 
 export def SetInitialMode(initial_mode: string)
     Log(() => $"INIT: inital mode: '{initial_mode}'")
-    var m = { grid: grid, loupe: loupe, compare: compare, path: path }
-    current_mode = m[initial_mode]
+    current_mode = modes[initial_mode]
     Log(() => $"CURRENT_MODE: {string(current_mode)}")
 enddef
 
+def Change2Mode(modeName: string): void
+    # Following fails can't type because null_object not handled well
+    #var m: Mode = modes->get(modeName, null_object)
+    var m = modes->get(modeName, null)
+    if m != null
+        Log(() => printf("Change2Mode: '%s' %s",  modeName, typename(m)))
+        current_mode.Deactivate()
+        current_mode = m
+        current_mode.Activate()
+    else
+        Log(() => $"Change2Mode: unknown mode '{modeName}'", 'error', true)
+    endif
+enddef
+
 export def Key_grid()
-    Log('SpliceGrid')
-    current_mode.Deactivate()
-    current_mode = grid
-    grid.Activate()
+    Change2Mode('grid')
 enddef
 
 export def Key_loupe()
-    Log('SpliceLoupe')
-    current_mode.Deactivate()
-    current_mode = loupe
-    loupe.Activate()
+    Change2Mode('loupe')
 enddef
 
 export def Key_compare()
-    Log('SpliceCompare')
-    current_mode.Deactivate()
-    current_mode = compare
-    compare.Activate()
+    Change2Mode('compare')
 enddef
 
 export def Key_path()
-    Log('SplicePath')
-    current_mode.Deactivate()
-    current_mode = path
-    path.Activate()
+    Change2Mode('path')
 enddef
 
-# TODO WORKAROUND: was: () => current_mode.Key_original()
 const dispatch = {
-    SpliceOriginal: (cur_mode: Mode) => cur_mode.Key_original(),
-    SpliceOne:      (cur_mode: Mode) => cur_mode.Key_one(),
-    SpliceTwo:      (cur_mode: Mode) => cur_mode.Key_two(),
-    SpliceResult:   (cur_mode: Mode) => cur_mode.Key_result(),
+    SpliceOriginal: () => current_mode.Key_original(),
+    SpliceOne:      () => current_mode.Key_one(),
+    SpliceTwo:      () => current_mode.Key_two(),
+    SpliceResult:   () => current_mode.Key_result(),
 
-    SpliceDiff:     (cur_mode: Mode) => cur_mode.Key_diff(),
-    SpliceDiffOff:  (cur_mode: Mode) => cur_mode.Key_diffoff(),
-    SpliceScroll:   (cur_mode: Mode) => cur_mode.Key_scrollbind(),
-    SpliceLayout:   (cur_mode: Mode) => cur_mode.Key_layout(),
-    SpliceNext:     (cur_mode: Mode) => cur_mode.Key_next(),
-    SplicePrev:     (cur_mode: Mode) => cur_mode.Key_prev(),
-    SpliceUse:      (cur_mode: Mode) => cur_mode.Key_use(),
-    SpliceUse1:     (cur_mode: Mode) => cur_mode.Key_use1(),
-    SpliceUse2:     (cur_mode: Mode) => cur_mode.Key_use2(),
+    SpliceDiff:     () => current_mode.Key_diff(),
+    SpliceDiffOff:  () => current_mode.Key_diffoff(),
+    SpliceScroll:   () => current_mode.Key_scrollbind(),
+    SpliceLayout:   () => current_mode.Key_layout(),
+    SpliceNext:     () => current_mode.Key_next(),
+    SplicePrev:     () => current_mode.Key_prev(),
+    SpliceUse:      () => current_mode.Key_use(),
+    SpliceUse1:     () => current_mode.Key_use1(),
+    SpliceUse2:     () => current_mode.Key_use2(),
 }
 
 export def ModesDispatch(op: string)
@@ -1104,21 +1100,17 @@ export def ModesDispatch(op: string)
         Log(() => printf("NULL current_mode: %s: %s", op, current_mode.id))
         return
     endif
-    if op == 'SpliceLayout'
-        Log('special dispatch for SpliceLayout', 'layout')
-        current_mode.Key_layout()
-        Log('special dispatch return', 'layout')
-        return
-    endif
 
     Log(() => printf("%s: %s", op, current_mode.id))
     var F = dispatch->get(op, null_function)
     if F != null
         Log(printf('dispatching %s', op), 'layout')
-        F(current_mode)
+        F()
         Log(printf('returned %s', op), 'layout')
     else
-        Log(() => "ModesDispatch: unknown operation: " .. op, 'error')
+        Log(() => "ModesDispatch: unknown operation: " .. op, 'error', true)
     endif
 enddef
+
+
 
