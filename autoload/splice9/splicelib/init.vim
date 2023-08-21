@@ -11,9 +11,6 @@ import autoload './util/bufferlib.vim'
 const buffers = bufferlib.buffers
 const Buffer = bufferlib.Buffer
 const Log = log.Log
-# TODO: if following line is taken out, weird errors,
-#       "Dictionary required"
-const Mode = i_modes.Mode
 
 const CONFLICT_MARKER_START = '<<<<<<<'
 const CONFLICT_MARKER_MARK  = '======='
@@ -84,23 +81,14 @@ export def Init()
     Process_result()
     Log('Init() after Process_result', '', true, ':ls')
 
-    # There's a funny dance, can't do the "new" until after Process_result()
-    execute 'new' '__Splice_HUD__'
-    buffers.InitHudBuffer(bufnr())
-    Log('Init() after buffers.InitHudBuffer()', '', true, ':ls')
+    # funny dance, can't do CreateHudBuffer until after Process_result()
+    buffers.CreateHudBuffer()
+    Log('Init() after buffers.CreateHudBuffer()', '', true, ':ls')
 
     Setlocal_buffers()
-
-    #vim.options['hidden'] = True
     &hidden = true
 
     var initial_mode = i_settings.Setting('initial_mode')->tolower()
-
-    #modes.current_mode = getattr(modes, initial_mode)
-    i_modes.SetInitialMode(initial_mode)
-    # TODO: report/check following failed with "Exxx dictionary required"
-    #       before class Mode was imported at the top
-    Log(() => printf("INIT I_MODES CURRENT_MODE %s", i_modes.current_mode))
-    i_modes.current_mode.Activate()
+    i_modes.ActivateInitialMode(initial_mode)
 enddef
 

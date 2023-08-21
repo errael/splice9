@@ -731,7 +731,7 @@ def HudActionsPropertiesAndHighlights(mode: string, bnr: number)
     else
         # not Grid, UseHunk replace UseHunk1, erase UseHunk2
         actions->extend(hunk_action1)
-        With(ModifyBufEE.new(bnr), (arg) => {
+        With(ModifyBufEE.new(bnr), (_) => {
             var tmp = hunk_action2[u_h1]
             ReplaceBuf(bnr, tmp[0], tmp[1], u_h_name)
             tmp = hunk_action2[u_h2]
@@ -947,7 +947,7 @@ command! -nargs=0 BB {
 defcompile
 
 def StartupDebug()
-    With(KeepWindowEE.new(), (arg) => {
+    With(KeepWindowEE.new(), (_) => {
         :1wincmd w
         execute('new ' .. hud_name)
         wincmd J

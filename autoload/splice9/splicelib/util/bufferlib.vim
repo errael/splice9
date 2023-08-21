@@ -5,11 +5,9 @@ import autoload './log.vim'
 import autoload './vim_assist.vim'
 
 const Log = log.Log
-#const BaseEE = vim_assist.BaseEE
+const WithEE = vim_assist.WithEE
 
-#var KeepWindowEE = vim_assist.KeepWindowEE
 const SpliceKeepBufferEE = vim_assist.SpliceKeepBufferEE
-# TODO
 
 # There are 5 buffers 4 hold merge files, 1 is the HUD.
 
@@ -17,16 +15,6 @@ export class Buffer
     this.bufnr: number
     this.label: string
     this.name: string
-
-    # TODO: "): Buffer"
-    #           TODO: static referencing class privates
-    #static def Get(bnr: number, lbl: string): any
-    #    var o = new(bnr, lbl)
-    #    if o._bunfr < 0
-    #        return null_object
-    #    endif
-    #    return o
-    #enddef
 
     # this.name is set from bufnr
     def new(this.bufnr, this.label)
@@ -62,49 +50,23 @@ export class Buffer
     #enddef
 endclass
 
-#var b = Buffer.new(10, "foo_lbl")
-#echo b
-#finish
-
-#class RemainEE implements BaseEE
-#    this._buf: number
-#    this._pos: list<number>
-#
-#    def new()
-#    enddef
-#
-#    def Enter()
-#        this._curbuf = bufnr()
-#        this._pos = getpos('.')
-#    enddef
-#
-#    def Exit()
-#        execute string(this._buf) .. 'buffer'
-#        setpos('.', this._pos)
-#    enddef
-#endclass
-
+# TODO: can this use "null_object"?
 export const nullBuffer = Buffer.new(-1, 'NULL_BUFFER')
 
 class BufferList
-    # TODO
-    #this.original = Buffer.new(1, 'Original')
-    #this.one = Buffer.new(2, 'One')
-    #this.two = Buffer.new(3, 'Two')
-    #this.result = Buffer.new(4, 'Result')
+    # TODO why the errors if ": Buffer" not in the following
+    #       Note that if the assignment happens in new(), then it's OK
+    #       error occurs on 4th line of init.vim::Process_result
+    this.original: Buffer = Buffer.new(1, 'Original')
+    this.one: Buffer = Buffer.new(2, 'One')
+    this.two: Buffer = Buffer.new(3, 'Two')
+    this.result: Buffer = Buffer.new(4, 'Result')
+
     #this.hud = Buffer.new(5, 'HUD')
-    this.original: Buffer
-    this.one: Buffer
-    this.two: Buffer
-    this.result: Buffer
     this.hud: Buffer
     this.all: list<Buffer>
 
     def new()
-        this.original = Buffer.new(1, 'Original')
-        this.one = Buffer.new(2, 'One')
-        this.two = Buffer.new(3, 'Two')
-        this.result = Buffer.new(4, 'Result')
         #this.hud = Buffer.new(5, 'HUD')
         this.hud = nullBuffer
 
@@ -112,14 +74,13 @@ class BufferList
         this.all = l
     enddef
 
-    def InitHudBuffer(bnr: number)
+    def CreateHudBuffer(): void
         if this.hud == nullBuffer
-            this.hud = Buffer.new(bnr, 'HUD')
+            execute 'new' '__Splice_HUD__'
+            this.hud = Buffer.new(bufnr(), 'HUD')
         endif
     enddef
 
-    # TODO
-    #def Current(): Buffer
     def Current(): Buffer
         var bnr = bufnr('')
         if bnr >= 1 && bnr <= 4
@@ -129,75 +90,12 @@ class BufferList
         return nullBuffer
     enddef
 
-    # TODO: try changing the type to BaseEE
-    #def Remain(): BaseEE
-    def Remain(): any
-        #return RemainEE.new()
-        # TODO: use KeepWindowEE instead buffer vs window, shouldn't matter here
+    def Remain(): WithEE
+        # TODO: use KeepWindowEE instead? buffer vs window shouldn't matter here
         return SpliceKeepBufferEE.new()
     enddef
 
 endclass
 
 export final buffers = BufferList.new()
-
-#echo buffers.all
-#echo buffers.Remain()
-#echo "current: " buffers.Current()
-
-
-#echo null_object
-#echo type(null_object)
-#echo typename(null_object)
-#echo buffers.Current()
-
-
-
-
-
-    #def all(): list<Buffer>
-    #    const l = [ this.original, this.one, this.two, this.result ]
-    #    return l
-    #enddef
-
-    #this._buflist: list<Buffer>
-
-    # TODO: is this better?
-    #final this.one: Buffer
-
-    #def new()
-    #    this._buflist = [
-    #        Buffer.new(1, 'Original'), Buffer.new(2, 'One'),
-    #        Buffer.new(3, 'Two'), Buffer.new(4, 'Result'),
-    #        Buffer.new(5, 'HUD')
-    #    ]
-    #enddef
-
-    #def original(): Buffer
-    #    return this._buflist.get(0)
-    #enddef
-
-    #def one(): Buffer
-    #    return this._buflist.get(1)
-    #enddef
-
-    #def two(): Buffer
-    #    return this._buflist.get(2)
-    #enddef
-
-    #def result(): Buffer
-    #    return this._buflist.get(3)
-    #enddef
-
-    #def hud(): Buffer
-    #    return this._buflist.get(4)
-    #enddef
-
-    #def current(): Buffer
-    #    return this._buflist.get(bufnr('%'))
-    #enddef
-
-    #def all(): list<Buffer>
-    #    return this._buflist->copy()[:-1]
-    #enddef
 
