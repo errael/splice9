@@ -1,7 +1,6 @@
 vim9script
 
 import autoload './settings.vim' as i_settings
-import autoload './init.vim' as i_init
 import autoload './hud.vim' as i_hud
 import autoload './util/windows.vim'
 import autoload './util/bufferlib.vim' as i_bufferlib
@@ -9,6 +8,8 @@ import autoload './util/vim_assist.vim'
 import autoload './util/log.vim' as i_log
 import autoload './util/keys.vim' as i_keys
 import autoload './util/search.vim' as i_search
+
+export const force_load =  true
 
 const buffers = i_bufferlib.buffers
 const nullBuffer = i_bufferlib.nullBuffer
@@ -18,9 +19,15 @@ const DrawHUD = i_hud.DrawHUD
 const Setting = i_settings.Setting
 const Log = i_log.Log
 
+#
+# TODO: Use "is" instead of "==" when comparing buffers
+#       key_use is one area
+#       often with buffers.Current()
+#
+
 Log("TOP OF MODE")
 
-export class Mode
+class Mode
     this.id: string
     this._lay_first: string
     this._lay_second: string
@@ -163,21 +170,14 @@ export class Mode
     enddef
 
 
-    def S_Activate()
-        Log(printf("S_Activate: this._diffs: id: %s, %s", this.id, this._diffs))
+    def Activate()
+        #Log(printf("Activate: this._diffs: id: %s, %s", this.id, this._diffs))
         this.Layout(this._current_layout)
         this.Diff(this._current_diff_mode)
         this.Scrollbind(this._current_scrollbind)
     enddef
 
-    def Activate()
-        this.S_Activate()
-    enddef
-
-    def S_Deactivate()
-    enddef
     def Deactivate()
-        this.S_Deactivate()
     enddef
 
 
@@ -392,7 +392,7 @@ class GridMode extends Mode
 
 
     def M_key_use_0(target: number)
-        targetwin = if target == 1 ? 3 : 4
+        var targetwin = target == 1 ? 3 : 4
 
         With(windows.Remain(), (_) => {
             this.Diffoff()
@@ -406,7 +406,7 @@ class GridMode extends Mode
     enddef
 
     def M_key_use_12(target: number)
-        targetwin = if target == 1 ? 2 : 4
+        var targetwin = target == 1 ? 2 : 4
 
         With(windows.Remain(), (_) => {
             this.Diffoff()
@@ -484,12 +484,12 @@ class GridMode extends Mode
 
     def Activate()
         i_keys.ActivateGridBindings
-        this.S_Activate()
+        super.Activate()
     enddef
 
     def Deactivate()
         i_keys.DeactivateGridBindings
-        this.S_Deactivate()
+        super.Deactivate()
     enddef
 
 
@@ -1025,27 +1025,21 @@ class PathMode extends Mode
 endclass
 Log("DEFINED: class PathMode")
 
-final grid = GridMode.new()
-final loupe = LoupeMode.new()
-final compare = CompareMode.new()
-final path = PathMode.new()
-
 var modes: dict<Mode> = {
-    grid: grid,
-    loupe: loupe,
-    compare: compare,
-    path: path
+    grid:    GridMode.new(),
+    loupe:   LoupeMode.new(),
+    compare: CompareMode.new(),
+    path:    PathMode.new(),
 }
+lockvar 1 modes
 
+var current_mode: Mode
 
-# TODO: don't export, provide a getter
-export var current_mode: Mode
-
-
-export def SetInitialMode(initial_mode: string)
+export def ActivateInitialMode(initial_mode: string)
     Log(() => $"INIT: inital mode: '{initial_mode}'")
     current_mode = modes[initial_mode]
     Log(() => $"CURRENT_MODE: {string(current_mode)}")
+    current_mode.Activate()
 enddef
 
 def Change2Mode(modeName: string): void

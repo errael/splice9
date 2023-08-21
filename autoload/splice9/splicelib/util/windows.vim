@@ -3,6 +3,7 @@ vim9script
 import autoload './vim_assist.vim'
 import autoload './log.vim'
 const Log = log.Log
+const WithEE = vim_assist.WithEE
 
 var KeepWindowEE = vim_assist.KeepWindowEE
 
@@ -42,7 +43,7 @@ export def Pos(): list<number>
     return getpos('.')
 enddef
 
-export def Remain(): any
+export def Remain(): WithEE
     return KeepWindowEE.new()
 enddef
 

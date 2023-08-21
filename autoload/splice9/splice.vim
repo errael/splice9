@@ -1,4 +1,7 @@
 vim9script
+
+# FOLLOWING IS HISTORIC, Steve Losh does not maintain this vim9 Splice.
+# Steve wrote the original Splice which is written in python.
 # ============================================================================
 # File:        splice.vim
 # Description: vim global plugin for resolving three-way merge conflicts
@@ -220,4 +223,3 @@ enddef
 
 Main = SpliceInit9
 
-#TestSettings()

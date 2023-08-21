@@ -17,9 +17,9 @@ var testing = false
 #       Pad, IndentLtoS, IndentLtoL
 #       Replace, ReplaceBuf
 # Dictionary
+#       DictUniqueCopy, DictUnique
 #       PutIfAbsent (DEPRECATED)
 #       Set (DEPRECATED)
-#       DictUniqueCopy, DictUnique (NOT EXPORTED)
 # Lists, nested lists
 #       ListRandomize
 #       FindInList, FetchFromList
@@ -30,50 +30,11 @@ var testing = false
 # General
 #       Scripts
 #       EQ, IS
-#       With(EE,func), ModifiableEE(bnr)
-#       BounceMethodCall, IsSameType (TEMP WORKAROUND)
+#       Python ripoff: With
+#           interface WithEE, With(EE,func), ModifiableEE(bnr)
+#       BounceMethodCall,   (WORKAROUND)
+#       IsSameType (TEMP WORKAROUND, instanceof on the way)
 # ##### HexString
-
-#
-# The idea is to do invoke an object method with args where the
-# args and method are passed in as a single string. Using execute, the
-# local context is not available, put the object in a script variable "bounce_obj".
-# (see https://github.com/vim/vim/issues/12054)
-#
-# Better to use a lambda that invokes the object and method, () => obj.method,
-# assuming don't actually have to construct the name from a string.
-# There could be problem if arguments use BounceMethodCall (directly/indirectly)
-# since bounce_obj is not on the stack. Maybe could save/restore bounce_obj,
-# not worth verifying that works at this time.
-#       
-var count = 0
-var bounce_obj: any = null_object
-export def BounceMethodCall(obj: any, method_and_args: string)
-    if bounce_obj != null_object
-        throw "BounceMethodCall: bounce_obj not null " .. typename(bounce_obj)
-    endif
-    var i = count + 1
-    count = i
-    i_log.Log(() => printf("BounceMethodCall-%d '%s' '%s' [%s]", i, typename(obj), method_and_args, typename(bounce_obj)))
-    #i_log.Log(() => printf("BounceMethodCall-%d '%s' '%s' [%s]", i, typename(obj), method_and_args, typename(bounce_obj)), '', true, '')
-    bounce_obj = obj
-    execute "bounce_obj." .. method_and_args
-    #i_log.Log(() => printf("BounceMethodCall-%d finish", i))
-    bounce_obj = null_object
-enddef
-# Example:
-# class C
-#     def M1(s: string)
-#         echo s
-#     enddef
-# endclass
-# 
-# def F()
-#     var inDef = C.new()
-#     # run inDef.M1('xxx') where method name is created dynamically
-#     BounceMethodCall(inDef, "M" .. 1 .. "('compiled bounce')")
-# enddef
-# F()
 
 # experimental, would need another version that returns a value
 def WrapCall(fcall: string): func
@@ -90,11 +51,6 @@ def WrapCall(fcall: string): func
 enddef
 #var X = WrapCall('inScript.M1("Wrap Lambda")')
 #X()
-
-export def IsSameType(o: any, type: string): bool
-    return type(o) == v:t_object && type == typename(o)[7 : -2]
-    #return type(o) == v:t_object && type == string(o)->split()[2]
-enddef
 
 ###
 ### General
@@ -124,45 +80,41 @@ export def IS(lhs: any, rhs: any): bool
     return type(lhs) == type(rhs) && lhs is rhs
 enddef
 
-# TODO: enter return is passed to exit by With?
+### Simulate Python's "With"
 #
-#       Necessary? Could just have member variable if needed,
-#       and pass BaseEE to the user function.
+#       WithEE - Interface for context management.
+#                Implement this for different contexts.
+#       With(ContextClass.new(), (contextClass) => { ... })
+#
+#       Usage example - modify a buffer where &modifiable might be false
+#           ModifyBufEE implements WithEE
+#           With(ModifyBufEE.new(bnr), (_) => {
+#               # modify the buffer
+#           })
+#           # &modifiable is same state as before "With(ModifyBufEE.new(bnr)"
+
 # Note that Enter can be empty, and all the "Enter" work done in constructor.
-#
-export interface BaseEE
+export interface WithEE
     def Enter(): void
     def Exit(): void
 endinterface
 
 # TODO: test how F can declare/cast ee to the right thing
 #
-# It's possible, but can be tricky, to reuse a BaseEE object,
-# recursion is an issue, best to avoid, but for example:
-#       var ee = ChildBaseEE.new() # has Setup(args) returns this
-#       With(ee.Setup(args), F)
-#
-export def With(ee: BaseEE, F: func)
+export def With(ee: WithEE, F: func(WithEE): void)
     ee.Enter()
     defer ee.Exit()
     F(ee)
 enddef
 
 # Save/restore '&modifiable' if needed
-export class ModifyBufEE implements BaseEE
+export class ModifyBufEE implements WithEE
     this._bnr: number
     this._is_modifiable: bool
 
     def new(this._bnr)
         #echo 'ModifyBufEE: new(arg):' this._bnr
     enddef
-
-    # if want to reuse object, but no recursion
-    ### #def Setup(a_bnr: number): ModifyBufEE
-    ### def Setup(a_bnr: number): BaseEE
-    ###     this._bnr = a_bnr
-    ###     return this
-    ### enddef
 
     def Enter()
         this._is_modifiable = getbufvar(this._bnr, '&modifiable')
@@ -184,7 +136,7 @@ export class ModifyBufEE implements BaseEE
 endclass
 
 # Keep window, topline, cursor as possible
-export class KeepWindowEE implements BaseEE
+export class KeepWindowEE implements WithEE
     this._w: dict<any>
     this._pos: list<number>
 
@@ -207,7 +159,7 @@ export class KeepWindowEE implements BaseEE
 endclass
 
 # Keep buffer (partly here because can't define (yet) in splice's bufferlib.vim)
-export class SpliceKeepBufferEE implements BaseEE
+export class SpliceKeepBufferEE implements WithEE
     this._bnr: number
     this._pos: list<number>
 
@@ -229,7 +181,7 @@ endclass
 # to get the specified buffer current,
 # it also does modifiable juggling.
 # Not needed since can use [gs]etbufvar.
-#class ModifiableEEXXX extends BaseEE
+#class ModifiableEEXXX extends WithEE
 #    this._bnr: number
 #    this._prevId = -1
 #    this._restore: bool
@@ -283,18 +235,6 @@ endclass
 ### Dictionary
 ###
 
-#DEPRECATED: use d->extend({[k]: v}, "keep")
-#def PutIfAbsent(d: dict<any>, k: string, v: any)
-#    if ! d->has_key(k)
-#        d[k] = v
-#    endif
-#enddef
-
-#DEPRECATED: 8.2.4589 can now do g:[key] = val
-#def Set(d: dict<any>, k: string, v: any)
-#    d[k] = v
-#enddef
-
 # Remove the common key/val from each dict.
 # Note: the dicts are modified
 export def DictUnique(d1: dict<any>, d2: dict<any>)
@@ -317,8 +257,7 @@ export def DictUniqueCopy(d1: dict<any>, d2: dict<any>): list<dict<any>>
 enddef
 
 ###
-### working with nested lists
-###     A path is used to traverse the nested list, see FetchFromList.
+### working with lists
 ###
 
 def ListRandomize(l: list<any>): list<any>
@@ -331,7 +270,12 @@ def ListRandomize(l: list<any>): list<any>
     return random_order_list
 enddef
 
-# FindInList: find target in list using '==', return false if not found
+###
+### working with nested lists
+###     A path is used to traverse the nested list, see FetchFromList.
+###
+
+# FindInList: find target in list using '==' (not 'is'), return false if not found
 # Each target found is identified by a list of indexes into the search list,
 # and that is added to path (if path is provided).
 export def FindInList(target: any, l: list<any>, path: list<list<number>> = null_list): bool
@@ -544,13 +488,83 @@ export def Pad(l: list<string>, a: string = 'l',
     endif
 enddef
 
-
 #for l1 in Pad(['x', 'dd', 'sss', 'eeee', 'fffff', 'gggggg'], 'c', 12)
 #    echo l1
 #endfor
 #for l1 in Pad(['x', 'dd', 'sss', 'eeee', 'fffff', 'gggggg', 'ccccccc'], 'c', 12)
 #    echo l1
 #endfor
+
+###
+### Expected to be deprecated, 
+###
+
+export def IsSameType(o: any, type: string): bool
+    return type(o) == v:t_object && type == typename(o)[7 : -2]
+    #return type(o) == v:t_object && type == string(o)->split()[2]
+enddef
+
+### BounceMethodCall
+#
+# The idea is to do invoke an object method with args where the
+# args and method are passed in as a single string. Using execute, the
+# local context is not available, put the object in a script variable "bounce_obj".
+# (see https://github.com/vim/vim/issues/12054)
+#
+# If a constructed string is not required, better to
+# use a lambda that invokes the object and method, "() => obj.method",
+# There could be problem if arguments use BounceMethodCall (directly/indirectly)
+# since bounce_obj is not on the stack. Maybe could save/restore bounce_obj,
+# not worth verifying that works at this time.
+#
+# Hoping to deprecate at some point, not sure what needs to be done
+#       
+var count = 0
+var bounce_obj: any = null_object
+export def BounceMethodCall(obj: any, method_and_args: string)
+    if bounce_obj != null_object
+        throw "BounceMethodCall: bounce_obj not null " .. typename(bounce_obj)
+    endif
+    var i = count + 1
+    count = i
+    #i_log.Log(() => printf("BounceMethodCall-%d '%s' '%s' [%s]",
+    #    i, typename(obj), method_and_args, typename(bounce_obj)))
+    bounce_obj = obj
+    execute "bounce_obj." .. method_and_args
+    #i_log.Log(() => printf("BounceMethodCall-%d finish", i))
+    bounce_obj = null_object
+enddef
+# Example:
+# class C
+#     def M1(s: string)
+#         echo s
+#     enddef
+# endclass
+# 
+# def F()
+#     var inDef = C.new()
+#     # run inDef.M1('xxx') where method name is created dynamically
+#     BounceMethodCall(inDef, "M" .. 1 .. "('compiled bounce')")
+# enddef
+# F()
+
+
+###
+### deprecated, 
+###
+
+#DEPRECATED: use d->extend({[k]: v}, "keep")
+#def PutIfAbsent(d: dict<any>, k: string, v: any)
+#    if ! d->has_key(k)
+#        d[k] = v
+#    endif
+#enddef
+
+#DEPRECATED: 8.2.4589 can now do g:[key] = val
+#def Set(d: dict<any>, k: string, v: any)
+#    d[k] = v
+#enddef
+
 #finish
 
 # just use echo 
