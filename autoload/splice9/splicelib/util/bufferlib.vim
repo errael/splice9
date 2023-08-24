@@ -54,7 +54,7 @@ endclass
 export const nullBuffer = Buffer.new(-1, 'NULL_BUFFER')
 
 class BufferList
-    # TODO why the errors if ": Buffer" not in the following
+    # TODO why the compile/runtime errors if ": Buffer" not in the following
     #       Note that if the assignment happens in new(), then it's OK
     #       error occurs on 4th line of init.vim::Process_result
     this.original: Buffer = Buffer.new(1, 'Original')

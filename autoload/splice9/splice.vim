@@ -1,8 +1,8 @@
 vim9script
 
-# FOLLOWING IS HISTORIC, Steve Losh does not maintain this vim9 Splice.
-# Steve wrote the original Splice which is written in python.
 # ============================================================================
+# HISTORIC, Steve Losh does not maintain this vim9 Splice.
+# Steve wrote the original Splice which is written in python.
 # File:        splice.vim
 # Description: vim global plugin for resolving three-way merge conflicts
 # Maintainer:  Steve Losh <steve@stevelosh.com>
@@ -20,6 +20,12 @@ import autoload './splicelib/settings.vim'
 import autoload './splicelib/modes.vim' as i_modes
 
 var Log = log.Log
+
+# bounce HACK
+export def GetStatusDiffScrollbind(): list<bool>
+    return i_modes.GetStatusDiffScrollbind()
+    #return true
+enddef
 
 #
 # TODO: higlights from settings

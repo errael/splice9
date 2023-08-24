@@ -34,6 +34,7 @@ if ! standalone_exp
     import autoload './util/vim_assist.vim'
     import autoload './util/keys.vim'
     import autoload './util/ui.vim'
+    import autoload './util/windows.vim'
     import autoload '../splice.vim'
 
     # highlights used on the HUD and in its text properties
@@ -176,7 +177,7 @@ def ExecuteCommand(cmd: string, id: number)
     else
         RestoreWinPos()
         var splice_cmd = 'Splice' .. cmd
-        Log(() => 'Execute: ' .. splice_cmd)
+        Log(() => '===EXECUTE COMMAND===: ' .. splice_cmd)
         if special_cmds->index(cmd) >= 0
             splice_cmd ..= '()'
         endif
@@ -663,6 +664,24 @@ def LogDrawHUD(mode: string, layout: number,
         mode, layout, vari_files, bnr))
 enddef
 
+export def UpdateHudStatus(_bnr: number = 0)
+    var status = splice.GetStatusDiffScrollbind()    # bounce HACK
+    var bnr = _bnr ?? bufnr(hud_name)
+    With(windows.Remain(), (_) => {
+        windows.Focus(bufwinnr(bnr))
+        With(ModifyBufEE.new(bnr), (_) => {
+            Log(printf("UpdateHudStatus: bnr %d, [diff, sbind]: %s", bnr, status))
+
+            var status_char = status[0] ? '*' : ' '
+            var act = actions['DiffOff']
+            ReplaceBuf(bnr, act[0], act[1] + 2, status_char)
+            status_char = status[1] ? '*' : ' '
+            act = actions['Scroll']
+            ReplaceBuf(bnr, act[0], act[1] + 2, status_char)
+        })
+    })
+enddef
+
 #
 # This is invoked when the HUD is the current buffer
 #
@@ -712,8 +731,7 @@ def InitHudBuffer()
     &buftype = 'nofile'
     &undofile = false
     &list = false
-    # TODO: get rid of splice filetype
-    &filetype = 'splice'
+    &filetype = 'splice'        # splice filetype not used
     &wrap = false
     resize 3
     &winfixheight = true
@@ -727,18 +745,25 @@ def HudActionsPropertiesAndHighlights(mode: string, bnr: number)
     unlockvar! actions
     actions = base_actions->copy()
     if mode == 'grid'
-        actions->extend(hunk_action2)
+        actions->extend(hunk_action2)   # two 'use' actions for 'grid'
     else
         # not Grid, UseHunk replace UseHunk1, erase UseHunk2
-        actions->extend(hunk_action1)
         With(ModifyBufEE.new(bnr), (_) => {
+            # blank, or change the name, of the first use item
             var tmp = hunk_action2[u_h1]
-            ReplaceBuf(bnr, tmp[0], tmp[1], u_h_name)
+            if mode == 'loupe'      # no action for 'loupe'
+                ReplaceBuf(bnr, tmp[0], tmp[1], repeat(' ', len(u_h_name)))
+            else                    # one action for 'compare'/'path'
+                actions->extend(hunk_action1)
+                ReplaceBuf(bnr, tmp[0], tmp[1], u_h_name)
+            endif
+            # blank the second use item
             tmp = hunk_action2[u_h2]
             ReplaceBuf(bnr, tmp[0], tmp[1], repeat(' ', len(u_h_name)))
         })
     endif
     lockvar! actions
+    UpdateHudStatus()
 
     # TODO: u does nothing if neither one or two is visible
     #           maybe other layout details to enable
