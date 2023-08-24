@@ -9,20 +9,21 @@ import autoload './util/log.vim' as i_log
 import autoload './util/keys.vim' as i_keys
 import autoload './util/search.vim' as i_search
 
-export const force_load =  true
+export def ForceLoad()
+enddef
 
 const buffers = i_bufferlib.buffers
 const nullBuffer = i_bufferlib.nullBuffer
 const Buffer = i_bufferlib.Buffer
 const With = vim_assist.With
 const DrawHUD = i_hud.DrawHUD
+const UpdateHudStatus = i_hud.UpdateHudStatus
 const Setting = i_settings.Setting
 const Log = i_log.Log
 
 #
-# TODO: Use "is" instead of "==" when comparing buffers
-#       key_use is one area
-#       often with buffers.Current()
+# Could use "is" instead of "==" when comparing buffers,
+# but there's use of list->index(curbuf) as well, so why bother.
 #
 
 Log("TOP OF MODE")
@@ -102,7 +103,7 @@ class Mode
         var this_this = this
         With(windows.Remain(), (_) => {
             Log("Scrollbind Lambda using this_this")
-            this_this._current_scrollbind = enabled #<<<<<<<<<<<<<<<<<<<<<< 
+            this_this._current_scrollbind = enabled
 
             for winnr in range(2, 2 + this_this._number_of_windows - 1)
                 windows.Focus(winnr)
@@ -121,7 +122,6 @@ class Mode
 
 
     def Layout(layoutnr: number)
-        #getattr(self, '_layout_%d' % layoutnr)()
         this._layouts[layoutnr]()
 
         this.Diff(this._current_diff_mode)
@@ -194,13 +194,17 @@ class Mode
     enddef
 
 
+    # Open_hud only called from M_layout_*
+    # which is only called from Layout,
+    # and Layout ends with Redraw_hud,
+    # so don't Redraw_hud here.
     def Open_hud(winnr: number)
         # TODO: inline window commands?
         windows.Split()
         windows.Focus(winnr)
         buffers.hud.Open()
         :wincmd K
-        this.Redraw_hud()
+        # this.Redraw_hud()
     enddef
 
     def Redraw_hud()
@@ -208,9 +212,6 @@ class Mode
             windows.Focus(1)
 
             this.Hud_prep()
-
-            # use the stack trace for why redraw hud called twice per command
-            # log_stack(traceback.format_stack(None, 6))
 
             var mod = this.id
             # baaad programmer
@@ -226,6 +227,14 @@ class Mode
     enddef
 
     def Hud_prep()
+    enddef
+
+    def IsDiffsOn(): bool
+        return !!this._current_diff_mode
+    enddef
+
+    def IsScrollbindOn(): bool
+        return this._current_scrollbind || !!this._current_diff_mode
     enddef
 endclass
 Log("DEFINED: class Mode")
@@ -566,14 +575,6 @@ class LoupeMode extends Mode
         this._current_buffer = buffers.result
         this.Redraw_hud()
     enddef
-
-
-    # TODO: don't display "use unk" in loupe mode
-    #def Key_use()
-    #    # BUG? this should use superclass
-    #    Log('warn', "Loupe: Key_use: mode: " .. current_mode.id)
-    #enddef
-
 
     def Goto_result()
         this.Key_result()
@@ -1042,18 +1043,12 @@ export def ActivateInitialMode(initial_mode: string)
     current_mode.Activate()
 enddef
 
-def Change2Mode(modeName: string): void
-    # Following fails can't type because null_object not handled well
-    #var m: Mode = modes->get(modeName, null_object)
-    var m = modes->get(modeName, null)
-    if m != null
-        Log(() => printf("Change2Mode: '%s' %s",  modeName, typename(m)))
-        current_mode.Deactivate()
-        current_mode = m
-        current_mode.Activate()
-    else
-        Log(() => $"Change2Mode: unknown mode '{modeName}'", 'error', true)
-    endif
+# TODO: Directly access variables after makeing more stuff read-only
+export def GetStatusDiffScrollbind(): list<bool>
+    # Report the splice settings; but user might manually override,
+    # not worth handling that now. Could scan the windows...
+    # Note: in diff mode, vim turns on scrollbiund
+    return [ current_mode.IsDiffsOn(), current_mode.IsScrollbindOn() ]
 enddef
 
 export def Key_grid()
@@ -1070,6 +1065,20 @@ enddef
 
 export def Key_path()
     Change2Mode('path')
+enddef
+
+def Change2Mode(modeName: string): void
+    # Following fails can't type because null_object not handled well
+    #var m: Mode = modes->get(modeName, null_object)
+    var m = modes->get(modeName, null)
+    if m != null
+        Log(() => printf("Change2Mode: '%s' %s",  modeName, typename(m)))
+        current_mode.Deactivate()
+        current_mode = m
+        current_mode.Activate()
+    else
+        Log(() => $"Change2Mode: unknown mode '{modeName}'", 'error', true)
+    endif
 enddef
 
 const dispatch = {
@@ -1104,6 +1113,7 @@ export def ModesDispatch(op: string)
     else
         Log(() => "ModesDispatch: unknown operation: " .. op, 'error', true)
     endif
+    UpdateHudStatus()
 enddef
 
 
