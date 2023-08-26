@@ -1,13 +1,5 @@
 vim9script
 
-#TODO: GET RID OF standalone/testing
-var standalone_exp = false
-if expand('<script>:p') =~ '^/home/err/experiment/vim/splice'
-    standalone_exp = true
-endif
-
-var testing = standalone_exp
-
 # NOTE: simplification/rewrite when vim9 classes. "class Mode"
 #   TODO:   HUD query what commands are allowed
 #           current mode, 
@@ -21,55 +13,24 @@ var testing = standalone_exp
 
 export const hud_name = '__Splice_HUD__'
 
-var hl_label: string
-var hl_sep: string
-var hl_command: string
-var hl_rollover: string
-var hl_active: string
-# TODO: use hl_active for current mode, diff on, scrollbind on
+import autoload './util/log.vim' as i_log
+import autoload './util/vim_assist.vim'
+import autoload './util/keys.vim'
+import autoload './util/ui.vim'
+import autoload './util/windows.vim'
+import autoload '../splice.vim'
+import autoload './modes.vim' as i_modes
 
-var Log: func
+# highlights used on the HUD and in its text properties
 
-if ! standalone_exp
-    import autoload './util/log.vim'
-    import autoload './util/vim_assist.vim'
-    import autoload './util/keys.vim'
-    import autoload './util/ui.vim'
-    import autoload './util/windows.vim'
-    import autoload '../splice.vim'
-    import autoload './modes.vim' as i_modes
+var hl_label: string    = splice.hl_label
+var hl_sep: string      = splice.hl_sep
+var hl_command: string  = splice.hl_command
+var hl_rollover: string = splice.hl_rollover
+var hl_active: string   = splice.hl_active
+var hl_diff: string     = splice.hl_command
 
-    # highlights used on the HUD and in its text properties
-
-    hl_label = splice.hl_label
-    hl_sep = splice.hl_sep
-    hl_command = splice.hl_command
-    hl_rollover = splice.hl_rollover
-    hl_active = splice.hl_active
-
-    Log = log.Log
-else
-    import './log.vim'
-    import './vim_assist.vim'
-    import './keys.vim'
-    import './ui.vim'
-    import './hud_sub.vim'
-
-    const DumpDia = hud_sub.DumpDia
-    const DisplayHuds = hud_sub.DisplayHuds
-    Log = log.Log
-    log.LogInit('/home/err/play/SPLICE_LOG')
-
-    hl_label = 'SpliceLabel'
-    hl_sep = 'SpliceLabel'
-    hl_command = 'SpliceCommand'
-    hl_rollover = 'Pmenu'
-    hl_active = 'Keyword'
-
-    highlight SpliceCommand term=bold cterm=bold gui=bold
-    highlight SpliceLabel term=underline ctermfg=6 guifg=DarkCyan
-
-endif
+const Log = i_log.Log
 
 if exists('&mousemoveevent')
     &mousemoveevent = true
@@ -903,156 +864,3 @@ def DisplayCommandsPopup()
     ui.PopupMessage(text, 'Splice Shortcuts')
 enddef
 
-if ! testing
-    finish
-endif
-
-###########################################################################
-###########################################################################
-###########################################################################
-
-Log('TESTING, TESTING, 1 2 3 TESTING')
-
-# [ mode, layout, nbr, [varifiles] ]
-var hud_args = [
-    ['grid',    0, [] ],
-    ['grid',    1, [] ],
-    ['grid',    2, [] ],
-    ['loupe',   0, ['fn0'] ],
-    ['loupe',   0, ['Result'] ],
-    ['compare', 0, ['fn1', 'fn2'] ],
-    ['compare', 1, ['fn3', 'fn4'] ],
-    ['compare', 0, ['Original', 'Result'] ],
-    ['compare', 1, ['Original', 'Result'] ],
-    ['path',    0, ['fn5'] ],
-    ['path',    1, ['fn6'] ],
-]
-
-var hud_idx = 0
-
-def NextHud(forw: bool = true)
-
-    var use_idx = hud_idx
-    if !forw
-        hud_idx -= 2
-        if hud_idx < 0
-            hud_idx += len(hud_args)
-        endif
-        use_idx = hud_idx
-    endif
-    hud_idx += 1
-    hud_idx %= len(hud_args)
-
-    call(DrawHUD, [ true, hud_args[use_idx] ]->flattennew(1))
-    return
-enddef
-
-command! -nargs=0 NN {
-    var w = win_getid()
-    win_gotoid(bufwinid(hudbufnr))
-    NextHud()
-    w->win_gotoid()
-}
-
-command! -nargs=0 BB {
-    var w = win_getid()
-    win_gotoid(bufwinid(hudbufnr))
-    NextHud(false)
-    w->win_gotoid()
-}
-
-defcompile
-
-def StartupDebug()
-    With(KeepWindowEE.new(), (_) => {
-        :1wincmd w
-        execute('new ' .. hud_name)
-        wincmd J
-        #nnoremap <buffer> q <ScriptCmd>Release()<CR>
-        nnoremap <buffer> q :q<CR>
-        NextHud()
-    })
-enddef
-
-StartupDebug()
-
-
-finish
-
-###########################################################################
-###########################################################################
-###########################################################################
-
-vim9script noclear
-NextHud()
-
-vim9script noclear
-def X()
-    var winid = popup_create('Small Popup', {close: 'click'})
-    echo winid
-enddef
-
-#vim9script noclear
-def Y()
-    var winid = popup_create('Small Popup move dismiss', {mousemoved: 'any'})
-    echo winid
-enddef
-
-vim9script noclear
-echo popup_hide(1002)
-
-vim9script noclear
-echo popup_close(1002)
-
-vim9script noclear
-echo popup_list()
-
-vim9script noclear
-X()
-vim9script noclear
-Y()
-
-vim9script noclear
-unmap <MouseMove>
-
-vim9script noclear
-unmap <LeftRelease>
-
-################################################################################
-var ruler0 = '0         1         2         3         4         5         6         7         8         9         10        11        12        13        14        15        16         '
-var ruler  = '012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890'
-
-if false
-    echo ruler0
-    echo ruler
-    DumpHud(6)
-
-    echo 'layout_offset:' layout_offset  
-    echo 'actions_offset:' actions_offset  
-
-    # just the offset
-    echo match(modes_section[1], '\v \[g\]')
-    echo match(modes_section[1], '\v \[c\]')
-    echo matchstrpos(modes_section[1], '\v \[g\]')
-    echo matchstrpos(modes_section[1], '\v \[c\]')
-    #echo searchpos(modes_section[1], '\v \[g\]')
-
-    echo command_markers[0]
-    echo ruler0
-    echo ruler
-endif
-################################################################################
-
-def DumpProps(props: list<dict<any>>)
-    for d in props
-        echo d
-    endfor
-enddef
-
-vim9script noclear
-echo ruler0
-echo ruler
-var cmd_props = prop_list(1, {bufnr: hudbufnr, end_lnum: -1, types: [prop_action]})
-DumpProps(cmd_props)
-
-# vim:ts=8:sts=4:

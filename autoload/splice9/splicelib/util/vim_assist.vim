@@ -1,15 +1,6 @@
 vim9script
 
-var standalone_exp = false
-if expand('<script>:p') =~ '^/home/err/experiment/vim/splice'
-    standalone_exp = true
-endif
-
-if ! standalone_exp
 import autoload './log.vim' as i_log
-else
-import './log.vim' as i_log
-endif
 
 var testing = false
 
@@ -340,7 +331,7 @@ enddef
 
 #
 # if a character is > 0xff, this will probably fail
-# There's experiment/vim/Keys2Str.vim with tests to play
+# There's experiment/vim/Keys2Str.vim with tests
 #
 def StripCtrlV(k: string): list<number>
     var result: list<number>
@@ -616,44 +607,5 @@ def T2()
 enddef
 
 T1()
-
-############################################################################
-############################################################################
-############################################################################
-
-# Retired, could be a workaround that's no longer needed
-
-# flattennew fixed #10012
-# I think this preserves items that are brought up to the top level,
-# so that "is" comparison return true
-# https://github.com/vim/vim/issues/10012
-def Flatten(l: list<any>, maxdepth: number = 999999): list<any>
-    function FlattenInternal(il, id)
-        return flatten(a:il,a:id)
-    endfu
-    return FlattenInternal(copy(l), maxdepth)
-enddef
-
-flattennew fixed #10012
-builtin flatten,flattennew: a mess
-https://github.com/vim/vim/issues/10020
-Not Needed 10020 fixed, use Flatten.
-Keep it around just in case
-def FlattenVim9(l: list<any>, maxdepth: number = 999999): list<any>
-    var result = []
-    def FInternal(l2: list<any>, curdepth: number)
-        var i = 0
-        while i < len(l2)
-            if type(l2[i]) == v:t_list && curdepth < maxdepth
-                FInternal(l2[i], curdepth + 1)
-            else
-                result->add(l2[i])
-            endif
-            i += 1
-        endwhile
-    enddef
-    FInternal(l, 0)
-    return result
-enddef
 
 # vim:ts=8:sts=4:
