@@ -179,47 +179,11 @@ def ReportStartupIssues()
     endif
 enddef
 
-
-def SetupSpliceCommands()
-    command! -nargs=0 SpliceGrid     i_modes.Key_grid()
-    command! -nargs=0 SpliceLoupe    i_modes.Key_loupe()
-    command! -nargs=0 SpliceCompare  i_modes.Key_compare()
-    command! -nargs=0 SplicePath     i_modes.Key_path()
-
-    command! -nargs=0 SpliceOriginal i_modes.ModesDispatch('SpliceOriginal')
-    command! -nargs=0 SpliceOne      i_modes.ModesDispatch('SpliceOne')
-    command! -nargs=0 SpliceTwo      i_modes.ModesDispatch('SpliceTwo')
-    command! -nargs=0 SpliceResult   i_modes.ModesDispatch('SpliceResult')
-
-    command! -nargs=0 SpliceDiff     i_modes.ModesDispatch('SpliceDiff')
-    command! -nargs=0 SpliceDiffOff  i_modes.ModesDispatch('SpliceDiffOff')
-    command! -nargs=0 SpliceScroll   i_modes.ModesDispatch('SpliceScroll')
-    command! -nargs=0 SpliceLayout   i_modes.ModesDispatch('SpliceLayout')
-    command! -nargs=0 SpliceNext     i_modes.ModesDispatch('SpliceNext')
-    command! -nargs=0 SplicePrevious i_modes.ModesDispatch('SplicePrev')
-    command! -nargs=0 SpliceUseHunk  i_modes.ModesDispatch('SpliceUse')
-    command! -nargs=0 SpliceUseHunk1 i_modes.ModesDispatch('SpliceUse1')
-    command! -nargs=0 SpliceUseHunk2 i_modes.ModesDispatch('SpliceUse2')
-
-    command! -nargs=0 SpliceQuit     i_keys.SpliceQuit()
-    command! -nargs=0 SpliceCancel   i_keys.SpliceCancel()
-
-    # The ISxxx come in from python
-    command! -nargs=0 ISpliceActivateGridBindings i_keys.ActivateGridBindings()
-    command! -nargs=0 ISpliceDeactivateGridBindings i_keys.DeactivateGridBindings()
-    command! -nargs=? ISpliceNextConflict search.MoveToConflict(<args>)
-    command! -nargs=0 ISpliceAllConflict search.HighlightConflict()
-    command! -nargs=* ISpliceDrawHUD hud.DrawHUD(<args>)
-
-    command! -nargs=* ISplicePopup log.SplicePopup(<args>)
-enddef
-
 def SpliceInit9()
     log.Log('SpliceInit')
     set guioptions+=l
     # startup_error_msgs should already be empty
     startup_error_msgs = settings.InitSettings()
-    SetupSpliceCommands()
     i_keys.InitializeBindings()
     ReportStartupIssues()
     log.Log('starting splice')
