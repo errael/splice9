@@ -1,10 +1,5 @@
 vim9script
 
-var standalone_exp = false
-if expand('<script>:p') =~ '^/home/err/experiment/vim/splice'
-    standalone_exp = true
-endif
-
 # set 'testing' to true and source this file for testing
 var testing = false
 
@@ -19,12 +14,6 @@ const MapModeFilter = MapModeFilters.MapModeFilter
 const Keys2Str = vim_assist.Keys2Str
 # Having the following gives weird startup messages
 #const ModesDispatch = i_modes.ModesDispatch
-
-if standalone_exp
-    i_log.LogInit($HOME .. '/play/SPLICE_LOG')
-    i_log.Log('=== ' .. strftime('%c') .. ' ===')
-    i_log.Log('=== Unit Testing ===')
-endif
 
 
 # each action has

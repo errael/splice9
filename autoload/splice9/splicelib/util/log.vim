@@ -1,17 +1,14 @@
 vim9script
 
-var standalone_exp = false
-if expand('<script>:p') =~ '^/home/err/experiment/vim/splice'
-    standalone_exp = true
-endif
+var import_autoload = true
+#if expand('<script>:p') =~ '^/home/err/experiment/vim/splice'
+#    import_autoload = false
+#endif
 
-if ! standalone_exp
-    # TODO: bad import
-    #import autoload '../../splice.vim'
+if import_autoload
     import autoload './ui.vim'
     import autoload './vim_assist.vim'
 else
-    #import './splice.vim'
     import './ui.vim'
     import './vim_assist.vim'
 endif
@@ -28,8 +25,9 @@ const Scripts = vim_assist.Scripts
 # NOTE: the log file is never trunctated, persists, grows without limit
 #
 
-# TODO: put this somewhere else: maybe copy it to g:loggin_exclude
-#
+# TODO: Put this somewhere else: maybe copy it to g:logging_exclude.
+#       Maybe AddExclude/RemoveExclude methods in here
+
 g:splice_logging_exclude = [ 'focus', 'result', 'setting' ]
 #
 #g:splice_logging_exclude = []

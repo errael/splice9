@@ -3,11 +3,6 @@ if !has("patch-8.2.4861")
     finish
 endif
 
-var standalone_exp = false
-if expand('<script>:p') =~ '^/home/err/experiment/vim/splice'
-    standalone_exp = true
-endif
-
 const debug_test = false
 
 #
@@ -142,6 +137,8 @@ endif
 
 # Following is for testing
 
+const use_raelity_autoload = false
+
 # use the "C" defines. Might help to see what's going on
 const NORMAL       = 0x01
 const VISUAL	   = 0x02
@@ -171,10 +168,10 @@ const expect_mode_bits_table = {
 #    echo printf("%s: 0x%04x", k, v)
 #endfor
 
-if standalone_exp
-    import autoload './vim_assist.vim' as vass
-else
+if use_raelity_autoload
     import autoload 'Raelity/vim_assist.vim' as vass
+else
+    import autoload './vim_assist.vim' as vass
 endif
 var DictUniqueCopy = vass.DictUniqueCopy
 

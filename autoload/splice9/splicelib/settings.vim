@@ -1,16 +1,6 @@
 vim9script
-
-var standalone_exp = false
-if expand('<script>:p') =~ '^/home/err/experiment/vim/splice'
-    standalone_exp = true
-endif
-
-if ! standalone_exp
-    import autoload './util/log.vim' as i_log
-    import autoload './util/vim_assist.vim'
-else
-    import './vim_assist.vim'
-endif
+import autoload './util/log.vim' as i_log
+import autoload './util/vim_assist.vim'
 
 const Log = i_log.Log
 

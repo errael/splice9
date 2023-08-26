@@ -1,11 +1,8 @@
 vim9script
 
-var standalone_exp = false
-if expand('<script>:p') =~ '^/home/err/experiment/vim/splice'
-    standalone_exp = true
-endif
+var import_autoload = true
 
-if ! standalone_exp
+if import_autoload
     import autoload '../../splice.vim'
 else
     import './splice.vim'
