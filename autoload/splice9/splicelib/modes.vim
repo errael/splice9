@@ -1067,6 +1067,14 @@ export def Key_path()
     Change2Mode('path')
 enddef
 
+def SpliceQuit()
+    :wa
+    :qa
+enddef
+def SpliceCancel()
+    :cq
+enddef
+
 def Change2Mode(modeName: string): void
     # Following fails can't type because null_object not handled well
     #var m: Mode = modes->get(modeName, null_object)
@@ -1081,7 +1089,12 @@ def Change2Mode(modeName: string): void
     endif
 enddef
 
-const dispatch = {
+const dispatch: dict<func(): void> = {
+    SpliceGrid:     () => Key_grid(),
+    SpliceLoupe:    () => Key_loupe(),
+    SpliceCompare:  () => Key_compare(),
+    SplicePath:     () => Key_path(),
+
     SpliceOriginal: () => current_mode.Key_original(),
     SpliceOne:      () => current_mode.Key_one(),
     SpliceTwo:      () => current_mode.Key_two(),
@@ -1096,6 +1109,9 @@ const dispatch = {
     SpliceUse:      () => current_mode.Key_use(),
     SpliceUse1:     () => current_mode.Key_use1(),
     SpliceUse2:     () => current_mode.Key_use2(),
+
+    SpliceQuit:     () => SpliceQuit(),
+    SpliceCancel:   () => SpliceCancel(),
 }
 
 export def ModesDispatch(op: string)

@@ -11,11 +11,14 @@ var testing = false
 import autoload './log.vim' as i_log
 import autoload './vim_assist.vim'
 import autoload './MapModeFilters.vim'
+import autoload '../modes.vim' as i_modes
 
 const Pad = vim_assist.Pad
 const MapModeFilterExpr = MapModeFilters.MapModeFilterExpr
 const MapModeFilter = MapModeFilters.MapModeFilter
 const Keys2Str = vim_assist.Keys2Str
+# Having the following gives weird startup messages
+#const ModesDispatch = i_modes.ModesDispatch
 
 if standalone_exp
     i_log.LogInit($HOME .. '/play/SPLICE_LOG')
@@ -91,15 +94,6 @@ export def AddSeparators(l: list<any>, FSep: func): list<any>
     return l
 enddef
 
-# For uniformity, and to avoid special casing, provide Quit/Cancel commands
-export def SpliceQuit()
-    :wa
-    :qa
-enddef
-export def SpliceCancel()
-    :cq
-enddef
-
 # would like to return null, but string can't be null
 # TODO: instead of 'splice_bind_', how about 'splice_map_'? Maybe not.
 def GetMapping(key: string): string
@@ -136,8 +130,8 @@ def Bind(key: string)
         i_log.Log(() => "Bind-Map: SKIP '" .. key .. "'")
         return
     endif
-    var t = ':Splice' .. key .. '<cr>'
-    i_log.Log(() => "Bind-Map: '" .. mapping .. "' -> '" .. t .. "'")
+    var t = "<ScriptCmd>i_modes.ModesDispatch('Splice" .. key .. "')<CR>"
+    i_log.Log(() => printf("Bind-Map: '%s' -> '%s'", mapping, t))
     execute 'nnoremap' mapping t
 enddef
 
@@ -161,7 +155,7 @@ enddef
 # ['UseHunk1', ['<M-u><M-1>'], 'u1'], ['UseHunk2', ['<M-u><M-2>'], 'u2'],
 #     ['UseHunk', ['<M-u>'], 'u']]
 
-const FilterSpliceMap = MapModeFilterExpr('n', "m['rhs'] =~ '^:Splice'")
+const FilterSpliceMap = MapModeFilterExpr('n', "m['rhs'] =~ '^<ScriptCmd>i_modes\.ModesDis'")
 
 # Return list of mappings
 export def MappingsList(): list<any>
@@ -172,6 +166,7 @@ export def MappingsList(): list<any>
     for [k, v] in maplist()->filter(FilterSpliceMap)
             ->map((i, m) => MappingPair(m['rhs'], m['lhs']))
         # only include known splice commands
+        #i_log.Log(() => printf("MappingPair() '%s' '%s'", k, v))
         if mappings->has_key(k)
             mappings[k]->add(v)
         endif
@@ -193,8 +188,8 @@ enddef
 # return like: [ 'Grid', '<M-g>' ]; would handle multiple mappings
 def MappingPair(rhs: string, lhs: string): list<string>
         return [
-            rhs->substitute('<[Cc][Rr]>$', '', '')
-                ->substitute('^:Splice', '', ''),
+            rhs->substitute(''')<[Cc][Rr]>', '', '')
+                ->substitute('^<ScriptCmd>i_modes\.ModesDispatch(.Splice', '', ''),
             lhs->Keys2Str(),
         ]
 enddef
@@ -239,6 +234,8 @@ export def DeactivateGridBindings()
     UnBind('UseHunk2')
     Bind('UseHunk')
 enddef
+
+finish
 
 ############################################################################
 ############################################################################

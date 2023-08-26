@@ -36,6 +36,7 @@ if ! standalone_exp
     import autoload './util/ui.vim'
     import autoload './util/windows.vim'
     import autoload '../splice.vim'
+    import autoload './modes.vim' as i_modes
 
     # highlights used on the HUD and in its text properties
 
@@ -179,9 +180,12 @@ def ExecuteCommand(cmd: string, id: number)
         var splice_cmd = 'Splice' .. cmd
         Log(() => '===EXECUTE COMMAND===: ' .. splice_cmd)
         if special_cmds->index(cmd) >= 0
-            splice_cmd ..= '()'
+            # TODO: call something directly without "execute"
+            execute splice_cmd .. '()'
+            #call(splice_cmd, [])
+        else
+            i_modes.ModesDispatch(splice_cmd)
         endif
-        execute splice_cmd
     endif
 enddef
 
