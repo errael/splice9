@@ -1,5 +1,6 @@
 vim9script
 
+#TODO: GET RID OF standalone/testing
 var standalone_exp = false
 if expand('<script>:p') =~ '^/home/err/experiment/vim/splice'
     standalone_exp = true
@@ -121,16 +122,14 @@ const label_modes = 'Splice Modes:'
 const label_layout = 'Layout:'
 const label_commands = 'Splice Commands:'
 
-const btn_display_commands = 'BtnDisplayCommands'
+const local_commands_popup = 'DisplayCommandsPopup'
 
 #
-# There are special_cmds, these are ui related
+# There are local_cmds, these are ui related
 # and handled within the HUD.
 #
-const special_cmds = [ btn_display_commands ]
-var SpliceBtnDisplayCommands: func
-SpliceBtnDisplayCommands = () => {
-    echo 'UNINITIALIZED: SpliceBtnDisplayCommands'
+const local_ops: dict<func> = {
+    ['Splice' .. local_commands_popup]: () => call(local_commands_popup, [])
 }
 
 #
@@ -168,24 +167,14 @@ augroup END
 
 
 def ExecuteCommand(cmd: string, id: number)
-    if testing
-        RestoreWinPos()
-        #echo printf('Execute: %s %d %s', cmd, id, actions_ids[id])
-        echo printf('Execute: %s', cmd)
-        if special_cmds->index(cmd) >= 0
-            execute 'Splice' .. cmd .. '()'
-        endif
+    RestoreWinPos()
+    var splice_cmd = 'Splice' .. cmd
+    Log(() => '===EXECUTE COMMAND===: ' .. splice_cmd)
+    var Flocal = local_ops->get(splice_cmd, null_function)
+    if Flocal != null
+        Flocal()
     else
-        RestoreWinPos()
-        var splice_cmd = 'Splice' .. cmd
-        Log(() => '===EXECUTE COMMAND===: ' .. splice_cmd)
-        if special_cmds->index(cmd) >= 0
-            # TODO: call something directly without "execute"
-            execute splice_cmd .. '()'
-            #call(splice_cmd, [])
-        else
-            i_modes.ModesDispatch(splice_cmd)
-        endif
+        i_modes.ModesDispatch(splice_cmd)
     endif
 enddef
 
@@ -527,11 +516,11 @@ def StartupInit()
     # add the displayed name for UseHunk
     command_display_names[u_h] = matchlist(u_h_name, '\v.*:\s+(.*)')[1]
 
-    # add some special commands
-    base_actions[btn_display_commands] = [ 1,
+    # add some local UI commands
+    base_actions[local_commands_popup] = [ 1,
         actions_offset + 1,
         actions_offset + 1 + label_commands->len(),
-        AddActionPropId(btn_display_commands) ]
+        AddActionPropId(local_commands_popup) ]
 
     lockvar! base_actions
     lockvar! hunk_action2
@@ -909,11 +898,10 @@ export def CreateCurrentMappings(): list<string>
     return ret
 enddef
 
-SpliceBtnDisplayCommands = () => {
+def DisplayCommandsPopup()
     var text = CreateCurrentMappings()
     ui.PopupMessage(text, 'Splice Shortcuts')
-}
-lockvar! SpliceBtnDisplayCommands
+enddef
 
 if ! testing
     finish
