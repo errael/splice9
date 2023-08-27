@@ -156,6 +156,7 @@ enddef
 
 # TODO: may add some kind of "how to close" info in E
 #       make E dict<dict<any>>
+# TODO: This should not be in log.vim, either import or put popup elsewhere
 const E = {
     ENOTFILE: ["Current buffer, '%s', doesn't support '%s'", 'Command Issue'],
     ENOCONFLICT: ["No more conflicts"],
