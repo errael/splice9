@@ -28,7 +28,7 @@ var hl_sep: string      = splice.hl_sep
 var hl_command: string  = splice.hl_command
 var hl_rollover: string = splice.hl_rollover
 var hl_active: string   = splice.hl_active
-var hl_diff: string     = splice.hl_command
+var hl_diff: string     = splice.hl_diff
 
 const Log = i_log.Log
 
@@ -130,9 +130,9 @@ augroup END
 def ExecuteCommand(cmd: string, id: number)
     RestoreWinPos()
     var splice_cmd = 'Splice' .. cmd
-    Log(() => '===EXECUTE COMMAND===: ' .. splice_cmd)
     var Flocal = local_ops->get(splice_cmd, null_function)
     if Flocal != null
+        Log(() => '===EXECUTE LOCAL UI===: ' .. splice_cmd)
         Flocal()
     else
         i_modes.ModesDispatch(splice_cmd)
@@ -402,6 +402,7 @@ const prop_rollover = 'prop_rollover'
 const prop_label = 'prop_label'
 const prop_sep = 'prop_sep'
 const prop_active = 'prop_active'
+const prop_diff = 'prop_diff'
 
 # NOTE: arg dict has bnr, assumed constant for duration
 var did_action_props = false
@@ -434,22 +435,29 @@ def AddHeaderProps(d: dict<any> = null_dict)
         priority: 100,
         combine: false,
     }
+    var props_diff = {
+        highlight: hl_diff,
+        priority: 100,
+        combine: false,
+    }
     props_com->extend(d)
     props_roll->extend(d)
     props_lab->extend(d)
     props_sep->extend(d)
     props_act->extend(d)
+    props_diff->extend(d)
 
     prop_type_add(prop_action, props_com)
     prop_type_add(prop_rollover, props_roll)
     prop_type_add(prop_label, props_lab)
     prop_type_add(prop_sep, props_sep)
     prop_type_add(prop_active, props_act)
+    prop_type_add(prop_diff, props_diff)
 
     did_action_props = true
 enddef
 
-# StartupInit doesn't depend on hudbufnr.
+# StartupInit doesn't depend on hudbnr.
 # This is only done once during startup
 var did_init_1 = false
 def StartupInit()
@@ -542,6 +550,29 @@ def HighlightLabels(bnr: number)
     setpos('.', [bnr, 1, 1, 0])
 enddef
 
+# In the layout area, highlight each matching label.
+# Keep it simple, assume label only appears at most once in HUD.
+# HUD is current buffer.
+def HighlightDiffLabelsInLayout(labels: list<string>)
+    var props = {type: prop_diff, all: true}
+    prop_remove(props)
+    for label in labels
+        setpos('.', [0, 1, 1, 0])   # current buffer
+        var [line, col] = label->searchpos('W')
+        if line != 0
+            if col >= layout_offset && col < layout_offset + layout_width
+                props.length = len(label)
+                prop_add(line, col, props)
+            else
+                Log(() => printf("DiffLabel '%s' wrong area %d,%d",
+                    label, line, col), 'error')
+            endif
+        else
+            Log(() => printf("DiffLabel '%s' not found", label), 'error')
+        endif
+    endfor
+enddef
+
 
 # return the layout diagram
 def BuildLayoutDiagram(mode: string, layout: number,
@@ -610,21 +641,18 @@ enddef
 # Main
 #
 
-var hudbufnr: number = -1
+var hudbnr: number = -1
 
-def LogDrawHUD(mode: string, layout: number,
-    vari_files: list<string>, bnr: number)
-    Log(() => printf("DrawHUD: mode: '%s', layout %d, vari_files %s, bnr %d",
-        mode, layout, vari_files, bnr))
-enddef
-
-export def UpdateHudStatus(_bnr: number = 0)
-    var status = splice.GetStatusDiffScrollbind()    # bounce HACK
-    var bnr = _bnr ?? bufnr(hud_name)
+export def UpdateHudStatus()
+    var status = splice.GetStatusDiffScrollbind()   # bounce HACK
+    var diffs = splice.GetDiffLabels()              # bounce HACK
+    var bnr = hudbnr
+    #var bnr = _bnr ?? bufnr(hud_name)
     With(windows.Remain(), (_) => {
         windows.Focus(bufwinnr(bnr))
         With(ModifyBufEE.new(bnr), (_) => {
-            Log(printf("UpdateHudStatus: bnr %d, [diff, sbind]: %s", bnr, status))
+            Log(() => printf("UpdateHudStatus: bnr %d, [diff, sbind]: %s, diffs: %s",
+                bnr, status, diffs))
 
             var status_char = status[0] ? '*' : ' '
             var act = actions['DiffOff']
@@ -632,6 +660,7 @@ export def UpdateHudStatus(_bnr: number = 0)
             status_char = status[1] ? '*' : ' '
             act = actions['Scroll']
             ReplaceBuf(bnr, act[0], act[1] + 2, status_char)
+            HighlightDiffLabelsInLayout(diffs)
         })
     })
 enddef
@@ -639,22 +668,22 @@ enddef
 #
 # This is invoked when the HUD is the current buffer
 #
-# TODO: get rid of use_vim
-export def DrawHUD(use_vim: bool, mode: string, layout: number,
+export def DrawHUD(mode: string, layout: number,
         vari_files: list<string>)
 
     var bnr = bufnr(hud_name)
-    LogDrawHUD(mode, layout, vari_files, bnr)
+    Log(() => printf("DrawHUD: mode: '%s', layout %d, vari_files %s, bnr %d",
+        mode, layout, vari_files, bnr))
 
     if bnr < 0
         throw 'HUD buffer not found'
     endif
 
-    if hudbufnr < 0
-        hudbufnr = bnr
+    if hudbnr < 0
+        hudbnr = bnr
     endif
 
-    if hudbufnr != bnr
+    if hudbnr != bnr
         throw 'HUD buffer changed'
     endif
 
@@ -717,15 +746,12 @@ def HudActionsPropertiesAndHighlights(mode: string, bnr: number)
         })
     endif
     lockvar! actions
-    UpdateHudStatus()
-
-    # TODO: u does nothing if neither one or two is visible
-    #           maybe other layout details to enable
 
     AddHeaderProps({bufnr: bnr})
     HighlightActions(bnr)
     HighlightLabels(bnr)
     HighlightMode(mode, bnr)
+    UpdateHudStatus()
 
     # only map click release in hud
     nnoremap <buffer><special> <LeftRelease> <ScriptCmd>Release()<CR>
@@ -733,10 +759,6 @@ def HudActionsPropertiesAndHighlights(mode: string, bnr: number)
     # Can not lock <MouseMove> to the buffer, because rollover moves
     # would not be detected when the vim focus is in a different buffer.
     nnoremap <special> <MouseMove> <ScriptCmd>Move()<CR>
-enddef
-
-export def AnyThing()
-    Log('THIS IS FROM AnyThing IN HUD.VIM')
 enddef
 
 ################################################################
@@ -751,18 +773,18 @@ var current_hud_rollover = null_string
 # NOTE: if return needs to differentiate wrong window
 #       then could return null vs []
 # NOTE: <buffer> <LeftRelease> works, but <buffer> <MouseMove>
-#        doesn't work, so must do bnr != hudbufnr
+#        doesn't work, so must do bnr != hudbnr
 
 # Return null or action command name
 def GetActionUnderMouse(mpos: dict<number>): string
     var mpos_line = mpos.line
-    if winbufnr(mpos.winid) != hudbufnr || mpos.line == 0
+    if winbufnr(mpos.winid) != hudbnr || mpos.line == 0
         return null_string
     endif
     var mpos_col = mpos.column
 
     # prop_find never has to look far in the HUD; always fast in this situation.
-    var prop = prop_find({type: prop_action, bufnr: hudbufnr,
+    var prop = prop_find({type: prop_action, bufnr: hudbnr,
         lnum: mpos_line, col: mpos_col})
 
     var actKey = null_string
@@ -796,7 +818,7 @@ def Move()
             # echo 'cache hit:' item
             return
         else
-            prop_remove({type: prop_rollover, bufnr: hudbufnr, all: true},
+            prop_remove({type: prop_rollover, bufnr: hudbnr, all: true},
                 actions[current_hud_rollover][0])
             current_hud_rollover = null_string
         endif
@@ -804,7 +826,7 @@ def Move()
     if actKey != null
         var [ line, start, end; rest ] = actions[actKey]
         prop_add(line, start,
-            {end_col: end, type: prop_rollover, bufnr: hudbufnr})
+            {end_col: end, type: prop_rollover, bufnr: hudbnr})
         current_hud_rollover = actKey
     endif
 enddef

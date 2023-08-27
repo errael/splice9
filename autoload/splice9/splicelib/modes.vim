@@ -221,7 +221,7 @@ class Mode
                 mod = 'compare'
             endif
 
-            DrawHUD(true, mod, this._current_layout,
+            DrawHUD(mod, this._current_layout,
                 [this._lay_first, this._lay_second]->filter((_, v) => v != ''))
         })
     enddef
@@ -235,6 +235,21 @@ class Mode
 
     def IsScrollbindOn(): bool
         return this._current_scrollbind || !!this._current_diff_mode
+    enddef
+
+    # return the labels for the buffers in diffmode.
+    def GetDiffLabels(): list<string>
+        var rc: list<string>
+        With(windows.Remain(), (_) => {
+            for i in range(2, this._number_of_windows + 2 - 1)
+                windows.Focus(i)
+                if &diff
+                    var l = buffers.Current().label
+                    rc->add(l)
+                endif
+            endfor
+        })
+        return rc
     enddef
 endclass
 Log("DEFINED: class Mode")
@@ -1051,6 +1066,10 @@ export def GetStatusDiffScrollbind(): list<bool>
     return [ current_mode.IsDiffsOn(), current_mode.IsScrollbindOn() ]
 enddef
 
+export def GetDiffLabels(): list<string>
+    return current_mode.GetDiffLabels()
+enddef
+
 export def Key_grid()
     Change2Mode('grid')
 enddef
@@ -1120,15 +1139,8 @@ export def ModesDispatch(op: string)
         return
     endif
 
-    Log(() => printf("%s: %s", op, current_mode.id))
-    var F = dispatch->get(op, null_function)
-    if F != null
-        Log(printf('dispatching %s', op), 'layout')
-        F()
-        Log(printf('returned %s', op), 'layout')
-    else
-        Log(() => "ModesDispatch: unknown operation: " .. op, 'error', true)
-    endif
+    Log(() => printf('===EXECUTE COMMAND===: %s mode: %s', op, current_mode.id))
+    dispatch->get(op, () => Log("Dispatch: unknown op: " .. op, 'error', true))()
     UpdateHudStatus()
 enddef
 
