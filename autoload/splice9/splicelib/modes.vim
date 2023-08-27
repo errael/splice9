@@ -76,7 +76,6 @@ class Mode
             for winnr in range(2, 2 + this._number_of_windows - 1)
                 windows.Focus(winnr)
                 var curbuffer = buffers.Current()
-                # TODO: need to check curbuffer == null and quick exit?
 
                 for buffer in buffers.all
                     buffer.Open()
@@ -100,12 +99,10 @@ class Mode
             return
         endif
 
-        var this_this = this
         With(windows.Remain(), (_) => {
-            Log("Scrollbind Lambda using this_this")
-            this_this._current_scrollbind = enabled
+            this._current_scrollbind = enabled
 
-            for winnr in range(2, 2 + this_this._number_of_windows - 1)
+            for winnr in range(2, 2 + this._number_of_windows - 1)
                 windows.Focus(winnr)
                 &scrollbind = enabled
             endfor
@@ -244,8 +241,7 @@ class Mode
             for i in range(2, this._number_of_windows + 2 - 1)
                 windows.Focus(i)
                 if &diff
-                    var l = buffers.Current().label
-                    rc->add(l)
+                    rc->add(buffers.Current().label)
                 endif
             endfor
         })
@@ -992,8 +988,6 @@ class PathMode extends Mode
         this.Redraw_hud()
     enddef
 
-    # TODO: WAS: def Key_result(this) BUT NO ERROR
-    #                                 AT LEAST NOT DIRECTLY ABOUT THIS
     def Key_result()
         windows.Focus(4)
     enddef
@@ -1061,7 +1055,7 @@ enddef
 # TODO: Directly access variables after makeing more stuff read-only
 export def GetStatusDiffScrollbind(): list<bool>
     # Report the splice settings; but user might manually override,
-    # not worth handling that now. Could scan the windows...
+    # not worth handling that now; at your own risk. Could scan the windows...
     # Note: in diff mode, vim turns on scrollbiund
     return [ current_mode.IsDiffsOn(), current_mode.IsScrollbindOn() ]
 enddef
@@ -1095,9 +1089,7 @@ def SpliceCancel()
 enddef
 
 def Change2Mode(modeName: string): void
-    # Following fails can't type because null_object not handled well
-    #var m: Mode = modes->get(modeName, null_object)
-    var m = modes->get(modeName, null)
+    var m: Mode = modes->get(modeName, null_object)
     if m != null
         Log(() => printf("Change2Mode: '%s' %s",  modeName, typename(m)))
         current_mode.Deactivate()
@@ -1109,28 +1101,28 @@ def Change2Mode(modeName: string): void
 enddef
 
 const dispatch: dict<func(): void> = {
-    SpliceGrid:     () => Key_grid(),
-    SpliceLoupe:    () => Key_loupe(),
-    SpliceCompare:  () => Key_compare(),
-    SplicePath:     () => Key_path(),
+    SpliceGrid:         () => Key_grid(),
+    SpliceLoupe:        () => Key_loupe(),
+    SpliceCompare:      () => Key_compare(),
+    SplicePath:         () => Key_path(),
 
-    SpliceOriginal: () => current_mode.Key_original(),
-    SpliceOne:      () => current_mode.Key_one(),
-    SpliceTwo:      () => current_mode.Key_two(),
-    SpliceResult:   () => current_mode.Key_result(),
+    SpliceOriginal:     () => current_mode.Key_original(),
+    SpliceOne:          () => current_mode.Key_one(),
+    SpliceTwo:          () => current_mode.Key_two(),
+    SpliceResult:       () => current_mode.Key_result(),
 
-    SpliceDiff:     () => current_mode.Key_diff(),
-    SpliceDiffOff:  () => current_mode.Key_diffoff(),
-    SpliceScroll:   () => current_mode.Key_scrollbind(),
-    SpliceLayout:   () => current_mode.Key_layout(),
-    SpliceNext:     () => current_mode.Key_next(),
-    SplicePrev:     () => current_mode.Key_prev(),
-    SpliceUse:      () => current_mode.Key_use(),
-    SpliceUse1:     () => current_mode.Key_use1(),
-    SpliceUse2:     () => current_mode.Key_use2(),
+    SpliceDiff:         () => current_mode.Key_diff(),
+    SpliceDiffOff:      () => current_mode.Key_diffoff(),
+    SpliceScroll:       () => current_mode.Key_scrollbind(),
+    SpliceLayout:       () => current_mode.Key_layout(),
+    SpliceNext:         () => current_mode.Key_next(),
+    SplicePrevious:     () => current_mode.Key_prev(),
+    SpliceUseHunk:      () => current_mode.Key_use(),
+    SpliceUseHunk1:     () => current_mode.Key_use1(),
+    SpliceUseHunk2:     () => current_mode.Key_use2(),
 
-    SpliceQuit:     () => SpliceQuit(),
-    SpliceCancel:   () => SpliceCancel(),
+    SpliceQuit:         () => SpliceQuit(),
+    SpliceCancel:       () => SpliceCancel(),
 }
 
 export def ModesDispatch(op: string)

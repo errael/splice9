@@ -149,8 +149,8 @@ export class KeepWindowEE implements WithEE
     enddef
 endclass
 
-# Keep buffer (partly here because can't define (yet) in splice's bufferlib.vim)
-export class SpliceKeepBufferEE implements WithEE
+# Keep buffer, cursor as possible
+export class KeepBufferEE implements WithEE
     this._bnr: number
     this._pos: list<number>
 

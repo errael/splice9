@@ -7,7 +7,7 @@ import autoload './vim_assist.vim'
 const Log = log.Log
 const WithEE = vim_assist.WithEE
 
-const SpliceKeepBufferEE = vim_assist.SpliceKeepBufferEE
+const KeepBufferEE = vim_assist.KeepBufferEE
 
 # There are 5 buffers 4 hold merge files, 1 is the HUD.
 
@@ -57,6 +57,7 @@ class BufferList
     # TODO why the compile/runtime errors if ": Buffer" not in the following
     #       Note that if the assignment happens in new(), then it's OK
     #       error occurs on 4th line of init.vim::Process_result
+    #TODO: private/public issues
     this.original: Buffer = Buffer.new(1, 'Original')
     this.one: Buffer = Buffer.new(2, 'One')
     this.two: Buffer = Buffer.new(3, 'Two')
@@ -92,7 +93,7 @@ class BufferList
 
     def Remain(): WithEE
         # TODO: use KeepWindowEE instead? buffer vs window shouldn't matter here
-        return SpliceKeepBufferEE.new()
+        return KeepBufferEE.new()
     enddef
 
 endclass
