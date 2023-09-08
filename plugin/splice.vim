@@ -9,14 +9,14 @@
 
 " Vim version check
 
-if ! has('vim9script') || v:versionlong < 9000000 + 1000
-    let s:patch = 1000
+if ! has('vim9script') || v:versionlong < 9000000 + 1880
+    let s:patch = 1880
     let s:minver = 9000000 + s:patch
 
     " TODO: if vim >= 9 then do popup 
 
     echomsg 'The installed Splice Merge Tool plugin requires vim9script'
-    echomsg 'and vim version 9.1 with patch level ' .. s:patch .. '.'
+    echomsg 'and vim version 9.0 with patch level ' .. s:patch .. '.'
     echomsg ' '
     echomsg 'Check Vim and Splice versions and configurations.'
     "echomsg ' '
@@ -32,6 +32,8 @@ endif
 
 vim9script
 
+g:splice9_string_version = "0.9-RC1"
+
 # TODO: SHOULD THERE BE A SPLICE COMMAND IF VERSION PREVENTS RUNNING?
 
 # Setting up splice9Dev
@@ -46,13 +48,13 @@ vim9script
 
 # call test_override('autoload', 1)
 
-var dev = true
+var dev = false
 if dev
     import autoload '/home/err/.vim/pack/random-packages/start/splice-vim-dev/autoload/splice9Dev/splice.vim'
     command! -nargs=0 SpliceInitDev call splice.SpliceBoot()
 else
     import autoload '../autoload/splice9/splice.vim'
-    command! -nargs=0 SpliceInit call splice.SpliceBoot()
+    command! -nargs=0 Splice9Init call splice.SpliceBoot()
 endif
 
 #var patch = 4932

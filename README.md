@@ -1,20 +1,89 @@
 ## Splice9
 
-Splice9 is a post Vim9.1 plugin for resolving conflicts during three-way merges.
+`Splice9` plugin for resolving three-way merges; it runs on `Vim9.1`.
+<br>It's inspired by Adobe Lightroom's user interface. 
+<br>[Watch the demo screencast](http://vimeo.com/25764692)
 
-`Splice9` is a pure vim9script port of [Splice](https://github.com/sjl/splice.vim) which is a vimscript/python hybrid.
-The original Splice installation documentation and instructions for hooking
-up to your Version Control System are still applicable.
+`Splice9` is pure `vim9script` port of Steve Losh's [Splice](https://github.com/sjl/splice.vim) which is a vimscript/python hybrid.
 
-Visit [the original site](https://docs.stevelosh.com/splice.vim/) for
-installation and other information. There's a video demo.
+In vim do `:he Splice`. _Recommended at least once_.
 
-In vim do `:he Splice`. Splic9 requires `vim9.1`.
+See [Dynamic HUD](#dynamic-hud) below for a description of new features in `Splice9`.
 
-<!--
-  See [HUD](https://github.com/errael/splice9/wiki/HUD) for a description of the new features.
--->
-  See [Dynamic HUD](dynamic-hud) below for a description of the new features.
+Typically Splice9 is started by your VCS. When it starts up, you can do
+
+1. `cycle diffs`
+2. `next conflict`
+3. `use hunk` to put the chosen hunk into the `Result` file
+4. edit `Result` as needed
+5. Either `save-quit` or `error-exit` to abort the merge
+
+Try chosing the different `modes` and doing `cycle layouts` and `cycle diffs`;
+see the various ways the files and diffs are displayed.
+
+## VCS Support
+
+- [Mercurial](#mercurial)
+- [Git](#git)
+- [Bazaar](#bazaar)
+
+Once you've installed Splice you'll need to configure your version control system to use it as a merge tool.
+
+In the `vim` startup arguments, you can do addional things such as setting the width with `-c "set
+columns=220"`.
+
+### Mercurial
+
+Add the following lines to `~/.hgrc`:
+
+```
+[merge-tools]
+splice.executable = gvim
+splice.args = -f $base $local $other $output -c 'Splice9Init'
+splice.premerge = keep
+splice.priority = 1
+```
+
+**Note:** replace gvim with mvim if you're on Mac, or just plain vim if you prefer to keep the editor in the console.
+
+### Git
+
+Add the following lines to `~/.gitconfig`:
+
+```
+[merge]
+tool = splice
+
+[mergetool "splice"]
+cmd = "gvim -f $BASE $LOCAL $REMOTE $MERGED -c 'Splice9Init'"
+trustExitCode = true
+```
+
+**Note:** replace gvim with mvim if you're on Mac, or just plain vim if you prefer to keep the editor in the console.
+
+### Bazaar
+
+For Bazaar 2.4 or greater, add the following line to bazaar.conf:
+
+```
+bzr.mergetool.splice = gvim {base} {this} {other} {result} -c 'Splice9Init'
+```
+
+Optionally, change the default merge tool by setting:
+
+```
+bzr.default_mergetool = splice
+```
+
+For earlier versions of Bazaar, set the following entry in bazaar.conf:
+
+```
+external_merge = gvim %b %t %o %r -c 'Splice9Init'
+```
+
+**Note:** replace gvim with mvim if you're on Mac, or just plain vim if you prefer to keep the editor in the console.
+
+## Dynamic HUD
 
 Some of the Splice9 UI enhancements:
 - Additional status info (compact) in the HUD (Heads Up Display).<br>
@@ -25,7 +94,9 @@ Some of the Splice9 UI enhancements:
 - Can set "use meta" and the meta key is used instead of using g:mapleader.
 - Version control system configuration the same as original Splice. 
 
-## dynamic HUD
+<!--
+  See [HUD](https://github.com/errael/splice9/wiki/HUD) for a description of the new features.
+-->
 
 **Heads Up Display**
 
