@@ -1,0 +1,10 @@
+#!/bin/bash
+
+CMD=${0##*/}
+DIR=${0%/*}
+
+curdir=$(pwd)
+cd $DIR/.. 
+jar -Mcvf $curdir/splice9.zip splice9/{plugin,doc,autoload}
+
+

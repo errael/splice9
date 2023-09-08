@@ -883,6 +883,6 @@ enddef
 
 def DisplayCommandsPopup()
     var text = CreateCurrentMappings()
-    ui.PopupMessage(text, 'Splice Shortcuts')
+    ui.PopupMessage(text, 'Shortcuts (Splice9 ' .. g:splice9_string_version .. ')')
 enddef
 
