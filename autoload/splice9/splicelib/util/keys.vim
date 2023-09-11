@@ -12,7 +12,7 @@ const Pad = vim_assist.Pad
 const MapModeFilterExpr = MapModeFilters.MapModeFilterExpr
 const MapModeFilter = MapModeFilters.MapModeFilter
 const Keys2Str = vim_assist.Keys2Str
-# Having the following gives weird startup messages
+# TODO: Having the following gives weird startup messages
 #const ModesDispatch = i_modes.ModesDispatch
 
 
@@ -93,13 +93,13 @@ def GetMapping(key: string): string
         return mapping
     endif
 
-    # Use the default taking prefix into account, unless use meta
+    # Use the default taking prefix into account, unless use alt
     var dflt = actions_info[key]['a_dflt']
-    if ! !!g:->get('splice_bind_use_meta', false)
+    if ! !!g:->get('splice_bind_use_alt', false)
         return g:->get('splice_prefix', '-') .. dflt
     endif
 
-    # Use the Meta Key with the defaults.
+    # Use the Alt Key with the defaults.
     if dflt == '<Space>'
         mapping = "\u16\uA0"
     else
@@ -176,11 +176,11 @@ enddef
 
 # return like: [ 'Grid', '<M-g>' ]; would handle multiple mappings
 def MappingPair(rhs: string, lhs: string): list<string>
-        return [
+    return [
             rhs->substitute(''')<[Cc][Rr]>', '', '')
                 ->substitute('^<ScriptCmd>i_modes\.ModesDispatch(.Splice', '', ''),
-            lhs->Keys2Str(),
-        ]
+            lhs->Keys2Str(false),
+    ]
 enddef
 
 # Add hunk mapping to list if not alreay there.

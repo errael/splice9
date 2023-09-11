@@ -50,6 +50,8 @@ CONTENTS                                                     *Splice-contents*
         5.15 splice_initial_mode ................. |SpliceConfig_im|
         5.16 splice_prefix ....................... |SpliceConfig_prefix|
         5.17 splice_wrap ......................... |SpliceConfig_wrap|
+        5.18 splice_bind_use_alt ................. |SpliceConfig_alt|
+        5.19 splice_bind_<command>................ |SpliceConfig_commmand|
     6. License ................................... |SpliceLicense|
     7. Bugs ...................................... |SpliceBugs|
     8. Contributing .............................. |SpliceContributing|
@@ -164,18 +166,18 @@ Splice has four "modes" or "views" for working with the files.
 Grid                                               *SpliceUsage_modes_grid*
     Shows all four files at once to give you an overview of the merge.
 
-    See |SpliceModes-grid| for more information.
+    See |SpliceModes_grid| for more information.
 
 Loupe                                             *SpliceUsage_modes_loupe*
     Shows a single file at a time for close examination of a single file.
 
-    See |SpliceModes-loupe| for more information.
+    See |SpliceModes_loupe| for more information.
 
 Compare                                         *SpliceUsage_modes_compare*
     Shows two files at a time for examining the movement of changes between
     pairs of files.
 
-    See |SpliceModes-compare| for more information.
+    See |SpliceModes_compare| for more information.
 
 Path                                               *SpliceUsage_modes_path*
     Shows three files at a time:
@@ -187,18 +189,23 @@ Path                                               *SpliceUsage_modes_path*
     Used for examining how a change moves through one "path" or "branch"
     of the merge.
 
-    See |SpliceModes-path| for more information.
+    See |SpliceModes_path| for more information.
 
 
 ==============================================================================
 3. Key Bindings                                                   *SpliceKeys*
 
-All of Splice's key mappings are prefixed with a single key to group them
-together and avoid shadowing other mappings.  By default this key is '-'
-(minus/hyphen).
+By default all of Splice's key mappings are prefixed with a single key to
+group them together and avoid shadowing other mappings.  By default this key
+is '-' (minus/hyphen).
 
 See the |SpliceConfig_prefix| setting if you'd like to change this prefix to
 something else.
+
+To use the Alt, aka Meta, key instead of a prefix see SpliceConfig_alt.
+
+Each command's key mapping can be individually specified. These mappings do
+not use the prefix or the Alt key, see |SpliceConfig_command|.
 
 All keybindings are used across (almost) all modes.
 
@@ -317,8 +324,8 @@ Grid-Specific Key Bindings                          *SpliceModes_grid_keys*
 Grid Diffs                                         *SpliceModes_grid_diffs*
 ----------
 
-1. No diff.
-2. Diff all files.
+0 - No diff.
+1 - Diff all files.
 
 ------------------------------------------------------------------------------
 4.2 Loupe                                                  *SpliceModes_loupe*
@@ -382,8 +389,8 @@ Compare-Specific Key Bindings                    *SpliceModes_compare_keys*
 Compare Diffs                                   *SpliceModes_compare_diffs*
 -------------
 
-1. No diff.
-2. Diff both files.
+0 - No diff.
+1 - Diff both files.
 
 ------------------------------------------------------------------------------
 4.4 Path                                                    *SpliceModes_path*
@@ -418,10 +425,11 @@ Path-Specific Key Bindings                          *SpliceModes_path_keys*
 Path Diffs                                         *SpliceModes_path_diffs*
 ----------
 
-1. No diff.
-2. Diff the original and center windows.
-3. Diff the center and result windows.
-4. Diff the original and result windows.
+0 - No diff.
+1 - Diff the original and result windows.
+2 - Diff the original and center windows.
+3 - Diff the center and result windows.
+4 - Diff the original and center and result windows.
 
 ==============================================================================
 5. Configuration                                                *SpliceConfig*
@@ -457,7 +465,7 @@ Default: 0 (Splice is enabled as usual)
 
 Set this to change the diff the grid mode starts in.
 
-See |SpliceModes-grid-diffs| for the list of diffs.
+See |SpliceModes_grid_diffs| for the list of diffs.
 
 Options: 0, or 1
 Default: 0
@@ -467,7 +475,7 @@ Default: 0
 
 Set this to change the diff the loupe mode starts in.
 
-See |SpliceModes-loupe-diffs| for the list of diffs.
+See |SpliceModes_loupe_diffs| for the list of diffs.
 
 Options: 0
 Default: 0
@@ -477,7 +485,7 @@ Default: 0
 
 Set this to change the diff the compare mode starts in.
 
-See |SpliceModes-compare-diffs| for the list of diffs.
+See |SpliceModes_compare_diffs| for the list of diffs.
 
 Options: 0 or 1
 Default: 0
@@ -487,7 +495,7 @@ Default: 0
 
 Set this to change the diff the path mode starts in.
 
-See |SpliceModes-path-diffs| for the list of diffs.
+See |SpliceModes_path_diffs| for the list of diffs.
 
 options: 0, 1, 2, 3, or 4
 Default: 0
@@ -497,7 +505,7 @@ Default: 0
 
 Set this to change the layout the grid mode starts in.
 
-See |SpliceModes-grid-layouts| for the list of layouts.
+See |SpliceModes_grid_layouts| for the list of layouts.
 
 Options: 0, 1, or 2
 Default: 0
@@ -507,7 +515,7 @@ Default: 0
 
 Set this to change the layout the loupe mode starts in.
 
-See |SpliceModes-loupe-layouts| for the list of layouts.
+See |SpliceModes_loupe_layouts| for the list of layouts.
 
 Options: 0
 Default: 0
@@ -517,7 +525,7 @@ Default: 0
 
 Set this to change the layout the compare mode starts in.
 
-See |SpliceModes-compare-layouts| for the list of layouts.
+See |SpliceModes_compare_layouts| for the list of layouts.
 
 Options: 0 or 1
 Default: 0
@@ -527,7 +535,7 @@ Default: 0
 
 Set this to change the layout the path mode starts in.
 
-See |SpliceModes-path-layouts| for the list of layouts.
+See |SpliceModes_path_layouts| for the list of layouts.
 
 Options: 0 or 1
 Default: 0
@@ -598,6 +606,41 @@ By default Splice will use your default settings.
 
 Options: "wrap", "nowrap"
 Default: None (use the default settings)
+
+------------------------------------------------------------------------------
+5.18 g:splice_bind_use_alt                                  *SpliceConfig_alt*
+
+Set this to 1 or true to use the Alt key instead of a prefix.
+
+For example: >
+
+    let g:splice_bin_use_alt = 1
+
+Means hold down the Alt key and press the command character(s).
+
+Options: 1 or true
+Default: false
+
+------------------------------------------------------------------------------
+5.19 g:splice_bind_<command>                            *SpliceConfig_command*
+
+Any command can have it's mapping set independent of prefix or alt.
+
+The possible comands are
+    Grid Loupe Compare Path
+    Original One Two Result
+    Diff DiffOff Scroll Layout Next Previous
+    UseHunk UseHunk1 UseHunk2
+    Quit Cancel
+
+For example: >
+
+    let g:splice_bind_Grid = "<F7>"
+
+Press function key F7 for grid mode.
+
+Options: Any valid key mapping string
+Default: ""
 
 ==============================================================================
 6. License                                                     *SpliceLicense*

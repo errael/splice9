@@ -172,6 +172,7 @@ class Mode
         this.Layout(this._current_layout)
         this.Diff(this._current_diff_mode)
         this.Scrollbind(this._current_scrollbind)
+        Log(() => $"CURRENT_MODE: {this.id}")
     enddef
 
     def Deactivate()
@@ -503,12 +504,12 @@ class GridMode extends Mode
 
 
     def Activate()
-        i_keys.ActivateGridBindings
+        i_keys.ActivateGridBindings()
         super.Activate()
     enddef
 
     def Deactivate()
-        i_keys.DeactivateGridBindings
+        i_keys.DeactivateGridBindings()
         super.Deactivate()
     enddef
 
@@ -1048,7 +1049,6 @@ var current_mode: Mode
 export def ActivateInitialMode(initial_mode: string)
     Log(() => $"INIT: inital mode: '{initial_mode}'")
     current_mode = modes[initial_mode]
-    Log(() => $"CURRENT_MODE: {string(current_mode)}")
     current_mode.Activate()
 enddef
 
