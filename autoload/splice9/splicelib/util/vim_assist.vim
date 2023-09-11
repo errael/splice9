@@ -358,13 +358,16 @@ def StripCtrlV(k: string): list<number>
     return result
 enddef
 
-export def Keys2Str(k: string): string
+const up_arrow_nr: number = char2nr('^')
+const back_slash_nr: number = char2nr('\')
+
+export def Keys2Str(k: string, do_escape = true): string
     def OneChar(x: number): string
         if x == 0x20
             return '<Space>'
-        elseif x == char2nr('^')
+        elseif do_escape && x == up_arrow_nr
             return '\^'
-        elseif x == char2nr('\')
+        elseif do_escape && x == back_slash_nr
             return '\\'
         elseif x < 0x20
             return '^' .. nr2char(x + 0x40)
