@@ -66,17 +66,28 @@ Splice is meant to be called by your version control system when it needs you
 to resolve merge conflicts.  You will need to configure your VCS to do this
 before you can use Splice.
 
-*Note: If you'd like to use a Vim GUI instead of console vim, replace
-       "vim" in the following commands with your choice of "mvim" or "gvim".
+You may find these vim options useful when invoking Vim.
+Use the following to startup with more columns
+>
+    -c "set columns=220"
+<
+If Splic9 is configured with multi-character shortcuts (used internally with
+:map), use the following to prevent shortcut input, :mapped key sequences,
+from being interrupted by a time out.
+>
+    -c "set ttimeout" -c "set notimeout"
+<
 
+*Note: If you'd like to use a console vim intead of Vim GUI, replace
+       "gvim", or "mvim" on a Mac, in the following commands with "vim".
 ------------------------------------------------------------------------------
 1.1 Mercurial                                                   *SpliceVCS_hg*
 
 Add the following lines to "~/.hgrc": >
 
     [merge-tools]
-    splice.executable = vim
-    splice.args = -f $base $local $other $output -c 'SpliceInit'
+    splice.executable = gvim
+    splice.args = -f $base $local $other $output -c 'Splice9Init'
     splice.premerge = keep
     splice.priority = 1
 
@@ -92,10 +103,10 @@ Add the following lines to "~/.gitconfig": >
     tool = splice
 
     [mergetool "splice"]
-    cmd = "vim -f $BASE $LOCAL $REMOTE $MERGED -c 'SpliceInit'"
+    cmd = "gvim -f $BASE $LOCAL $REMOTE $MERGED -c 'Splice9Init'"
     trustExitCode = true
 
-If a "git merge" or "git pull" fails with merge conflicts you can now run
+If a "git merge" or "git pull" fails with merge conflicts you can run
 "git mergetool".  Git will loop over all the files with conflicts and allow
 you to resolve them with Vim and Splice.
 
@@ -104,7 +115,7 @@ you to resolve them with Vim and Splice.
 
 For Bazaar 2.4 or greater, add the following line to bazaar.conf:
 >
-    bzr.mergetool.splice = vim {base} {this} {other} {result} -c 'SpliceInit'
+    bzr.mergetool.splice = gvim {base} {this} {other} {result} -c 'Splice9Init'
 <
 Optionally, change the default merge tool by setting:
 >
@@ -112,7 +123,7 @@ Optionally, change the default merge tool by setting:
 <
 For earlier versions of Bazaar, set the following entry in bazaar.conf:
 >
-    external_merge = vim %b %t %o %r -c 'SpliceInit'
+    external_merge = gvim %b %t %o %r -c 'Splice9Init'
 <
 You can now use Vim with Splice from "bzr qconflicts".
 
@@ -626,7 +637,7 @@ Default: false
 
 Any command can have it's mapping set independent of prefix or alt.
 
-The possible comands are
+The possible commands are
     Grid Loupe Compare Path
     Original One Two Result
     Diff DiffOff Scroll Layout Next Previous

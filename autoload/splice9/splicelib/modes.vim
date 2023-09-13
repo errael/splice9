@@ -149,16 +149,17 @@ class Mode
     enddef
 
 
+    # The default implementation of the UseHunk commands ring the bell
     def Key_use()
-        Log(() => "Key_use: mode: " .. current_mode.id, 'error')
+        vim_assist.Bell()
     enddef
 
     def Key_use1()
-        Log(() => "Key_use1: mode: " .. current_mode.id, 'error')
+        vim_assist.Bell()
     enddef
 
     def Key_use2()
-        Log(() => "Key_use2: mode: " .. current_mode.id, 'error')
+        vim_assist.Bell()
     enddef
 
 
@@ -504,12 +505,10 @@ class GridMode extends Mode
 
 
     def Activate()
-        i_keys.ActivateGridBindings()
         super.Activate()
     enddef
 
     def Deactivate()
-        i_keys.DeactivateGridBindings()
         super.Deactivate()
     enddef
 

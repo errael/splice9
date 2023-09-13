@@ -47,6 +47,16 @@ enddef
 ### General
 ###
 
+# Minor error, not worthy of a popup
+export def Bell(force = true)
+    if force || &errorbells
+        normal \<Esc>
+    endif
+    echohl ErrorMsg
+    echomsg "Oops!"
+    echohl None
+enddef
+
 # Create/update scripts dictionary.
 # Example: var fname = Scripts()[SID/SNR]
 export def Scripts(scripts: dict<string> = {}): dict<string>

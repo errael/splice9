@@ -12,6 +12,7 @@ const Pad = vim_assist.Pad
 const MapModeFilterExpr = MapModeFilters.MapModeFilterExpr
 const MapModeFilter = MapModeFilters.MapModeFilter
 const Keys2Str = vim_assist.Keys2Str
+const Log = i_log.Log
 # TODO: Having the following gives weird startup messages
 #const ModesDispatch = i_modes.ModesDispatch
 
@@ -83,9 +84,14 @@ export def AddSeparators(l: list<any>, FSep: func): list<any>
     return l
 enddef
 
+# Once Splic9 has started, freeze the <leader> and splice_prefix
+const splice_prefix = g:->get('splice_prefix', '-')
+    ->substitute('\c' .. '<leader>', g:->get('mapleader', '\\'), "g")
+
 # would like to return null, but string can't be null
-# TODO: instead of 'splice_bind_', how about 'splice_map_'? Maybe not.
+# TODO: string can be null now, be careful if you want to change it
 def GetMapping(key: string): string
+    # if a command is explicitly mapped, then return it's mapping
     var mapping = g:->get('splice_bind_' .. key, null)
     if mapping == 'None' || mapping == ''
         return ''
@@ -95,8 +101,8 @@ def GetMapping(key: string): string
 
     # Use the default taking prefix into account, unless use alt
     var dflt = actions_info[key]['a_dflt']
-    if ! !!g:->get('splice_bind_use_alt', false)
-        return g:->get('splice_prefix', '-') .. dflt
+    if !g:->get('splice_bind_use_alt', false)
+        return splice_prefix .. dflt
     endif
 
     # Use the Alt Key with the defaults.
@@ -116,21 +122,21 @@ enddef
 def Bind(key: string)
     var mapping = GetMapping(key)
     if mapping == ''
-        i_log.Log(() => "Bind-Map: SKIP '" .. key .. "'")
+        Log(() => "Bind-Map: SKIP '" .. key .. "'")
         return
     endif
     var t = "<ScriptCmd>i_modes.ModesDispatch('Splice" .. key .. "')<CR>"
-    i_log.Log(() => printf("Bind-Map: '%s' -> '%s'", mapping, t))
+    Log(() => printf("Bind-Map: '%s' -> '%s'", mapping, t))
     execute 'nnoremap' mapping t
 enddef
 
 def UnBind(key: string)
     var mapping = GetMapping(key)
     if mapping == ''
-        i_log.Log(() => "Bind-UnMap: SKIP '" .. key .. "'")
+        Log(() => "Bind-UnMap: SKIP '" .. key .. "'")
         return
     endif
-    i_log.Log(() => "Bind-UnMap: '" .. mapping .. "'")
+    Log(() => "Bind-UnMap: '" .. mapping .. "'")
     execute 'unmap' mapping
 enddef
 
@@ -149,13 +155,14 @@ const FilterSpliceMap = MapModeFilterExpr('n', "m['rhs'] =~ '^<ScriptCmd>i_modes
 # Return list of mappings
 export def MappingsList(): list<any>
     var mappings: dict<list<string>>
+
     for k in actions_info->keys()
         mappings[k] = []
     endfor
     for [k, v] in maplist()->filter(FilterSpliceMap)
             ->map((i, m) => MappingPair(m['rhs'], m['lhs']))
         # only include known splice commands
-        #i_log.Log(() => printf("MappingPair() '%s' '%s'", k, v))
+        #Log(() => printf("MappingPair() '%s' '%s'", k, v))
         if mappings->has_key(k)
             mappings[k]->add(v)
         endif
@@ -187,7 +194,8 @@ enddef
 # Needed since hunk mappings are dynamically changed around
 def AddHunkIfNeeded(d: dict<list<string>>, hunk: string): void
     var l = d[hunk]
-    var mapping = GetMapping(hunk)->Keys2Str()
+    var mapping = GetMapping(hunk)->Keys2Str(false)
+    Log($"hunk: '{hunk}', l: '{l}', mapping: '{mapping}', idx: {l->index(mapping)}")
     if l->index(mapping) < 0
         l->add(mapping)
     endif
@@ -196,9 +204,8 @@ enddef
 # Initialize all bindings except for UseHunk1/UseHunk2
 
 export def InitializeBindings()
-    i_log.Log('InitializeBindings()')
+    Log('InitializeBindings()')
     # The default state is UseHunk; UseHunk?(1|2) are dynamically handled,
-    # see ActivateGridBindings, DeactivateGridBindings
     var initBindings = actions_info->keys()
         ->filter((i, v) => v != 'UseHunk1' && v != 'UseHunk2')
 
@@ -207,21 +214,11 @@ export def InitializeBindings()
         Bind(k)
     endfor
 
-    # some commands defined in here
-enddef
-
-export def ActivateGridBindings()
-    i_log.Log('ActivateGridBindings')
-    UnBind('UseHunk')
     Bind('UseHunk1')
     Bind('UseHunk2')
-enddef
-
-export def DeactivateGridBindings()
-    i_log.Log('DectivateGridBindings')
-    UnBind('UseHunk1')
-    UnBind('UseHunk2')
     Bind('UseHunk')
+
+    # some commands defined in here
 enddef
 
 finish
@@ -359,11 +356,11 @@ def BindingList2(): list<string>
 enddef
 
 def RandomTesting()
-    i_log.Log('INIT')
+    Log('INIT')
     InitializeBindings()
-    i_log.Log('ACTIVATE-GRID')
+    Log('ACTIVATE-GRID')
     ActivateGridBindings()
-    i_log.Log('DE-ACTIVATE-GRID')
+    Log('DE-ACTIVATE-GRID')
     DeactivateGridBindings()
 
     # Have two grid mappings found
