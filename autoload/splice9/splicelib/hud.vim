@@ -844,7 +844,21 @@ export def CreateCurrentMappings(): list<string>
     var defaults: list<string>
     var mappings: list<string>
     var act_names: list<string>
+    def AddBlanks(blank_mapping = true)
+        defaults->add('')
+        act_names->add('')
+        act_keys->add('')
+        if blank_mapping
+            mappings->add('')
+        endif
+    enddef
+
     # ['Grid', ['<M-x>', '<M-g>'], 'g']
+    defaults->add('default')
+    act_names->add('command')
+    act_keys->add('id')
+    mappings->add('shortcut')
+    #AddBlanks()
     for mappings_item in MappingsList()->AddSeparators(() => [])
         if !! mappings_item
             var [ act_key, mings, dflt ] = mappings_item
@@ -856,17 +870,12 @@ export def CreateCurrentMappings(): list<string>
                     defaults->add(dflt)
                     act_names->add("'" .. command_display_names[act_key] .. "'")
                 else
-                    act_keys->add('')
-                    defaults->add('')
-                    act_names->add('')
+                    AddBlanks(false)
                 endif
                 first_ming = false
             endfor
         else
-            act_keys->add('')
-            defaults->add('')
-            mappings->add('')
-            act_names->add('')
+            AddBlanks()
         endif
     endfor
     defaults->Pad('r')
@@ -883,6 +892,6 @@ enddef
 
 def DisplayCommandsPopup()
     var text = CreateCurrentMappings()
-    ui.PopupMessage(text, 'Shortcuts (Splice9 ' .. g:splice9_string_version .. ')')
+    ui.PopupMessage(text, 'Shortcuts (Splice9 ' .. g:splice9_string_version .. ')', 1)
 enddef
 

@@ -40,9 +40,11 @@ export var hl_active = 'Keyword'
 export var hl_alert_popup = 'Pmenu'
 export var hl_popup = 'ColorColumn'
 export var hl_diff = 'DiffChange'
+export var hl_underline = 'SpliceUnderline'
 
 highlight SpliceCommand term=bold cterm=bold gui=bold
 highlight SpliceLabel term=underline ctermfg=6 guifg=DarkCyan
+highlight SpliceUnderline term=underline cterm=underline gui=underline
 
 
 #export final UNIQ = []

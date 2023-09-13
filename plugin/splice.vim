@@ -32,7 +32,7 @@ endif
 
 vim9script
 
-g:splice9_string_version = "0.9-RC1"
+g:splice9_string_version = "0.9-RC2"
 
 # TODO: SHOULD THERE BE A SPLICE COMMAND IF VERSION PREVENTS RUNNING?
 

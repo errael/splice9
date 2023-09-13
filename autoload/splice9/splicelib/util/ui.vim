@@ -14,7 +14,8 @@ def FilterCloseAnyKey(winid: number, key: string): bool
     return true
 enddef
 
-export def PopupMessage(msg: list<string>, title: string)
+prop_type_add('popupuline', {highlight: splice.hl_underline})
+export def PopupMessage(msg: list<string>, title: string, header_line = -1)
 
     var options = {
         minwidth: 20,
@@ -31,12 +32,17 @@ export def PopupMessage(msg: list<string>, title: string)
         mapping: false,
         #filter: FilterCloseAnyKey
     }
+
     if len(title) > 0
         options.title = ' ' .. title .. ' '
     endif
     var outmsg = msg + [ '', '(Click on Popup to Dismiss. Drag Border.)' ]
 
-    popup_create(outmsg, options)
+    var bnr = popup_create(outmsg, options)->winbufnr()
+    if header_line >= 0
+        prop_add(header_line, 1,
+            {length: len(msg[0]), bufnr: bnr, type: 'popupuline'})
+    endif
 enddef
 
 export def PopupError(msg: list<string>, other: list<any> = [])
