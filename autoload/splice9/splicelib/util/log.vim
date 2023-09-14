@@ -25,15 +25,14 @@ const Scripts = vim_assist.Scripts
 # NOTE: the log file is never trunctated, persists, grows without limit
 #
 
-# TODO: Put this somewhere else: maybe copy it to g:logging_exclude.
-#       Maybe AddExclude/RemoveExclude methods in here
-
-g:splice_logging_exclude = [ 'focus', 'result', 'setting' ]
-#
-#g:splice_logging_exclude = []
-
 var fname: string
 var logging_enabled: bool = false
+var logging_exclude: list<string>
+
+# Maybe AddExclude/RemoveExclude methods in here.
+export def SetExcludeCategories(excludes: list<string>)
+    logging_exclude = excludes
+enddef
 
 # TODO: popup?
 def Logging_problem(s: string)
@@ -63,7 +62,7 @@ export def Log(msgOrFunc: any, category: string = '',
     if ! logging_enabled
         return
     endif
-    if !!category && g:splice_logging_exclude->index(category, 0, true) >= 0
+    if !!category && logging_exclude->index(category, 0, true) >= 0
         return
     endif
 

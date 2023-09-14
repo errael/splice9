@@ -1,8 +1,6 @@
-TODO:   Why's there an almost identical branch? Prune it?
-        NO DIFF: $ hg diff --from 232 --to 243
-        NO DIFF: $ hg diff --hidden --from 236 --to 244
-        $ hg diff --from 236 --to 245
-            245 has newer MapFilter, bump in splice.vim patch
+
+TODO:   doc logging
+        the log file is never trunctated, persists, grows without limit
 
 TODO:   option to disable mouse/rollover
 
@@ -11,26 +9,21 @@ TODO:   If not vim9script, map SpliceInit (or whatever) to no vim9 message.
 
 TODO:   remove startup column bounce workaround
 
-TODO:   Implement log category filtering on the vim side
-
 TODO:   Get rid of prop_delete since all lines in HUD are deleted.
 
-TODO:   Settings for highlight.
- 
-TODO:   ActivateGrid/DeactivateGrid probably should be incorporated into
-        mode.vim, not keys, since it also affects which keys do what...
+TODO:   Baloon popup when hover over a command?
+
+TODO:   Make DiffOff a toggle. If off, can toggle on and keep diff#.
+
+        <prefix>D                                    *DiffOff*
+                                Turn off all diffs. If diffs are off, turn
+                                diffs on at the same place in the cycle where
+                                diffs were turned off.
+
 
 TODO:   Shortcut as button with list and popup when hover?
-        More state info: Diff on/off; scrollbind on/off (use '*' like mode)
         Which commands valid: grey out , don't higlight rollover
-        Show diff #0-n
-        Make DiffOff a toggle. Can toggle, keep diff#.
 
-        Grid class has 4 "key_use_*" methods; show which does what when.
-
-        UseHunk is a special case. There are three vals.
-            Show either 'u1 & u2', or 'u'.
-            Some dependency on focused window?
         Which file can be selected: orig, one, two, res
             May, or may not, depend on focused window.
             In some cases, rather than loading that file into window,
@@ -108,31 +101,31 @@ KeyBinding
     the future to avoid changing user mappings by default.
 
     Per command mappings take precedence. Any commands not mapped with
-    "g:splice_bind_*" will get the default mapping. If a command mapping
-    is an empty string, '', or set to 'None', it will not be mapped.
+    "g:splice_config.bind_*" will get the default mapping. If a command
+    mapping is an empty string, '', or set to 'None', it will not be mapped.
 
     Copy/paste to assist setup; these are the defaults (<prefix> == '-')
-        g:splice_bind_Grid             = '-g'
-        g:splice_bind_Loupe            = '-l'
-        g:splice_bind_Compare          = '-c'
-        g:splice_bind_Path             = '-p'
+        g:splice_config.bind_Grid             = '-g'
+        g:splice_config.bind_Loupe            = '-l'
+        g:splice_config.bind_Compare          = '-c'
+        g:splice_config.bind_Path             = '-p'
 
-        g:splice_bind_Original         = '-o'
-        g:splice_bind_One              = '-1'
-        g:splice_bind_Two              = '-2'
-        g:splice_bind_Result           = '-r'
+        g:splice_config.bind_Original         = '-o'
+        g:splice_config.bind_One              = '-1'
+        g:splice_config.bind_Two              = '-2'
+        g:splice_config.bind_Result           = '-r'
 
-        g:splice_bind_Diff             = '-d'
-        g:splice_bind_DiffOff          = '-D'
-        g:splice_bind_UseHunk          = '-u'
-        g:splice_bind_Scroll           = '-s'
-        g:splice_bind_Layout           = '-<space>'
-        g:splice_bind_Next             = '-n'
-        g:splice_bind_Previous         = '-N'
+        g:splice_config.bind_Diff             = '-d'
+        g:splice_config.bind_DiffOff          = '-D'
+        g:splice_config.bind_UseHunk          = '-u'
+        g:splice_config.bind_Scroll           = '-s'
+        g:splice_config.bind_Layout           = '-<space>'
+        g:splice_config.bind_Next             = '-n'
+        g:splice_config.bind_Previous         = '-N'
 
-        g:splice_bind_Quit             = '-q'
-        g:splice_bind_Cancel           = '-CC'
+        g:splice_config.bind_Quit             = '-q'
+        g:splice_config.bind_Cancel           = '-CC'
 
-        g:splice_bind_UseHunk1         = '-u1'
-        g:splice_bind_UseHunk2         = '-u2'
+        g:splice_config.bind_UseHunk1         = '-u1'
+        g:splice_config.bind_UseHunk2         = '-u2'
 

@@ -14,7 +14,7 @@ def FilterCloseAnyKey(winid: number, key: string): bool
     return true
 enddef
 
-prop_type_add('popupuline', {highlight: splice.hl_underline})
+prop_type_add('popupheading', {highlight: splice.hl_heading})
 export def PopupMessage(msg: list<string>, title: string, header_line = -1)
 
     var options = {
@@ -41,7 +41,7 @@ export def PopupMessage(msg: list<string>, title: string, header_line = -1)
     var bnr = popup_create(outmsg, options)->winbufnr()
     if header_line >= 0
         prop_add(header_line, 1,
-            {length: len(msg[0]), bufnr: bnr, type: 'popupuline'})
+            {length: len(msg[0]), bufnr: bnr, type: 'popupheading'})
     endif
 enddef
 

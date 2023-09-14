@@ -80,7 +80,7 @@ var DumpModeStringInfo: func
 #       may be lost by the cost to build it.
 
 # This does not invert the condition of expr
-export def MapModeFilterExpr(_modes: string, expr: string): func
+export def MapModeFilterExpr(_modes: string, expr: string): func(any, dict<any>): bool
     var modes =  _modes ?? ' '
     var target_modes = 0
     for t in modes
@@ -90,7 +90,7 @@ export def MapModeFilterExpr(_modes: string, expr: string): func
 
     #DumpModeStringInfo('map_modes', m.mode)
     var x =<< trim eval [CODE]
-        g:SomeRandomFunction = (_, m: dict<any>): any => {{
+        g:SomeRandomFunction = (_, m: dict<any>): bool => {{
             if ({expr})
                 return and(m.mode_bits, {target_modes}) != 0
             endif
@@ -105,12 +105,12 @@ export def MapModeFilterExpr(_modes: string, expr: string): func
 enddef
 
 export def MapModeFilter(modes: string, pattern: string,
-               exact: bool = true, field: string = 'lhs'): func
+        exact: bool = true, field: string = 'lhs'): func(any, dict<any>): bool
     var expr = $"m['{field}'] {exact ? '==' : '=~'} '{pattern}'"
     return MapModeFilterExpr(modes, expr)
 enddef
 
-export def MapModeFilterFunc(_modes: string, PreFilter: func): func
+export def MapModeFilterFunc(_modes: string, PreFilter: func(dict<any>): bool): func(any, dict<any>): bool
     var modes =  _modes ?? ' '
     var target_modes = 0
     for t in modes
@@ -118,7 +118,7 @@ export def MapModeFilterFunc(_modes: string, PreFilter: func): func
     endfor
     #DumpModeStringInfo('target_modes', modes)
 
-    return (_, m) => {
+    return (_, m: dict<any>): bool => {
         if PreFilter(m)
             #DumpModeStringInfo('map_modes', m.mode)
             return and(m.mode_bits, target_modes) != 0
@@ -137,7 +137,7 @@ endif
 
 # Following is for testing
 
-const use_raelity_autoload = false
+const use_raelity_autoload = true
 
 # use the "C" defines. Might help to see what's going on
 const NORMAL       = 0x01

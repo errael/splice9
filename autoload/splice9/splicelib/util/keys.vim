@@ -7,6 +7,7 @@ import autoload './log.vim' as i_log
 import autoload './vim_assist.vim'
 import autoload './MapModeFilters.vim'
 import autoload '../modes.vim' as i_modes
+import autoload '../settings.vim' as i_settings
 
 const Pad = vim_assist.Pad
 const MapModeFilterExpr = MapModeFilters.MapModeFilterExpr
@@ -16,6 +17,12 @@ const Log = i_log.Log
 # TODO: Having the following gives weird startup messages
 #const ModesDispatch = i_modes.ModesDispatch
 
+# return list of shortcut/keybinding names
+export def GetBindingKeys(): list<string>
+    var l = actions_info->keys()
+    l->add('use_alt')
+    return l
+enddef
 
 # each action has
 #   a_dflt:     default binding character(s)
@@ -84,15 +91,11 @@ export def AddSeparators(l: list<any>, FSep: func): list<any>
     return l
 enddef
 
-# Once Splic9 has started, freeze the <leader> and splice_prefix
-const splice_prefix = g:->get('splice_prefix', '-')
-    ->substitute('\c' .. '<leader>', g:->get('mapleader', '\\'), "g")
-
 # would like to return null, but string can't be null
 # TODO: string can be null now, be careful if you want to change it
 def GetMapping(key: string): string
     # if a command is explicitly mapped, then return it's mapping
-    var mapping = g:->get('splice_bind_' .. key, null)
+    var mapping = i_settings.config_dict->get('bind_' .. key, null)
     if mapping == 'None' || mapping == ''
         return ''
     elseif mapping != null
@@ -101,8 +104,8 @@ def GetMapping(key: string): string
 
     # Use the default taking prefix into account, unless use alt
     var dflt = actions_info[key]['a_dflt']
-    if !g:->get('splice_bind_use_alt', false)
-        return splice_prefix .. dflt
+    if !i_settings.config_dict->get('bind_use_alt', false)
+        return i_settings.config_dict.prefix .. dflt
     endif
 
     # Use the Alt Key with the defaults.
@@ -137,7 +140,11 @@ def UnBind(key: string)
         return
     endif
     Log(() => "Bind-UnMap: '" .. mapping .. "'")
-    execute 'unmap' mapping
+    try
+        execute 'unmap' mapping
+    catch /E31: No such mapping/
+        Log("UnBind: E31", v:none, true)
+    endtry
 enddef
 
 
@@ -192,6 +199,7 @@ enddef
 
 # Add hunk mapping to list if not alreay there.
 # Needed since hunk mappings are dynamically changed around
+# TODO: GET RID OF THIS, not needed anymore, all mappings active
 def AddHunkIfNeeded(d: dict<list<string>>, hunk: string): void
     var l = d[hunk]
     var mapping = GetMapping(hunk)->Keys2Str(false)
@@ -201,24 +209,35 @@ def AddHunkIfNeeded(d: dict<list<string>>, hunk: string): void
     endif
 enddef
 
-# Initialize all bindings except for UseHunk1/UseHunk2
-
 export def InitializeBindings()
     Log('InitializeBindings()')
-    # The default state is UseHunk; UseHunk?(1|2) are dynamically handled,
-    var initBindings = actions_info->keys()
-        ->filter((i, v) => v != 'UseHunk1' && v != 'UseHunk2')
 
     # setup the mappings
-    for k in initBindings
+    for k in actions_info->keys()
         Bind(k)
     endfor
 
-    Bind('UseHunk1')
-    Bind('UseHunk2')
-    Bind('UseHunk')
+    #Bind('UseHunk1')
+    #Bind('UseHunk2')
+    #Bind('UseHunk')
 
     # some commands defined in here
+enddef
+
+export def ActivateGridBindings()
+    i_log.Log('ActivateGridBindings')
+    UnBind('UseHunk')
+    Bind('UseHunk1')
+    Bind('UseHunk2')
+    return
+enddef
+
+export def DeactivateGridBindings()
+    i_log.Log('DectivateGridBindings')
+    UnBind('UseHunk1')
+    UnBind('UseHunk2')
+    Bind('UseHunk')
+    return
 enddef
 
 finish

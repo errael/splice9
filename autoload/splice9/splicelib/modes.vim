@@ -505,10 +505,12 @@ class GridMode extends Mode
 
 
     def Activate()
+        i_keys.ActivateGridBindings()
         super.Activate()
     enddef
 
     def Deactivate()
+        i_keys.DeactivateGridBindings()
         super.Deactivate()
     enddef
 
@@ -1047,6 +1049,9 @@ var current_mode: Mode
 
 export def ActivateInitialMode(initial_mode: string)
     Log(() => $"INIT: inital mode: '{initial_mode}'")
+    if initial_mode != 'grid'
+        i_keys.DeactivateGridBindings()
+    endif
     current_mode = modes[initial_mode]
     current_mode.Activate()
 enddef

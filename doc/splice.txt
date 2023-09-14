@@ -33,25 +33,27 @@ CONTENTS                                                     *Splice-contents*
         4.3 Compare .............................. |SpliceModes_compare|
         4.4 Path ................................. |SpliceModes_path|
     5. Configuration ............................. |SpliceConfig|
-        5.1 splice_debug ......................... |SpliceConfig_debug|
-        5.2 splice_disable ....................... |SpliceConfig_disable|
-        5.3 splice_initial_diff_grid ............. |SpliceConfig_id_grid|
-        5.4 splice_initial_diff_loupe ............ |SpliceConfig_id_loupe|
-        5.5 splice_initial_diff_compare .......... |SpliceConfig_id_compare|
-        5.6 splice_initial_diff_path ............. |SpliceConfig_id_path|
-        5.7 splice_initial_layout_grid ........... |SpliceConfig_il_grid|
-        5.8 splice_initial_layout_loupe .......... |SpliceConfig_il_loupe|
-        5.9 splice_initial_layout_compare ........ |SpliceConfig_il_compare|
-        5.10 splice_initial_layout_path .......... |SpliceConfig_il_path|
-        5.11 splice_initial_scrollbind_grid ...... |SpliceConfig_is_grid|
-        5.12 splice_initial_scrollbind_loupe ..... |SpliceConfig_is_loupe|
-        5.13 splice_initial_scrollbind_compare ... |SpliceConfig_is_compare|
-        5.14 splice_initial_scrollbind_path ...... |SpliceConfig_is_path|
-        5.15 splice_initial_mode ................. |SpliceConfig_im|
-        5.16 splice_prefix ....................... |SpliceConfig_prefix|
-        5.17 splice_wrap ......................... |SpliceConfig_wrap|
-        5.18 splice_bind_use_alt ................. |SpliceConfig_alt|
-        5.19 splice_bind_<command>................ |SpliceConfig_commmand|
+        5.1 debug ................................ |SpliceConfig_debug|
+        5.2 disable .............................. |SpliceConfig_disable|
+        5.3 initial_diff_grid .................... |SpliceConfig_id_grid|
+        5.4 initial_diff_loupe ................... |SpliceConfig_id_loupe|
+        5.5 initial_diff_compare ................. |SpliceConfig_id_compare|
+        5.6 initial_diff_path .................... |SpliceConfig_id_path|
+        5.7 initial_layout_grid .................. |SpliceConfig_il_grid|
+        5.8 initial_layout_loupe ................. |SpliceConfig_il_loupe|
+        5.9 initial_layout_compare ............... |SpliceConfig_il_compare|
+        5.10 initial_layout_path ................. |SpliceConfig_il_path|
+        5.11 initial_scrollbind_grid ............. |SpliceConfig_is_grid|
+        5.12 initial_scrollbind_loupe ............ |SpliceConfig_is_loupe|
+        5.13 initial_scrollbind_compare .......... |SpliceConfig_is_compare|
+        5.14 initial_scrollbind_path ............. |SpliceConfig_is_path|
+        5.15 initial_mode ........................ |SpliceConfig_im|
+        5.16 wrap ................................ |SpliceConfig_wrap|
+        5.17 prefix .............................. |SpliceConfig_prefix|
+        5.18 leader .............................. |SpliceConfig_leader|
+        5.19 bind_use_alt ........................ |SpliceConfig_alt|
+        5.20 bind_<command> ...................... |SpliceConfig_command|
+        5.21 hl_<highlight> ...................... |SpliceConfig_highlights|
     6. License ................................... |SpliceLicense|
     7. Bugs ...................................... |SpliceBugs|
     8. Contributing .............................. |SpliceContributing|
@@ -213,7 +215,7 @@ is '-' (minus/hyphen).
 See the |SpliceConfig_prefix| setting if you'd like to change this prefix to
 something else.
 
-To use the Alt, aka Meta, key instead of a prefix see SpliceConfig_alt.
+To use the Alt, aka Meta, key instead of a prefix see |SpliceConfig_alt|.
 
 Each command's key mapping can be individually specified. These mappings do
 not use the prefix or the Alt key, see |SpliceConfig_command|.
@@ -445,34 +447,41 @@ Path Diffs                                         *SpliceModes_path_diffs*
 ==============================================================================
 5. Configuration                                                *SpliceConfig*
 
-You can tweak the behavior of Splice by setting a few variables in your
-|vimrc| file. For example: >
+You can tweak the behavior of Splice9 by setting variables in your |vimrc|
+file; the old Splice global variable names work with Splice9. However that
+method is deprecated and using the g:splice_config dictionary is preferred.
+For example, in vim9script >
+	g:splice_config = {
+        initial_mode: "compare",
+        initial_layout_grid: 2,
+        initial_layout_compare: 1,
+    }
 
+Or in a legacy script >
+	let g:splice_config = {}
+    let g:splice_config.initial_mode = "compare"
+    let g:splice_config.initial_layout_grid = 2
+    let g:splice_config.initial_layout_compare = 1
+
+The deprecated global variable name is derived from the g:splice_config name
+by prefixing the name with "splice_". For example >
     let g:splice_initial_mode = "compare"
-    let g:splice_initial_layout_grid = 2
-    let g:splice_initial_layout_compare = 1
+
+*Note: When g:splice_config exists the deprecated global variables are
+       NOT used.
 
 ------------------------------------------------------------------------------
-5.1 g:splice_debug                                        *SpliceConfig_debug*
+5.1 g:splice_config.debug                                 *SpliceConfig_debug*
 
-Set this to 1 to force Splice to reload every time its file is sourced.
-
-Options: 0 or 1
-Default: 0 (Splice is loaded only once)
+Ignored
 
 ------------------------------------------------------------------------------
-5.2 g:splice_disable                                    *SpliceConfig_disable*
+5.2 g:splice_config.disable                             *SpliceConfig_disable*
 
-Set this to 1 to disable Splice entirely.
-
-Useful if you use the same ~/.vim folder on multiple machines and some of
-them may not have Python support.
-
-Options: 0 or 1
-Default: 0 (Splice is enabled as usual)
+Ignored
 
 ------------------------------------------------------------------------------
-5.3 g:splice_initial_diff_grid                          *SpliceConfig_id_grid*
+5.3 g:splice_config.initial_diff_grid                   *SpliceConfig_id_grid*
 
 Set this to change the diff the grid mode starts in.
 
@@ -482,7 +491,7 @@ Options: 0, or 1
 Default: 0
 
 ------------------------------------------------------------------------------
-5.4 g:splice_initial_diff_loupe                        *SpliceConfig_id_loupe*
+5.4 g:splice_config.initial_diff_loupe                 *SpliceConfig_id_loupe*
 
 Set this to change the diff the loupe mode starts in.
 
@@ -492,7 +501,7 @@ Options: 0
 Default: 0
 
 ------------------------------------------------------------------------------
-5.5 g:splice_initial_diff_compare                    *SpliceConfig_id_compare*
+5.5 g:splice_config.initial_diff_compare             *SpliceConfig_id_compare*
 
 Set this to change the diff the compare mode starts in.
 
@@ -502,7 +511,7 @@ Options: 0 or 1
 Default: 0
 
 ------------------------------------------------------------------------------
-5.6 g:splice_initial_diff_path                          *SpliceConfig_id_path*
+5.6 g:splice_config.initial_diff_path                   *SpliceConfig_id_path*
 
 Set this to change the diff the path mode starts in.
 
@@ -512,7 +521,7 @@ options: 0, 1, 2, 3, or 4
 Default: 0
 
 ------------------------------------------------------------------------------
-5.7 g:splice_initial_layout_grid                        *SpliceConfig_il_grid*
+5.7 g:splice_config.initial_layout_grid                 *SpliceConfig_il_grid*
 
 Set this to change the layout the grid mode starts in.
 
@@ -522,7 +531,7 @@ Options: 0, 1, or 2
 Default: 0
 
 ------------------------------------------------------------------------------
-5.8 g:splice_initial_layout_loupe                      *SpliceConfig_il_loupe*
+5.8 g:splice_config.initial_layout_loupe               *SpliceConfig_il_loupe*
 
 Set this to change the layout the loupe mode starts in.
 
@@ -532,7 +541,7 @@ Options: 0
 Default: 0
 
 ------------------------------------------------------------------------------
-5.9 g:splice_initial_layout_compare                  *SpliceConfig_il_compare*
+5.9 g:splice_config.initial_layout_compare           *SpliceConfig_il_compare*
 
 Set this to change the layout the compare mode starts in.
 
@@ -542,7 +551,7 @@ Options: 0 or 1
 Default: 0
 
 ------------------------------------------------------------------------------
-5.10 g:splice_initial_layout_path                       *SpliceConfig_il_path*
+5.10 g:splice_config.initial_layout_path                *SpliceConfig_il_path*
 
 Set this to change the layout the path mode starts in.
 
@@ -552,7 +561,7 @@ Options: 0 or 1
 Default: 0
 
 ------------------------------------------------------------------------------
-5.11 g:splice_initial_scrollbind_grid                   *SpliceConfig_is_grid*
+5.11 g:splice_config.initial_scrollbind_grid            *SpliceConfig_is_grid*
 
 Set this to 1 to enable |scrollbind| by default in grid mode.
 
@@ -560,7 +569,7 @@ Options: 0 or 1
 Default: 0
 
 ------------------------------------------------------------------------------
-5.12 g:splice_initial_scrollbind_loupe                 *SpliceConfig_is_loupe*
+5.12 g:splice_config.initial_scrollbind_loupe          *SpliceConfig_is_loupe*
 
 Set this to 1 to enable |scrollbind| by default in loupe mode.
 
@@ -568,7 +577,7 @@ Options: 0 or 1
 Default: 0
 
 ------------------------------------------------------------------------------
-5.13 g:splice_initial_scrollbind_compare             *SpliceConfig_is_compare*
+5.13 g:splice_config.initial_scrollbind_compare      *SpliceConfig_is_compare*
 
 Set this to 1 to enable |scrollbind| by default in compare mode.
 
@@ -576,7 +585,7 @@ Options: 0 or 1
 Default: 0
 
 ------------------------------------------------------------------------------
-5.14 g:splice_initial_scrollbind_path                   *SpliceConfig_is_path*
+5.14 g:splice_config.initial_scrollbind_path            *SpliceConfig_is_path*
 
 Set this to 1 to enable |scrollbind| by default in path mode.
 
@@ -584,7 +593,7 @@ Options: 0 or 1
 Default: 0
 
 ------------------------------------------------------------------------------
-5.15 g:splice_initial_mode                                   *SpliceConfig_im*
+5.15 g:splice_config.initial_mode                            *SpliceConfig_im*
 
 Set this to change the mode Splice initially starts up in.
 
@@ -594,21 +603,7 @@ Options: "grid", "loupe", "compare", or "path"
 Default: "grid"
 
 ------------------------------------------------------------------------------
-5.16 g:splice_prefix                                     *SpliceConfig_prefix*
-
-Set this to change the prefix Splice will bind all of its mappings to.
-
-For example: >
-
-    let g:splice_prefix = "<leader>t"
-
-Will make all Splice commands start with <leader>t instead of the default '-'.
-
-Options: Any valid key mapping string
-Default: "-"
-
-------------------------------------------------------------------------------
-5.17 g:splice_wrap                                         *SpliceConfig_wrap*
+5.16 g:splice_config.wrap                                  *SpliceConfig_wrap*
 
 Set this to "wrap" or "nowrap" to set |wrap| or |nowrap| on all windows by
 default.
@@ -619,13 +614,51 @@ Options: "wrap", "nowrap"
 Default: None (use the default settings)
 
 ------------------------------------------------------------------------------
-5.18 g:splice_bind_use_alt                                  *SpliceConfig_alt*
+5.17 g:splice_config.prefix                              *SpliceConfig_prefix*
+
+Set this to change the prefix Splice will bind all of its mappings to; if not
+set the value of |SpliceConfig_leader| is considered.
+
+For example: >
+
+    let g:splice_config.prefix = "<leader>t"
+
+Will make all Splice commands start with <leader>t instead of the default '-'.
+
+Options: Any valid key mapping string
+Default: "-", if "leader" is not set
+
+------------------------------------------------------------------------------
+5.18 g:splice_config.leader                              *SpliceConfig_leader*
+
+This is a way to specify |SpliceConfig_prefix| when it is not set. It is a way
+to to avoid changing Vim's |mapleader|. See the |SpliceChangelog|.
+
+For example: >
+
+    let g:splice_config.leader = ',,'
+
+If "prefix" is not set, will make Splice commands, start with ',,' instead of
+the default '-'.
+
+This is the algorithm used to initialize |SpliceConfig_prefix| >
+        if not exist prefix
+            if exist leader
+                prefix = leader
+            else
+                prefix = '-'
+
+Options: Any valid key mapping string
+Default: None
+
+------------------------------------------------------------------------------
+5.19 g:splice_config.bind_use_alt                           *SpliceConfig_alt*
 
 Set this to 1 or true to use the Alt key instead of a prefix.
 
 For example: >
 
-    let g:splice_bin_use_alt = 1
+    let g:splice_config.bin_use_alt = 1
 
 Means hold down the Alt key and press the command character(s).
 
@@ -633,9 +666,9 @@ Options: 1 or true
 Default: false
 
 ------------------------------------------------------------------------------
-5.19 g:splice_bind_<command>                            *SpliceConfig_command*
+5.20 g:splice_config.bind_<command>                     *SpliceConfig_command*
 
-Any command can have it's mapping set independent of prefix or alt.
+Any command can have it's mapping explicitly set.
 
 The possible commands are
     Grid Loupe Compare Path
@@ -645,13 +678,38 @@ The possible commands are
     Quit Cancel
 
 For example: >
-
-    let g:splice_bind_Grid = "<F7>"
+    let g:splice_config.bind_Grid = '<F7>'
 
 Press function key F7 for grid mode.
 
 Options: Any valid key mapping string
 Default: ""
+
+------------------------------------------------------------------------------
+5.21 g:splice_config.hl_<highlight>                  *SpliceConfig_highlights*
+
+Splice9 uses several highlights. They can be configured.
+The highlights, their defaults and description are >
+
+        hl_label         'SpliceLabel'      3 region labels in HUD
+        hl_sep           'SpliceLabel'      region separators in HUD
+        hl_command       'SpliceCommand'    clickable commands in HUD
+        hl_rollover      'Pmenu'            command highlight when mouse over
+        hl_active        'Keyword'          active mode in Splice Modes region
+        hl_alert_popup   'Pmenu'            popup when problem encountered
+        hl_popup         'ColorColumn'      info popup, like shortcuts
+        hl_diff          'DiffChange'       diff highlight when diffs on
+        hl_heading       'SpliceUnderline'  heading, see use in shortcut popup
+
+For example: >
+    let g:splice_config.hl_label = 'WildMenu'
+<Displays the HUD region labels with yellow marker or whatever WildMenu is
+defined as.
+
+Options: Any valid highlight
+
+*Note: Bring up the shortcut popup by clicking on "Splice Commands:" at the
+       top of the screen.
 
 ==============================================================================
 6. License                                                     *SpliceLicense*
@@ -683,7 +741,7 @@ Email a patch to steve@stevelosh.com or send a pull request.
 v1.1.0
     * Initial Python 3 support.
 v1.0.1
-    * Fix the splice_prefix setting to actually take effect as documented.
+    * Fix the splice_config.prefix setting to actually take effect as documented.
     * Fix the grid view showing the wrong buffers sometimes.
     * Set the filetype in each buffer.
     * Fix showing files 2 and result in compare mode.
