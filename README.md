@@ -125,7 +125,20 @@ The command `D: diffs off` has embedded status information. When `Splice9` is di
 The command `s: toggle scrollbind` also has a `*` indicator; it means that `scrollbind` is on. Note that `scrollbind` automatically goes on when diffing, the files that participate in the diff are in `scrollbind`. When not diffing, click on `scrollbind` so displayed files scroll together.
 
 
-**Following is TODO**
-
 ## configuration
 
+You can tweak the behavior of Splice9 by setting variables in your `vimrc` file; the old Splice global variable names work with Splice9. However that method is deprecated and using the g:splice_config dictionary is preferred. `:help SpliceConfig`
+
+Splice9 has new configurion options to handle some of the new features. In particular
+
+- For shortcuts, the `Alt`/`Meta` key can be used instead of a prefix.
+
+   `:help SpliceConfig_alt`
+
+- Each command can be explicityly mapped.
+
+   `:help SpliceConfig_command`
+
+- The various hightlights are configurable.
+
+    `:help SpliceConfig_highlights`

@@ -29,25 +29,21 @@ export def GetDiffLabels(): list<string>
     return i_modes.GetDiffLabels()
 enddef
 
-#
-# TODO: higlights from settings
-#
-export var hl_label = 'SpliceLabel'
-export var hl_sep = 'SpliceLabel'
-export var hl_command = 'SpliceCommand'
-export var hl_rollover = 'Pmenu'
-export var hl_active = 'Keyword'
-export var hl_alert_popup = 'Pmenu'
-export var hl_popup = 'ColorColumn'
-export var hl_diff = 'DiffChange'
-export var hl_underline = 'SpliceUnderline'
+def InitHighlights()
+    export const hl_label       = settings.Setting('hl_label')
+    export const hl_sep         = settings.Setting('hl_sep')
+    export const hl_command     = settings.Setting('hl_command')
+    export const hl_rollover    = settings.Setting('hl_rollover')
+    export const hl_active      = settings.Setting('hl_active')
+    export const hl_alert_popup = settings.Setting('hl_alert_popup')
+    export const hl_popup       = settings.Setting('hl_popup')
+    export const hl_diff        = settings.Setting('hl_diff')
+    export const hl_heading     = settings.Setting('hl_heading')
+enddef
 
 highlight SpliceCommand term=bold cterm=bold gui=bold
 highlight SpliceLabel term=underline ctermfg=6 guifg=DarkCyan
 highlight SpliceUnderline term=underline cterm=underline gui=underline
-
-
-#export final UNIQ = []
 
 # Some startup peculiarities
 #       - The function "SpliceBoot" is caled only to load this file
@@ -64,11 +60,12 @@ highlight SpliceUnderline term=underline cterm=underline gui=underline
 
 var startup_error_msgs: list<string>
 
-# user can enable/disable, specify log file
-# default is no logging, ~/SPLICELOG
-# NOTE: the log file is never trunctated, persists, grows without limit
-var fname = g:->get('splice_log_file', $HOME .. '/SPLICE_LOG')
-if g:->get('splice_log_enable', v:false)
+# Logging initialization. Get, check and use the config info directly.
+# TODO: loggin configuration validation.
+
+var fname = settings.GetFromOrig('log_file')
+log.SetExcludeCategories(settings.GetFromOrig('logging_exclude_categories'))
+if settings.GetFromOrig('log_enable')
     log.LogInit(fname)
 endif
 
@@ -181,6 +178,7 @@ def ReportStartupIssues()
         # TODO: timer_start, 200ms?
         #       avoids vim width issue (I think that was it)
         UserConfigError(startup_error_msgs)
+        startup_error_msgs = null_list
     endif
 enddef
 
@@ -189,12 +187,14 @@ def SpliceInit9()
     set guioptions+=l
     # startup_error_msgs should already be empty
     startup_error_msgs = settings.InitSettings()
+    InitHighlights()
     i_keys.InitializeBindings()
     ReportStartupIssues()
     log.Log('starting splice')
 
     i_init.Init()
 enddef
+
 
 Main = SpliceInit9
 
