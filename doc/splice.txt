@@ -262,7 +262,10 @@ effects should be fairly intuitive.
                         Cycle through various diff combinations.
 
 <prefix>D                                    *DiffOff*
-                        Turn off all diffs.
+                        Turn off all diffs. If diffs are off, turn
+                        diffs on at the same place in the cycle where
+                        diffs were turned off. Especially useful in
+                        `path mode` |SpliceModes_path_diffs|.
 
 <prefix>u                                    *UseHunk*
                         Place a hunk from file one or two into
@@ -323,7 +326,7 @@ Grid-Specific Key Bindings                          *SpliceModes_grid_keys*
 --------------------------
 
 <prefix>o                                   *Original-Grid*
-                        Select the original file, but only in layout 1.
+                        Select the original file, but only in layout 0.
 
 <prefix>u                                    *UseHunk-Grid*
                         Disabled in this mode.
