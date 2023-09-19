@@ -40,6 +40,7 @@ class Mode
     this._diffs: list<func(): void>
 
     this._current_diff_mode: number
+    this._diff_off_mode: number
     this._current_layout: number
     this._current_scrollbind: bool
 
@@ -90,7 +91,13 @@ class Mode
 
 
     def Key_diffoff()
-        this.Diff(0)
+        # Toggle between off and previous mode.
+        var next_mode: number = this._diff_off_mode
+        Log(() => printf("Key_diffoff: current_diff_mode %d,  diff_off_mode %d",
+            this._current_diff_mode, this._diff_off_mode))
+        this._diff_off_mode = this._current_diff_mode
+        
+        this.Diff(next_mode)
     enddef
 
 

@@ -13,14 +13,6 @@ TODO:   Get rid of prop_delete since all lines in HUD are deleted.
 
 TODO:   Baloon popup when hover over a command?
 
-TODO:   Make DiffOff a toggle. If off, can toggle on and keep diff#.
-
-        <prefix>D                                    *DiffOff*
-                                Turn off all diffs. If diffs are off, turn
-                                diffs on at the same place in the cycle where
-                                diffs were turned off.
-
-
 TODO:   Shortcut as button with list and popup when hover?
         Which commands valid: grey out , don't higlight rollover
 

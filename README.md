@@ -108,19 +108,25 @@ Here is the left part of the `HUD` which illustrates the additional status.
 
 Much of the `Splice9 HUD` is active. The active items are in `bold`. When the cursor moves over an active command it is highlighted. `n: next conflict` in the image shows this highlighting. When an active command is highlighted, press the mouse button to execute the command. Note that there are keyboard shortcuts for all the commands.
 
-#### Splice Modes:
+### Splice Modes:
 
 This region shows the current mode; `*[p]ath` in this example is highlighted. The modes act as commands, click on a mode and that mode is entered. Each mode has it's own set of layouts available.
 
-#### Layout:
+### Layout:
 
 This region shows the arrangement of the open windows and which file/buffer is loaded into the window. When `Splice9` is diffing files, the files participating in the diff are highlighted; they are `Original` and `One` in this example.
 
-#### Splice Commands:
+### Splice Commands:
+
+#### Splice Commands
 
 The label of this region, `Splice Commands:`, is active. Click on it to display a popup which has each command with its associated keyboard shortcut.
 
+#### D: diffs off
+
 The command `D: diffs off` has embedded status information. When `Splice9` is diffing files there is a `*` displayed after the `D:`; this is shown in the image above. When the `*` is displayed, clicking on this command (or using the shortcut), turns off diffing.
+
+#### s: toggle scrollbind
 
 The command `s: toggle scrollbind` also has a `*` indicator; it means that `scrollbind` is on. Note that `scrollbind` automatically goes on when diffing, the files that participate in the diff are in `scrollbind`. When not diffing, click on `scrollbind` so displayed files scroll together.
 
