@@ -32,7 +32,8 @@ endif
 
 vim9script
 
-g:splice9_string_version = "0.9-RC2"
+# NOTE: The following is grabbed by shell to label the release zip
+g:splice9_string_version = "0.9-RC3"
 
 # TODO: SHOULD THERE BE A SPLICE COMMAND IF VERSION PREVENTS RUNNING?
 
