@@ -3,8 +3,26 @@
 CMD=${0##*/}
 DIR=${0%/*}
 
-curdir=$(pwd)
-cd $DIR/.. 
-jar -Mcvf $curdir/splice9.zip splice9/{plugin,doc,autoload}
+set -e
 
+#
+# Runs in the directory where "zipit" if found.
+# This is the top of the Splice9 source tree.
+#
+
+cd $DIR
+#rm -f doc/tags
+
+# grab the string in quotes
+version=$(grep ^g:splice9_string_version plugin/splice.vim \
+                    | sed -E 's/^.*"(.+)".*$/\1/')
+
+if [[ -z "$version" ]]
+then
+    echo "Version number not found. Cannot package splice9 release zip" 2>&1
+    exit 1
+fi
+
+cd .. 
+jar -Mcvf splice9/splice9-$version.zip splice9/{plugin,doc,autoload}
 
