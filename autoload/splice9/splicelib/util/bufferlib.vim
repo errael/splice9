@@ -5,16 +5,16 @@ import autoload './log.vim'
 import autoload './vim_assist.vim'
 
 const Log = log.Log
-const WithEE = vim_assist.WithEE
+type WithEE = vim_assist.WithEE
 
-const KeepBufferEE = vim_assist.KeepBufferEE
+type KeepBufferEE = vim_assist.KeepBufferEE
 
 # There are 5 buffers 4 hold merge files, 1 is the HUD.
 
 export class Buffer
-    this.bufnr: number
-    this.label: string
-    this.name: string
+    var bufnr: number
+    var label: string
+    var name: string
 
     # this.name is set from bufnr
     def new(this.bufnr, this.label)
@@ -58,14 +58,14 @@ class BufferList
     #       Note that if the assignment happens in new(), then it's OK
     #       error occurs on 4th line of init.vim::Process_result
     #TODO: private/public issues
-    this.original: Buffer = Buffer.new(1, 'Original')
-    this.one: Buffer = Buffer.new(2, 'One')
-    this.two: Buffer = Buffer.new(3, 'Two')
-    this.result: Buffer = Buffer.new(4, 'Result')
+    var original: Buffer = Buffer.new(1, 'Original')
+    var one: Buffer = Buffer.new(2, 'One')
+    var two: Buffer = Buffer.new(3, 'Two')
+    var result: Buffer = Buffer.new(4, 'Result')
 
     #this.hud = Buffer.new(5, 'HUD')
-    this.hud: Buffer
-    this.all: list<Buffer>
+    var hud: Buffer
+    var all: list<Buffer>
 
     def new()
         #this.hud = Buffer.new(5, 'HUD')

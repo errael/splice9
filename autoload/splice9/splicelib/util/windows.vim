@@ -3,9 +3,9 @@ vim9script
 import autoload './vim_assist.vim'
 import autoload './log.vim'
 const Log = log.Log
-const WithEE = vim_assist.WithEE
+type WithEE = vim_assist.WithEE
 
-var KeepWindowEE = vim_assist.KeepWindowEE
+type KeepWindowEE = vim_assist.KeepWindowEE
 
 # TODO: does it make more sense to use winid everywhere (rather than winnr)
 

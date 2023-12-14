@@ -21,6 +21,9 @@ import autoload './util/windows.vim'
 import autoload '../splice.vim'
 import autoload './modes.vim' as i_modes
 
+import "../../../plugin/splice.vim" as i_plugin
+const splice9_string_version = i_plugin.splice9_string_version 
+
 # highlights used on the HUD and in its text properties
 
 var hl_label: string    = splice.hl_label
@@ -37,8 +40,7 @@ if exists('&mousemoveevent')
 endif
 
 const With = vim_assist.With
-const ModifyBufEE  = vim_assist.ModifyBufEE 
-const KeepWindowEE  = vim_assist.KeepWindowEE 
+type ModifyBufEE  = vim_assist.ModifyBufEE 
 const Pad = vim_assist.Pad
 const Replace = vim_assist.Replace
 const ReplaceBuf = vim_assist.ReplaceBuf
@@ -892,6 +894,6 @@ enddef
 
 def DisplayCommandsPopup()
     var text = CreateCurrentMappings()
-    ui.PopupMessage(text, 'Shortcuts (Splice9 ' .. g:splice9_string_version .. ')', 1)
+    ui.PopupMessage(text, 'Shortcuts (Splice9 ' .. splice9_string_version .. ')', 1)
 enddef
 

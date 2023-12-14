@@ -9,7 +9,7 @@ import autoload './util/windows.vim'
 import autoload './util/bufferlib.vim'
 
 const buffers = bufferlib.buffers
-const Buffer = bufferlib.Buffer
+type Buffer = bufferlib.Buffer
 const Log = log.Log
 
 const CONFLICT_MARKER_START = '<<<<<<<'
