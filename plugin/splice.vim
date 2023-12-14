@@ -1,7 +1,7 @@
 " ============================================================================
 " File:        splice.vim
 " Description: vim global plugin for resolving three-way merge conflicts
-" Maintainer:  Steve Losh <steve@stevelosh.com>
+" Maintainer:  Ernie Rael <errael@sraelity.com>
 " License:     MIT X11
 " ============================================================================
 
@@ -33,39 +33,27 @@ endif
 vim9script
 
 # NOTE: The following is grabbed by shell to label the release zip
-g:splice9_string_version = "0.9-RC3"
+export const splice9_string_version = "0.9-RC3"
 
 # TODO: SHOULD THERE BE A SPLICE COMMAND IF VERSION PREVENTS RUNNING?
 
-# Setting up splice9Dev
-# Create shadow tree symlink to dev sources
-# in ~/.vim/pack/random-packages/start/splice-vim-dev/autoload
-#       cp -as /src/tools/splice.vim/autoload/splice9/ splice9Dev
-# Tweaks: "splice9" --> "splice9Dev" (which should go away with vim9 only)
-#       autoload/splice9/splice.py
-#                       also: log.Log('SpliceBoot DEV')
-#       autoload/splice9/splice.vim
-#
-
 # call test_override('autoload', 1)
 
-var dev = false
-if dev
-    import autoload '/home/err/.vim/pack/random-packages/start/splice-vim-dev/autoload/splice9Dev/splice.vim'
-    command! -nargs=0 SpliceInitDev call splice.SpliceBoot()
-else
-    import autoload '../autoload/splice9/splice.vim'
-    command! -nargs=0 Splice9Init call splice.SpliceBoot()
-endif
+import autoload '../autoload/splice9/splice.vim'
+# command! -nargs=0 Splice9Init call splice.SpliceBoot()
+command! -nargs=0 Splice9InitDev call splice.SpliceBoot()
 
-#var patch = 4932
-#var longv = 8020000 + patch
 
-#if v:versionlong < longv
-#    splice.RecordBootFailure(
-#        ["Splice unavailable: requires Vim 8.2." .. patch])
-#    finish
-#endif
+# Multiple versions of splice9 can be made available. An additional version
+# must have a unique directory name under autoload, for example
+#       splice9/autoload/splice9_0_9_RC2
+# and modify splice9/plugin/splice.vim (this file) as follows
+#       var tag = "0.9-RC2"->substitute('[-\.]', '_', 'g')
+#       import autoload '../autoload/splice9_' .. tag .. '/splice.vim'
+#       command! -nargs=0 Splice9InitVersion call splice.SpliceBoot()
+# and do `gvim -c Splice9InitVersion ...`
+
+
 
 # TODO: wonder what this condition is all about, seems to have been optimized away
 var loaded_splice: number

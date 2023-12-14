@@ -14,7 +14,7 @@ cd $DIR
 #rm -f doc/tags
 
 # grab the string in quotes
-version=$(grep ^g:splice9_string_version plugin/splice.vim \
+version=$(grep '^export.*splice9_string_version' plugin/splice.vim \
                     | sed -E 's/^.*"(.+)".*$/\1/')
 
 if [[ -z "$version" ]]
@@ -24,5 +24,6 @@ then
 fi
 
 cd .. 
+
 jar -Mcvf splice9/splice9-$version.zip splice9/{plugin,doc,autoload}
 

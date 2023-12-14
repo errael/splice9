@@ -110,8 +110,8 @@ enddef
 
 # Save/restore '&modifiable' if needed
 export class ModifyBufEE implements WithEE
-    this._bnr: number
-    this._is_modifiable: bool
+    var _bnr: number
+    var _is_modifiable: bool
 
     def new(this._bnr)
         #echo 'ModifyBufEE: new(arg):' this._bnr
@@ -138,8 +138,8 @@ endclass
 
 # Keep window, topline, cursor as possible
 export class KeepWindowEE implements WithEE
-    this._w: dict<any>
-    this._pos: list<number>
+    var _w: dict<any>
+    var _pos: list<number>
 
     def new()
     enddef
@@ -161,8 +161,8 @@ endclass
 
 # Keep buffer, cursor as possible
 export class KeepBufferEE implements WithEE
-    this._bnr: number
-    this._pos: list<number>
+    var _bnr: number
+    var _pos: list<number>
 
     def new()
     enddef

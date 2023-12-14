@@ -14,7 +14,7 @@ enddef
 
 const buffers = i_bufferlib.buffers
 const nullBuffer = i_bufferlib.nullBuffer
-const Buffer = i_bufferlib.Buffer
+type Buffer = i_bufferlib.Buffer
 const With = vim_assist.With
 const DrawHUD = i_hud.DrawHUD
 const UpdateHudStatus = i_hud.UpdateHudStatus
@@ -29,25 +29,25 @@ const Log = i_log.Log
 Log("TOP OF MODE")
 
 class Mode
-    this.id: string
-    this._lay_first: string
-    this._lay_second: string
+    var id: string
+    var _lay_first: string
+    var _lay_second: string
 
-    this._number_of_windows: number
+    var _number_of_windows: number
 
     # funcs to do the layout and the diffs: 0 to n-1
-    this._layouts: list<func(): void>
-    this._diffs: list<func(): void>
+    var _layouts: list<func(): void>
+    var _diffs: list<func(): void>
 
-    this._current_diff_mode: number
-    this._diff_off_mode: number
-    this._current_layout: number
-    this._current_scrollbind: bool
+    var _current_diff_mode: number
+    var _diff_off_mode: number
+    var _current_layout: number
+    var _current_scrollbind: bool
 
-    this._current_buffer: Buffer
-    this._current_buffer_first: Buffer
-    this._current_buffer_second: Buffer
-    this._current_mid_buffer: Buffer
+    var _current_buffer: Buffer
+    var _current_buffer_first: Buffer
+    var _current_buffer_second: Buffer
+    var _current_mid_buffer: Buffer
 
     def new()
     enddef
