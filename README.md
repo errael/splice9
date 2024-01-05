@@ -124,7 +124,7 @@ The label of this region, `Splice Commands:`, is active. Click on it to display 
 
 #### D: diffs off
 
-The command `D: diffs off` has embedded status information. When `Splice9` is diffing files there is a `*` displayed after the `D:`; this is shown in the image above. When the `*` is displayed, clicking on this command (or using the shortcut), turns off diffing.
+The command `D: diffs off` has embedded status information. When `Splice9` is diffing files there is a `*` displayed after the `D:`; this is shown in the image above. When the `*` is displayed, clicking on this command (or using the shortcut), turns off diffing. When diffing is turned off, this command returns to the previously active diff state.
 
 #### s: toggle scrollbind
 
