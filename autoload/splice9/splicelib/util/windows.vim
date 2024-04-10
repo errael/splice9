@@ -1,11 +1,14 @@
 vim9script
 
-import autoload './vim_assist.vim'
-import autoload './log.vim'
-const Log = log.Log
-type WithEE = vim_assist.WithEE
+import '../../rlib.vim'
+const Rlib = rlib.Rlib
 
-type KeepWindowEE = vim_assist.KeepWindowEE
+import autoload Rlib('util/log.vim')
+import autoload Rlib('util/with.vim') as i_with
+const Log = log.Log
+type WithEE = i_with.WithEE
+
+type KeepWindowEE = i_with.KeepWindowEE
 
 # TODO: does it make more sense to use winid everywhere (rather than winnr)
 

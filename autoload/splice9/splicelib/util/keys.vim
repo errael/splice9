@@ -1,18 +1,22 @@
 vim9script
 
+import '../../rlib.vim'
+const Rlib = rlib.Rlib
+
 # set 'testing' to true and source this file for testing
 var testing = false
 
-import autoload './log.vim' as i_log
-import autoload './vim_assist.vim'
-import autoload './MapModeFilters.vim'
+import autoload Rlib('util/log.vim') as i_log
+import autoload Rlib('util/vim_extra.vim')
+import autoload Rlib('util/strings.vim') as i_strings
+import autoload Rlib('util/map_mode_filters.vim')
 import autoload '../modes.vim' as i_modes
 import autoload '../settings.vim' as i_settings
 
-const Pad = vim_assist.Pad
-const MapModeFilterExpr = MapModeFilters.MapModeFilterExpr
-const MapModeFilter = MapModeFilters.MapModeFilter
-const Keys2Str = vim_assist.Keys2Str
+const Pad = i_strings.Pad
+const MapModeFilterExpr = map_mode_filters.MapModeFilterExpr
+const MapModeFilter = map_mode_filters.MapModeFilter
+const Keys2Str = vim_extra.Keys2Str
 const Log = i_log.Log
 # TODO: Having the following gives weird startup messages
 #const ModesDispatch = i_modes.ModesDispatch

@@ -1,10 +1,13 @@
 vim9script
 
+import '../rlib.vim'
+const Rlib = rlib.Rlib
+
 import autoload '../splice.vim'
 import autoload './modes.vim' as i_modes
 import autoload './settings.vim' as i_settings
 
-import autoload './util/log.vim'
+import autoload Rlib('util/log.vim')
 import autoload './util/windows.vim'
 import autoload './util/bufferlib.vim'
 

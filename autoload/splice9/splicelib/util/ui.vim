@@ -1,12 +1,13 @@
 vim9script
 
-var import_autoload = true
+import '../../rlib.vim'
+const Rlib = rlib.Rlib
 
-if import_autoload
-    import autoload '../../splice.vim'
-else
-    import './splice.vim'
-endif
+import autoload '../../splice.vim'
+import Rlib('util/log.vim') as i_log
+
+const Log = i_log.Log
+
 
 # dismiss on any key
 def FilterCloseAnyKey(winid: number, key: string): bool
@@ -63,6 +64,21 @@ export def PopupError(msg: list<string>, other: list<any> = [])
     endif
 
     popup_create(msg, options)
+enddef
+
+# TODO: may add some kind of "how to close" info in E
+#       make E dict<dict<any>>
+# TODO: This should not be in log.vim, either import or put popup elsewhere
+const E = {
+    ENOTFILE: ["Current buffer, '%s', doesn't support '%s'", 'Command Issue'],
+    ENOCONFLICT: ["No more conflicts"],
+}
+
+export def SplicePopup(e_idx: string, ...extra: list<any>)
+    var err = E[e_idx]
+    var msg = call('printf', [ err[0] ] + extra)
+    Log(msg)
+    PopupError([msg], err[ 1 : ])
 enddef
 
 # vim:ts=8:sts=4:

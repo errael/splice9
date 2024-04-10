@@ -1,11 +1,15 @@
 vim9script
 
+import '../rlib.vim'
+const Rlib = rlib.Rlib
+
 import autoload './settings.vim' as i_settings
 import autoload './hud.vim' as i_hud
 import autoload './util/windows.vim'
 import autoload './util/bufferlib.vim' as i_bufferlib
-import autoload './util/vim_assist.vim'
-import autoload './util/log.vim' as i_log
+import autoload Rlib('util/vim_extra.vim')
+import autoload Rlib('util/log.vim') as i_log
+import autoload Rlib('util/with.vim') as i_with
 import autoload './util/keys.vim' as i_keys
 import autoload './util/search.vim' as i_search
 
@@ -15,7 +19,7 @@ enddef
 const buffers = i_bufferlib.buffers
 const nullBuffer = i_bufferlib.nullBuffer
 type Buffer = i_bufferlib.Buffer
-const With = vim_assist.With
+const With = i_with.With
 const DrawHUD = i_hud.DrawHUD
 const UpdateHudStatus = i_hud.UpdateHudStatus
 const Setting = i_settings.Setting
@@ -158,15 +162,15 @@ class Mode
 
     # The default implementation of the UseHunk commands ring the bell
     def Key_use()
-        vim_assist.Bell()
+        vim_extra.Bell()
     enddef
 
     def Key_use1()
-        vim_assist.Bell()
+        vim_extra.Bell()
     enddef
 
     def Key_use2()
-        vim_assist.Bell()
+        vim_extra.Bell()
     enddef
 
 
