@@ -5,6 +5,9 @@ DIR=${0%/*}
 
 set -e
 
+# TODO: copy to separate directory, remove ".fn*" and "*~" files
+# TODO: fixup plugin/splice.vim to automaticaly change targets for release.
+
 #
 # Runs in the directory where "zipit" if found.
 # This is the top of the Splice9 source tree.
