@@ -1,13 +1,15 @@
 vim9script
 
+import '../../rlib.vim'
+const Rlib = rlib.Rlib
+
 import autoload './windows.vim'
-import autoload './log.vim'
-import autoload './vim_assist.vim'
+import autoload Rlib('util/log.vim')
+import autoload Rlib('util/with.vim') as i_with
 
 const Log = log.Log
-type WithEE = vim_assist.WithEE
-
-type KeepBufferEE = vim_assist.KeepBufferEE
+type WithEE = i_with.WithEE
+type KeepBufferEE = i_with.KeepBufferEE
 
 # There are 5 buffers 4 hold merge files, 1 is the HUD.
 

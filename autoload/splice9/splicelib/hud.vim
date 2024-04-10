@@ -1,5 +1,8 @@
 vim9script
 
+import '../rlib.vim'
+const Rlib = rlib.Rlib
+
 # NOTE: simplification/rewrite when vim9 classes. "class Mode"
 #   TODO:   HUD query what commands are allowed
 #           current mode, 
@@ -13,8 +16,9 @@ vim9script
 
 export const hud_name = '__Splice_HUD__'
 
-import autoload './util/log.vim' as i_log
-import autoload './util/vim_assist.vim'
+import autoload Rlib('util/log.vim') as i_log
+import autoload Rlib('util/with.vim') as i_with
+import autoload Rlib('util/strings.vim') as i_strings
 import autoload './util/keys.vim'
 import autoload './util/ui.vim'
 import autoload './util/windows.vim'
@@ -39,11 +43,11 @@ if exists('&mousemoveevent')
     &mousemoveevent = true
 endif
 
-const With = vim_assist.With
-type ModifyBufEE  = vim_assist.ModifyBufEE 
-const Pad = vim_assist.Pad
-const Replace = vim_assist.Replace
-const ReplaceBuf = vim_assist.ReplaceBuf
+const With = i_with.With
+type ModifyBufEE  = i_with.ModifyBufEE 
+const Pad = i_strings.Pad
+const Replace = i_strings.Replace
+const ReplaceBuf = i_strings.ReplaceBuf
 const MappingsList = keys.MappingsList
 const AddSeparators = keys.AddSeparators
 

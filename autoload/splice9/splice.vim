@@ -1,7 +1,10 @@
 vim9script
 
+import './rlib.vim'
+const Rlib = rlib.Rlib
+
 # ============================================================================
-# HISTORIC, Steve Losh does not maintain this vim9 Splice.
+# HISTORIC NOTE. Steve Losh does not maintain this vim9 Splice9.
 # Steve wrote the original Splice which is written in python.
 # File:        splice.vim
 # Description: vim global plugin for resolving three-way merge conflicts
@@ -11,9 +14,9 @@ vim9script
 
 # import keys.vim, without "as", causes keys() usage to get an error
 import autoload './splicelib/util/keys.vim' as i_keys
-import autoload './splicelib/util/log.vim'
+import autoload Rlib('util/log.vim')
 import autoload './splicelib/util/search.vim'
-import autoload './splicelib/util/vim_assist.vim'
+import autoload Rlib('util/vim_extra.vim')
 import autoload './splicelib/hud.vim'
 import autoload './splicelib/init.vim' as i_init
 import autoload './splicelib/settings.vim'

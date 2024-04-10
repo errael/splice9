@@ -1,6 +1,9 @@
 vim9script
-import autoload './util/log.vim' as i_log
-import autoload './util/vim_assist.vim'
+
+import '../rlib.vim'
+const Rlib = rlib.Rlib
+
+import autoload Rlib('util/log.vim') as i_log
 import autoload './util/keys.vim' as i_keys
 
 const Log = i_log.Log

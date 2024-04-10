@@ -1,7 +1,13 @@
 vim9script
 
-import autoload './log.vim'
-var SplicePopup = log.SplicePopup
+import '../../rlib.vim'
+const Rlib = rlib.Rlib
+
+#import autoload Rlib('util/log.vim')
+#var SplicePopup = log.SplicePopup
+
+import autoload './ui.vim'
+const SplicePopup = ui.SplicePopup
 
 var debug = false
 
