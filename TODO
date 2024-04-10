@@ -1,3 +1,8 @@
+TODO:   When searching for conflicts look only between <<<<,>>>>.
+        Build a structure for conflict {start,end,marker}.
+        Play with how can take both sides
+
+TODO:   zipit: copy stuff to separate directory, remove ".fn*" and "*~" files.
 
 TODO:   doc logging
         the log file is never trunctated, persists, grows without limit
