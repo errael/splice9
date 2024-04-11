@@ -112,23 +112,10 @@ enddef
 
 var Main: func
 
-# TODO: GET RID OF THE TIMER TRAMPOLINE
-var startup_col: number
-def Trampoline(id: number)
-    if startup_col != &co
-        Log(() => printf("COLUMN MISMATCH: after pause: startup_col: %d, col: %d",
-            startup_col, &co), 'error')
-        &columns = startup_col
-    endif
-    Main()
-enddef
-
 export def SpliceBoot()
     log.Log('SpliceBoot')
-    log.Log('SpliceBoot DEV')
     if startup_error_msgs->empty()
-        startup_col = &columns
-        timer_start(50, Trampoline)
+        Main()
         return
     endif
 
