@@ -4,11 +4,11 @@ vim9script
 #   then use it as raelity vim lib; otherwise use the autoload directory.
 
 # for example: "import Rlib('util/strings')"
-export def Rlib(raelity_auto_file: string): string
-    return base_lib_dir .. '/' .. raelity_auto_file
+export def Rlib(raelity_autoload_fname: string): string
+    return base_lib_dir .. '/' .. raelity_autoload_fname
 enddef
 
-# First look for lib packaged with splice9.
+# First look for lib packaged with splice9: autoload/splice9/raelity.
 var base_lib_dir: string = fnamemodify(
     getscriptinfo(
         {sid: str2nr(matchstr(expand('<SID>'), '\v\d+'))}
