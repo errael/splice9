@@ -698,16 +698,9 @@ export def DrawHUD(mode: string, layout: number,
     InitHudBuffer()
     var hud_lines = BuildHud(mode, layout, vari_files)
 
-    #...
-
-    # NOTE: set[buf]line looses text properties, so might as
-    #       well rebuild the whole thing every time.
-    #       TODO: And get rid of prop_delete when adding props.
-
-    &modifiable = true
-    #deletebufline('', 1, '$')
-    setline(1, hud_lines)
-    &modifiable = false
+    With(ModifyBufEE.new(hudbnr), (_) => {
+        setline(1, hud_lines)
+    })
 
     HudActionsPropertiesAndHighlights(mode, bnr)
     RefreshMouseCache()

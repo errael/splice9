@@ -12,10 +12,6 @@ TODO:   option to disable mouse/rollover
 TODO:   If not vim9script, map SpliceInit (or whatever) to no vim9 message.
         Or, make message clear that the plugin should be removed?
 
-TODO:   remove startup column bounce workaround
-
-TODO:   Get rid of prop_delete since all lines in HUD are deleted.
-
 TODO:   Baloon popup when hover over a command?
 
 TODO:   Shortcut as button with list and popup when hover?
