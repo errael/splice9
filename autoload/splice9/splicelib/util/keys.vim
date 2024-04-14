@@ -7,13 +7,12 @@ const Rlib = rlib.Rlib
 var testing = false
 
 import autoload Rlib('util/log.vim') as i_log
+import autoload Rlib('util/stack.vim') as i_stack
 import autoload Rlib('util/vim_extra.vim')
-import autoload Rlib('util/strings.vim') as i_strings
 import autoload Rlib('util/map_mode_filters.vim')
 import autoload '../modes.vim' as i_modes
 import autoload '../settings.vim' as i_settings
 
-const Pad = i_strings.Pad
 const MapModeFilterExpr = map_mode_filters.MapModeFilterExpr
 const MapModeFilter = map_mode_filters.MapModeFilter
 const Keys2Str = vim_extra.Keys2Str
@@ -207,14 +206,15 @@ enddef
 def AddHunkIfNeeded(d: dict<list<string>>, hunk: string): void
     var l = d[hunk]
     var mapping = GetMapping(hunk)->Keys2Str(false)
-    Log($"hunk: '{hunk}', l: '{l}', mapping: '{mapping}', idx: {l->index(mapping)}")
+    Log(() => printf("hunk: '%s', l: '%s', mapping: '%s', idx: %s",
+                     hunk, l, mapping, l->index(mapping)))
     if l->index(mapping) < 0
         l->add(mapping)
     endif
 enddef
 
 export def InitializeBindings()
-    Log('InitializeBindings()')
+    Log(i_stack.Func())
 
     # setup the mappings
     for k in actions_info->keys()
@@ -229,7 +229,7 @@ export def InitializeBindings()
 enddef
 
 export def ActivateGridBindings()
-    i_log.Log('ActivateGridBindings')
+    Log(i_stack.Func())
     UnBind('UseHunk')
     Bind('UseHunk1')
     Bind('UseHunk2')
@@ -237,7 +237,7 @@ export def ActivateGridBindings()
 enddef
 
 export def DeactivateGridBindings()
-    i_log.Log('DectivateGridBindings')
+    Log(i_stack.Func())
     UnBind('UseHunk1')
     UnBind('UseHunk2')
     Bind('UseHunk')
@@ -245,6 +245,14 @@ export def DeactivateGridBindings()
 enddef
 
 finish
+
+
+
+
+
+
+import autoload Rlib('util/strings.vim') as i_strings
+const Pad = i_strings.Pad
 
 ############################################################################
 ############################################################################
@@ -361,10 +369,10 @@ def BindingList2(): list<string>
         endif
     endfor
 
-    #var bindings_padded = bindingsInOrder->copy()->Pad('r')
-    var bindings_padded = DisplayOrderBindings()->copy()->Pad('r')
-    defaults_padded->Pad()
-    mappings_padded->Pad()
+    #var bindings_padded = bindingsInOrder->copy()->i_strings.Pad('r')
+    var bindings_padded = DisplayOrderBindings()->copy()->i_strings.Pad('r')
+    defaults_padded->i_strings.Pad()
+    mappings_padded->i_strings.Pad()
 
     for i in range(bindings_padded->len())
         if !! bindings_padded[i]->trim()

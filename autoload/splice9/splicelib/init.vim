@@ -8,6 +8,7 @@ import autoload './modes.vim' as i_modes
 import autoload './settings.vim' as i_settings
 
 import autoload Rlib('util/log.vim')
+import autoload Rlib('util/stack.vim') as i_stack
 import autoload './util/windows.vim'
 import autoload './util/bufferlib.vim'
 
@@ -77,7 +78,7 @@ def Setlocal_buffers()
     buffers.result.Open()
     i_settings.Init_cur_window_wrap()
 
-    Log("SKIPPING LOCAL HUD INIT")
+    Log(() => printf("%s: DONE", i_stack.Func()))
 enddef
 
 export def Init()
