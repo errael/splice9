@@ -6,8 +6,6 @@ const Rlib = rlib.Rlib
 import autoload Rlib('util/log.vim') as i_log
 import autoload './util/keys.vim' as i_keys
 
-const Log = i_log.Log
-
 const use_config = exists('g:splice_config')
 export var config_dict: dict<any> = use_config ? g:splice_config : {}
 
@@ -29,11 +27,11 @@ enddef
 #enddef
 
 export def Setting(key: string): any
-    Log(() => $"Setting: key: {key}", 'setting')
+    i_log.Log(() => $"Setting: key: {key}", 'setting')
     if ! config_dict->has_key(key)
         throw $"Setting unknown: '{key}'"
     endif
-    Log(() => printf("Setting: get(key): '%s', type {%s}",
+    i_log.Log(() => printf("Setting: get(key): '%s', type {%s}",
         config_dict->get(key), type(config_dict->get(key))), 'setting')
     return config_dict->get(key)
 enddef
@@ -44,7 +42,7 @@ export def Init_cur_window_wrap()
     var setting = Setting('wrap')
     if setting != null
         &wrap = setting == 'wrap' ? true : false
-        Log(() => printf("winnr %d, &wrap set to %s", winnr(), &wrap), 'setting')
+        i_log.Log(() => printf("winnr %d, &wrap set to %s", winnr(), &wrap), 'setting')
     endif
 enddef
 
@@ -220,13 +218,13 @@ export def InitSettings(): list<string>
 
     # Put resolved prefix into config dictionary.
     config_dict.prefix = prefix
-    Log($'PREFIX: {prefix}', 'setting')
+    i_log.Log($'PREFIX: {prefix}', 'setting')
 
     CheckTypeOfSetting('prefix', '-', [ v:t_string ])
 
     # settings will eventually have list of all possible settings
     var settings = setting_info->keys()
-Log(printf("INITIAL CONFIG_DICT: %s, %s", use_config, config_dict))
+i_log.Log(printf("INITIAL CONFIG_DICT: %s, %s", use_config, config_dict))
     for setting in settings
         var info = setting_info->get(setting)
         # Copy from old location to new.
@@ -252,7 +250,7 @@ Log(printf("INITIAL CONFIG_DICT: %s, %s", use_config, config_dict))
         endfor
     endif
     lockvar config_dict
-Log(printf("CONFIG_DICT: %s", config_dict))
+i_log.Log(printf("CONFIG_DICT: %s", config_dict))
     # Scan config_dict for any unknown settings
     settings->extend(binding_keys)
     for setting in config_dict->keys()

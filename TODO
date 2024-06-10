@@ -1,6 +1,8 @@
+TODO:   In search.vim get rid of "var use_props". Also "debug"?
+
 TODO:   When searching for conflicts look only between <<<<,>>>>.
         Build a structure for conflict {start,end,marker}.
-        Play with how can take both sides
+TODO:   Play with how can take both sides
 
 TODO:   zipit: copy stuff to separate directory, remove ".fn*" and "*~" files.
 

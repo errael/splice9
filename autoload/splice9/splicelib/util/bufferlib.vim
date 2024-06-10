@@ -4,12 +4,8 @@ import '../../rlib.vim'
 const Rlib = rlib.Rlib
 
 import autoload './windows.vim'
-import autoload Rlib('util/log.vim')
+import autoload Rlib('util/log.vim') as i_log
 import autoload Rlib('util/with.vim') as i_with
-
-const Log = log.Log
-type WithEE = i_with.WithEE
-type KeepBufferEE = i_with.KeepBufferEE
 
 # There are 5 buffers 4 hold merge files, 1 is the HUD.
 
@@ -20,11 +16,11 @@ export class Buffer
 
     # this.name is set from bufnr
     def new(this.bufnr, this.label)
-        #Log(printf('Buffer.new(%d, %s)', this.bufnr, this._label))
+        #i_log.Log(printf('Buffer.new(%d, %s)', this.bufnr, this._label))
         if bufexists(this.bufnr)
             this.name = bufname(this.bufnr)
         else
-            Log(() => printf('Buffer: %d does not exist', this.bufnr))
+            i_log.Log(() => printf('Buffer: %d does not exist', this.bufnr))
             this.bufnr = -1
         endif
     enddef
@@ -93,9 +89,9 @@ class BufferList
         return nullBuffer
     enddef
 
-    def Remain(): WithEE
+    def Remain(): i_with.WithEE
         # TODO: use KeepWindowEE instead? buffer vs window shouldn't matter here
-        return KeepBufferEE.new()
+        return i_with.KeepBufferEE.new()
     enddef
 
 endclass

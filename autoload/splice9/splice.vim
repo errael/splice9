@@ -1,5 +1,10 @@
 vim9script
 
+# test_override('autoload', 1)
+# test_override('defcompile', 1)
+
+echomsg 'ABOUT TO IMPORT'
+
 import './rlib.vim'
 const Rlib = rlib.Rlib
 
@@ -14,15 +19,12 @@ const Rlib = rlib.Rlib
 
 # import keys.vim, without "as", causes keys() usage to get an error
 import autoload './splicelib/util/keys.vim' as i_keys
-import autoload Rlib('util/log.vim')
+import autoload Rlib('util/log.vim') as i_log
 import autoload './splicelib/util/search.vim'
-import autoload Rlib('util/vim_extra.vim')
 import autoload './splicelib/hud.vim'
 import autoload './splicelib/init.vim' as i_init
 import autoload './splicelib/settings.vim'
 import autoload './splicelib/modes.vim' as i_modes
-
-var Log = log.Log
 
 # bounce HACK
 export def GetStatusDiffScrollbind(): list<bool>
@@ -67,9 +69,9 @@ var startup_error_msgs: list<string>
 # TODO: loggin configuration validation.
 
 var fname = settings.GetFromOrig('log_file')
-log.SetExcludeCategories(settings.GetFromOrig('logging_exclude_categories'))
+i_log.SetExcludeCategories(settings.GetFromOrig('logging_exclude_categories'))
 if settings.GetFromOrig('log_enable')
-    log.LogInit(fname)
+    i_log.LogInit(fname)
 endif
 
 # First define functions that are used during boot.
@@ -105,7 +107,7 @@ def SpliceBootError()
     END
     startup_error_msgs->extend(instrs)
     for msg in startup_error_msgs
-        log.Log(msg, 'error')
+        i_log.Log(msg, 'error')
     endfor
     SpliceDidNotLoad()
 enddef
@@ -113,7 +115,7 @@ enddef
 var Main: func
 
 export def SpliceBoot()
-    log.Log('SpliceBoot')
+    i_log.Log('SpliceBoot')
     if startup_error_msgs->empty()
         Main()
         return
@@ -173,14 +175,14 @@ def ReportStartupIssues()
 enddef
 
 def SpliceInit9()
-    log.Log('SpliceInit')
+    i_log.Log('SpliceInit')
     set guioptions+=l
     # startup_error_msgs should already be empty
     startup_error_msgs = settings.InitSettings()
     InitHighlights()
     i_keys.InitializeBindings()
     ReportStartupIssues()
-    log.Log('starting splice')
+    i_log.Log('starting splice')
 
     i_init.Init()
 enddef

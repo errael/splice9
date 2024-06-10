@@ -8,17 +8,10 @@ var testing = false
 
 import autoload Rlib('util/log.vim') as i_log
 import autoload Rlib('util/stack.vim') as i_stack
-import autoload Rlib('util/vim_extra.vim')
-import autoload Rlib('util/map_mode_filters.vim')
+import autoload Rlib('util/vim_extra.vim') as i_extra
+import autoload Rlib('util/map_mode_filters.vim') as i_mm_filter
 import autoload '../modes.vim' as i_modes
 import autoload '../settings.vim' as i_settings
-
-const MapModeFilterExpr = map_mode_filters.MapModeFilterExpr
-const MapModeFilter = map_mode_filters.MapModeFilter
-const Keys2Str = vim_extra.Keys2Str
-const Log = i_log.Log
-# TODO: Having the following gives weird startup messages
-#const ModesDispatch = i_modes.ModesDispatch
 
 # return list of shortcut/keybinding names
 export def GetBindingKeys(): list<string>
@@ -128,25 +121,25 @@ enddef
 def Bind(key: string)
     var mapping = GetMapping(key)
     if mapping == ''
-        Log(() => "Bind-Map: SKIP '" .. key .. "'")
+        i_log.Log(() => "Bind-Map: SKIP '" .. key .. "'")
         return
     endif
     var t = "<ScriptCmd>i_modes.ModesDispatch('Splice" .. key .. "')<CR>"
-    Log(() => printf("Bind-Map: '%s' -> '%s'", mapping, t))
+    i_log.Log(() => printf("Bind-Map: '%s' -> '%s'", mapping, t))
     execute 'nnoremap' mapping t
 enddef
 
 def UnBind(key: string)
     var mapping = GetMapping(key)
     if mapping == ''
-        Log(() => "Bind-UnMap: SKIP '" .. key .. "'")
+        i_log.Log(() => "Bind-UnMap: SKIP '" .. key .. "'")
         return
     endif
-    Log(() => "Bind-UnMap: '" .. mapping .. "'")
+    i_log.Log(() => "Bind-UnMap: '" .. mapping .. "'")
     try
         execute 'unmap' mapping
     catch /E31: No such mapping/
-        Log("UnBind: E31", v:none, true)
+        i_log.Log("UnBind: E31", v:none, true)
     endtry
 enddef
 
@@ -160,7 +153,8 @@ enddef
 # ['UseHunk1', ['<M-u><M-1>'], 'u1'], ['UseHunk2', ['<M-u><M-2>'], 'u2'],
 #     ['UseHunk', ['<M-u>'], 'u']]
 
-const FilterSpliceMap = MapModeFilterExpr('n', "m['rhs'] =~ '^<ScriptCmd>i_modes\.ModesDis'")
+const FilterSpliceMap = i_mm_filter.MapModeFilterExpr(
+    'n', "m['rhs'] =~ '^<ScriptCmd>i_modes\.ModesDis'")
 
 # Return list of mappings
 export def MappingsList(): list<any>
@@ -172,7 +166,7 @@ export def MappingsList(): list<any>
     for [k, v] in maplist()->filter(FilterSpliceMap)
             ->map((i, m) => MappingPair(m['rhs'], m['lhs']))
         # only include known splice commands
-        #Log(() => printf("MappingPair() '%s' '%s'", k, v))
+        #i_log.Log(() => printf("MappingPair() '%s' '%s'", k, v))
         if mappings->has_key(k)
             mappings[k]->add(v)
         endif
@@ -196,7 +190,7 @@ def MappingPair(rhs: string, lhs: string): list<string>
     return [
             rhs->substitute(''')<[Cc][Rr]>', '', '')
                 ->substitute('^<ScriptCmd>i_modes\.ModesDispatch(.Splice', '', ''),
-            lhs->Keys2Str(false),
+            lhs->i_extra.Keys2Str(false),
     ]
 enddef
 
@@ -205,8 +199,8 @@ enddef
 # TODO: GET RID OF THIS, not needed anymore, all mappings active
 def AddHunkIfNeeded(d: dict<list<string>>, hunk: string): void
     var l = d[hunk]
-    var mapping = GetMapping(hunk)->Keys2Str(false)
-    Log(() => printf("hunk: '%s', l: '%s', mapping: '%s', idx: %s",
+    var mapping = GetMapping(hunk)->i_extra.Keys2Str(false)
+    i_log.Log(() => printf("hunk: '%s', l: '%s', mapping: '%s', idx: %s",
                      hunk, l, mapping, l->index(mapping)))
     if l->index(mapping) < 0
         l->add(mapping)
@@ -214,7 +208,7 @@ def AddHunkIfNeeded(d: dict<list<string>>, hunk: string): void
 enddef
 
 export def InitializeBindings()
-    Log(i_stack.Func())
+    i_log.Log(i_stack.Func())
 
     # setup the mappings
     for k in actions_info->keys()
@@ -229,7 +223,7 @@ export def InitializeBindings()
 enddef
 
 export def ActivateGridBindings()
-    Log(i_stack.Func())
+    i_log.Log(i_stack.Func())
     UnBind('UseHunk')
     Bind('UseHunk1')
     Bind('UseHunk2')
@@ -237,7 +231,7 @@ export def ActivateGridBindings()
 enddef
 
 export def DeactivateGridBindings()
-    Log(i_stack.Func())
+    i_log.Log(i_stack.Func())
     UnBind('UseHunk1')
     UnBind('UseHunk2')
     Bind('UseHunk')
@@ -270,11 +264,11 @@ def BindingKeys(key: string): string
     endif
     var rhs = 'xyzzy-Splice'
     execute 'inoremap' mapping rhs
-    var m = maplist()->filter(MapModeFilter('i', rhs, true, 'rhs'))[0]
+    var m = maplist()->filter(i_mm_filter.MapModeFilter('i', rhs, true, 'rhs'))[0]
     execute 'iunmap' mapping
     #var r = [ m.lhs, m.lhsraw ]
     #return r
-    return Keys2Str(m.lhs)
+    return i_extra.Keys2Str(m.lhs)
 enddef
 
 ###############################
@@ -288,7 +282,7 @@ def BindingKeysDebug(key: string): list<string>
     endif
     var rhs = 'xyzzy-Splice'
     execute 'inoremap' mapping rhs
-    var m = maplist()->filter(MapModeFilter('i', rhs, true, 'rhs'))[0]
+    var m = maplist()->filter(i_mm_filter.MapModeFilter('i', rhs, true, 'rhs'))[0]
     execute 'iunmap' mapping
     var r = [ m.lhs, m.lhsraw ]
     if m->has_key('lhsrawalt')
@@ -362,7 +356,7 @@ def BindingList2(): list<string>
         if !! action
             #defaults_padded->add(defaultBindings[action])
             defaults_padded->add(actions_info[action]['a_dflt'])
-            mappings_padded->add(Keys2Str(GetMapping(action)))
+            mappings_padded->add(i_extra.Keys2Str(GetMapping(action)))
         else
             defaults_padded->add('')
             mappings_padded->add('')
@@ -387,11 +381,11 @@ def BindingList2(): list<string>
 enddef
 
 def RandomTesting()
-    Log('INIT')
+    i_log.Log('INIT')
     InitializeBindings()
-    Log('ACTIVATE-GRID')
+    i_log.Log('ACTIVATE-GRID')
     ActivateGridBindings()
-    Log('DE-ACTIVATE-GRID')
+    i_log.Log('DE-ACTIVATE-GRID')
     DeactivateGridBindings()
 
     # Have two grid mappings found

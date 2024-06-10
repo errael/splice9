@@ -7,7 +7,7 @@ import autoload './settings.vim' as i_settings
 import autoload './hud.vim' as i_hud
 import autoload './util/windows.vim'
 import autoload './util/bufferlib.vim' as i_bufferlib
-import autoload Rlib('util/vim_extra.vim')
+import autoload Rlib('util/vim_extra.vim') as i_extra
 import autoload Rlib('util/log.vim') as i_log
 import autoload Rlib('util/with.vim') as i_with
 import autoload './util/keys.vim' as i_keys
@@ -19,18 +19,16 @@ enddef
 const buffers = i_bufferlib.buffers
 const nullBuffer = i_bufferlib.nullBuffer
 type Buffer = i_bufferlib.Buffer
-const With = i_with.With
 const DrawHUD = i_hud.DrawHUD
 const UpdateHudStatus = i_hud.UpdateHudStatus
 const Setting = i_settings.Setting
-const Log = i_log.Log
 
 #
 # Could use "is" instead of "==" when comparing buffers,
 # but there's use of list->index(curbuf) as well, so why bother.
 #
 
-Log("TOP OF MODE")
+# i_log.Log("TOP OF MODE")
 
 class Mode
     var id: string
@@ -57,8 +55,8 @@ class Mode
     enddef
 
     def Diff(diffmode: number)
-        With(buffers.Remain(), (_) => {
-            With(windows.Remain(), (_) => {
+        i_with.With(buffers.Remain(), (_) => {
+            i_with.With(windows.Remain(), (_) => {
                 this._diffs[diffmode]()
             })
         })
@@ -72,12 +70,12 @@ class Mode
     # NOTE: diffmode not used
     def Key_diff(diffmode: number = -1)
         var next_diff_mode = (this._current_diff_mode + 1) % len(this._diffs)
-        Log(() => $'Key_diff: next_diff_mode: {next_diff_mode}')
+        i_log.Log(() => $'Key_diff: next_diff_mode: {next_diff_mode}')
         this.Diff(next_diff_mode)
     enddef
 
     def Diffoff()
-        With(windows.Remain(), (_) => {
+        i_with.With(windows.Remain(), (_) => {
             for winnr in range(2, 2 + this._number_of_windows - 1)
                 windows.Focus(winnr)
                 var curbuffer = buffers.Current()
@@ -97,7 +95,7 @@ class Mode
     def Key_diffoff()
         # Toggle between off and previous mode.
         var next_mode: number = this._diff_off_mode
-        Log(() => printf("Key_diffoff: current_diff_mode %d,  diff_off_mode %d",
+        i_log.Log(() => printf("Key_diffoff: current_diff_mode %d,  diff_off_mode %d",
             this._current_diff_mode, this._diff_off_mode))
         this._diff_off_mode = this._current_diff_mode
         
@@ -110,7 +108,7 @@ class Mode
             return
         endif
 
-        With(windows.Remain(), (_) => {
+        i_with.With(windows.Remain(), (_) => {
             this._current_scrollbind = enabled
 
             for winnr in range(2, 2 + this._number_of_windows - 1)
@@ -141,8 +139,8 @@ class Mode
     #       Why not save it here, or in Layout above, instead of the several places M_layout_#?
     def Key_layout(diffmode: number = -1) # diffmode not used
         var next_layout = (this._current_layout + 1) % len(this._layouts)
-        Log(printf("Key_layout: id: %s, next %d, %s", this.id, next_layout, this._layouts))
-        Log(() => $'Mode: Key_layout: next_layout {next_layout}', 'layout')
+        i_log.Log(printf("Key_layout: id: %s, next %d, %s", this.id, next_layout, this._layouts))
+        i_log.Log(() => $'Mode: Key_layout: next_layout {next_layout}', 'layout')
         this.Layout(next_layout)
     enddef
 
@@ -162,29 +160,29 @@ class Mode
 
     # The default implementation of the UseHunk commands ring the bell
     def Key_use()
-        vim_extra.Bell()
+        i_extra.Bell()
     enddef
 
     def Key_use1()
-        vim_extra.Bell()
+        i_extra.Bell()
     enddef
 
     def Key_use2()
-        vim_extra.Bell()
+        i_extra.Bell()
     enddef
 
 
     def Goto_result()
-        Log(() => "Goto_result: mode: " .. current_mode.id, 'error')
+        i_log.Log(() => "Goto_result: mode: " .. current_mode.id, 'error')
     enddef
 
 
     def Activate()
-        #Log(printf("Activate: this._diffs: id: %s, %s", this.id, this._diffs))
+        #i_log.Log(printf("Activate: this._diffs: id: %s, %s", this.id, this._diffs))
         this.Layout(this._current_layout)
         this.Diff(this._current_diff_mode)
         this.Scrollbind(this._current_scrollbind)
-        Log(() => $"CURRENT_MODE: {this.id}")
+        i_log.Log(() => $"CURRENT_MODE: {this.id}")
     enddef
 
     def Deactivate()
@@ -218,7 +216,7 @@ class Mode
     enddef
 
     def Redraw_hud()
-        With(windows.Remain(), (_) => {
+        i_with.With(windows.Remain(), (_) => {
             windows.Focus(1)
 
             this.Hud_prep()
@@ -250,7 +248,7 @@ class Mode
     # return the labels for the buffers in diffmode.
     def GetDiffLabels(): list<string>
         var rc: list<string>
-        With(windows.Remain(), (_) => {
+        i_with.With(windows.Remain(), (_) => {
             for i in range(2, this._number_of_windows + 2 - 1)
                 windows.Focus(i)
                 if &diff
@@ -261,7 +259,7 @@ class Mode
         return rc
     enddef
 endclass
-Log("DEFINED: class Mode")
+# i_log.Log("DEFINED: class Mode")
 
 
 class GridMode extends Mode
@@ -282,7 +280,7 @@ class GridMode extends Mode
         this._current_layout = Setting('initial_layout_grid')
         this._current_diff_mode = Setting('initial_diff_grid')
         this._current_scrollbind = Setting('initial_scrollbind_grid')
-        Log(() => $"MODES: initial_scrollbind_grid: {this._current_scrollbind}")
+        i_log.Log(() => $"MODES: initial_scrollbind_grid: {this._current_scrollbind}")
 
         this._layouts = [ () => this.M_layout_0(), () => this.M_layout_1(),
                             () => this.M_layout_2() ]
@@ -427,7 +425,7 @@ class GridMode extends Mode
     def M_key_use_0(target: number)
         var targetwin = target == 1 ? 3 : 4
 
-        With(windows.Remain(), (_) => {
+        i_with.With(windows.Remain(), (_) => {
             this.Diffoff()
 
             windows.Focus(5)
@@ -441,7 +439,7 @@ class GridMode extends Mode
     def M_key_use_12(target: number)
         var targetwin = target == 1 ? 2 : 4
 
-        With(windows.Remain(), (_) => {
+        i_with.With(windows.Remain(), (_) => {
             this.Diffoff()
 
             windows.Focus(3)
@@ -507,9 +505,9 @@ class GridMode extends Mode
         endif
         var w2 = buffers.result.Winnr()
         if w2 != winnr
-            Log(() => $'mode.goto_result: winnr: {winnr}, w2: {w2}', 'error')
+            i_log.Log(() => $'mode.goto_result: winnr: {winnr}, w2: {w2}', 'error')
         endif
-        Log(() => $'mode.{this.id}.goto_result: winnr: {winnr}, w2: {w2}')
+        i_log.Log(() => $'mode.{this.id}.goto_result: winnr: {winnr}, w2: {w2}')
 
         windows.Focus(winnr)
     enddef
@@ -531,7 +529,7 @@ class GridMode extends Mode
         this._lay_second = ''
     enddef
 endclass
-Log("DEFINED: class GridMode")
+# i_log.Log("DEFINED: class GridMode")
 
 
 class LoupeMode extends Mode
@@ -540,7 +538,7 @@ class LoupeMode extends Mode
         this._current_layout = Setting('initial_layout_loupe')
         this._current_diff_mode = Setting('initial_diff_loupe')
         this._current_scrollbind = Setting('initial_scrollbind_loupe')
-        Log(() => $"MODES: 'initial_scrollbind_loupe: {this._current_scrollbind}")
+        i_log.Log(() => $"MODES: 'initial_scrollbind_loupe: {this._current_scrollbind}")
 
         this._layouts = [ () => this.M_layout_0() ]
         this._diffs = [ () => this.M_diff_0() ]
@@ -611,7 +609,7 @@ class LoupeMode extends Mode
         this._lay_second = ''
     enddef
 endclass
-Log("DEFINED: class LoupeMode")
+# i_log.Log("DEFINED: class LoupeMode")
 
 
 class CompareMode extends Mode
@@ -620,7 +618,7 @@ class CompareMode extends Mode
         this._current_layout = Setting('initial_layout_compare')
         this._current_diff_mode = Setting('initial_diff_compare')
         this._current_scrollbind = Setting('initial_scrollbind_compare')
-        Log(() => $"MODES: 'initial_scrollbind_compare: {this._current_scrollbind}")
+        i_log.Log(() => $"MODES: 'initial_scrollbind_compare: {this._current_scrollbind}")
 
         this._layouts = [ () => this.M_layout_0(), () => this.M_layout_1() ]
         this._diffs = [ () => this.M_diff_0(), () => this.M_diff_1() ]
@@ -830,7 +828,7 @@ class CompareMode extends Mode
         endif
 
         var current_diff = this._current_diff_mode
-        With(windows.Remain(), (_) => {
+        i_with.With(windows.Remain(), (_) => {
             this.M_diff_1()  # diff the windows
         })
 
@@ -857,7 +855,7 @@ class CompareMode extends Mode
         this._lay_second = this._current_buffer_second.label
     enddef
 endclass
-Log("DEFINED: class CompareMode")
+# i_log.Log("DEFINED: class CompareMode")
 
 
 class PathMode extends Mode
@@ -866,7 +864,7 @@ class PathMode extends Mode
         this._current_layout = Setting('initial_layout_path')
         this._current_diff_mode = Setting('initial_diff_path')
         this._current_scrollbind = Setting('initial_scrollbind_path')
-        Log(() => $"MODES: 'initial_scrollbind_path: {this._current_scrollbind}")
+        i_log.Log(() => $"MODES: 'initial_scrollbind_path: {this._current_scrollbind}")
 
         this._layouts = [ () => this.M_layout_0(), () => this.M_layout_1() ]
         this._diffs = [ () => this.M_diff_0(), () => this.M_diff_1(),
@@ -1015,7 +1013,7 @@ class PathMode extends Mode
         endif
 
         var current_diff = this._current_diff_mode
-        With(windows.Remain(), (_) => {
+        i_with.With(windows.Remain(), (_) => {
             this.M_diff_3()  # diff the middle and result windows
         })
 
@@ -1046,7 +1044,7 @@ class PathMode extends Mode
         this._lay_second = ''
     enddef
 endclass
-Log("DEFINED: class PathMode")
+# i_log.Log("DEFINED: class PathMode")
 
 var modes: dict<Mode> = {
     grid:    GridMode.new(),
@@ -1059,7 +1057,7 @@ lockvar 1 modes
 var current_mode: Mode
 
 export def ActivateInitialMode(initial_mode: string)
-    Log(() => $"INIT: inital mode: '{initial_mode}'")
+    i_log.Log(() => $"INIT: inital mode: '{initial_mode}'")
     if initial_mode != 'grid'
         i_keys.DeactivateGridBindings()
     endif
@@ -1106,12 +1104,12 @@ enddef
 def Change2Mode(modeName: string): void
     var m: Mode = modes->get(modeName, null_object)
     if m != null
-        Log(() => printf("Change2Mode: '%s' %s",  modeName, typename(m)))
+        i_log.Log(() => printf("Change2Mode: '%s' %s",  modeName, typename(m)))
         current_mode.Deactivate()
         current_mode = m
         current_mode.Activate()
     else
-        Log(() => $"Change2Mode: unknown mode '{modeName}'", 'error', true)
+        i_log.Log(() => $"Change2Mode: unknown mode '{modeName}'", 'error', true)
     endif
 enddef
 
@@ -1142,12 +1140,12 @@ const dispatch: dict<func(): void> = {
 
 export def ModesDispatch(op: string)
     if current_mode == null_object
-        Log(() => printf("NULL current_mode: %s: %s", op, current_mode.id))
+        i_log.Log(() => printf("NULL current_mode: %s: %s", op, current_mode.id))
         return
     endif
 
-    Log(() => printf('===EXECUTE COMMAND===: %s mode: %s', op, current_mode.id))
-    dispatch->get(op, () => Log("Dispatch: unknown op: " .. op, 'error', true))()
+    i_log.Log(() => printf('===EXECUTE COMMAND===: %s mode: %s', op, current_mode.id))
+    dispatch->get(op, () => i_log.Log("Dispatch: unknown op: " .. op, 'error', true))()
     UpdateHudStatus()
 enddef
 

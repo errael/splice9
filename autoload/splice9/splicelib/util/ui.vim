@@ -4,10 +4,7 @@ import '../../rlib.vim'
 const Rlib = rlib.Rlib
 
 import autoload '../../splice.vim'
-import Rlib('util/log.vim') as i_log
-
-const Log = i_log.Log
-
+import autoload Rlib('util/log.vim') as i_log
 
 # dismiss on any key
 def FilterCloseAnyKey(winid: number, key: string): bool
@@ -77,7 +74,7 @@ const E = {
 export def SplicePopup(e_idx: string, ...extra: list<any>)
     var err = E[e_idx]
     var msg = call('printf', [ err[0] ] + extra)
-    Log(msg)
+    i_log.Log(msg)
     PopupError([msg], err[ 1 : ])
 enddef
 
