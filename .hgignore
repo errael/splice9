@@ -1,5 +1,7 @@
 syntax: glob
 
+
+
 *~
 *.sw[pmno]
 *.orig
@@ -9,6 +11,18 @@ tags
 
 *.pyc
 
+syntax: rootglob
+
+release
+build
+stuff
+
+SAVE
+SAVE-py
+
+
+
+syntax: glob
 
 tests/one
 tests/two
@@ -18,6 +32,3 @@ tests/*.err
 site/index.html
 site/build
 
-syntax: rootglob
-SAVE
-SAVE-py

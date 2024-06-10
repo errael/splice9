@@ -19,8 +19,8 @@ export const hud_name = '__Splice_HUD__'
 import autoload Rlib('util/log.vim') as i_log
 import autoload Rlib('util/with.vim') as i_with
 import autoload Rlib('util/strings.vim') as i_strings
-import autoload './util/keys.vim'
-import autoload './util/ui.vim'
+import autoload './util/keys.vim' as i_keys
+import autoload './util/ui.vim' as i_ui
 import autoload './util/windows.vim'
 import autoload '../splice.vim'
 import autoload './modes.vim' as i_modes
@@ -37,19 +37,13 @@ var hl_rollover: string = splice.hl_rollover
 var hl_active: string   = splice.hl_active
 var hl_diff: string     = splice.hl_diff
 
-const Log = i_log.Log
-
 if exists('&mousemoveevent')
     &mousemoveevent = true
 endif
 
-const With = i_with.With
-type ModifyBufEE  = i_with.ModifyBufEE 
 const Pad = i_strings.Pad
 const Replace = i_strings.Replace
 const ReplaceBuf = i_strings.ReplaceBuf
-const MappingsList = keys.MappingsList
-const AddSeparators = keys.AddSeparators
 
 # The HUD is made up of 3 lines and 3 sections:
 #
@@ -138,7 +132,7 @@ def ExecuteCommand(cmd: string, id: number)
     var splice_cmd = 'Splice' .. cmd
     var Flocal = local_ops->get(splice_cmd, null_function)
     if Flocal != null
-        Log(() => '===EXECUTE LOCAL UI===: ' .. splice_cmd)
+        i_log.Log(() => '===EXECUTE LOCAL UI===: ' .. splice_cmd)
         Flocal()
     else
         i_modes.ModesDispatch(splice_cmd)
@@ -570,11 +564,11 @@ def HighlightDiffLabelsInLayout(labels: list<string>)
                 props.length = len(label)
                 prop_add(line, col, props)
             else
-                Log(() => printf("DiffLabel '%s' wrong area %d,%d",
+                i_log.Log(() => printf("DiffLabel '%s' wrong area %d,%d",
                     label, line, col), 'error')
             endif
         else
-            Log(() => printf("DiffLabel '%s' not found", label), 'error')
+            i_log.Log(() => printf("DiffLabel '%s' not found", label), 'error')
         endif
     endfor
 enddef
@@ -654,10 +648,10 @@ export def UpdateHudStatus()
     var diffs = splice.GetDiffLabels()              # bounce HACK
     var bnr = hudbnr
     #var bnr = _bnr ?? bufnr(hud_name)
-    With(windows.Remain(), (_) => {
+    i_with.With(windows.Remain(), (_) => {
         windows.Focus(bufwinnr(bnr))
-        With(ModifyBufEE.new(bnr), (_) => {
-            Log(() => printf("UpdateHudStatus: bnr %d, [diff, sbind]: %s, diffs: %s",
+        i_with.With(i_with.ModifyBufEE.new(bnr), (_) => {
+            i_log.Log(() => printf("UpdateHudStatus: bnr %d, [diff, sbind]: %s, diffs: %s",
                 bnr, status, diffs))
 
             var status_char = status[0] ? '*' : ' '
@@ -678,7 +672,7 @@ export def DrawHUD(mode: string, layout: number,
         vari_files: list<string>)
 
     var bnr = bufnr(hud_name)
-    Log(() => printf("DrawHUD: mode: '%s', layout %d, vari_files %s, bnr %d",
+    i_log.Log(() => printf("DrawHUD: mode: '%s', layout %d, vari_files %s, bnr %d",
         mode, layout, vari_files, bnr))
 
     if bnr < 0
@@ -698,7 +692,7 @@ export def DrawHUD(mode: string, layout: number,
     InitHudBuffer()
     var hud_lines = BuildHud(mode, layout, vari_files)
 
-    With(ModifyBufEE.new(hudbnr), (_) => {
+    i_with.With(i_with.ModifyBufEE.new(hudbnr), (_) => {
         setline(1, hud_lines)
     })
 
@@ -730,7 +724,7 @@ def HudActionsPropertiesAndHighlights(mode: string, bnr: number)
         actions->extend(hunk_action2)   # two 'use' actions for 'grid'
     else
         # not Grid, UseHunk replace UseHunk1, erase UseHunk2
-        With(ModifyBufEE.new(bnr), (_) => {
+        i_with.With(i_with.ModifyBufEE.new(bnr), (_) => {
             # blank, or change the name, of the first use item
             var tmp = hunk_action2[u_h1]
             if mode == 'loupe'      # no action for 'loupe'
@@ -858,7 +852,7 @@ export def CreateCurrentMappings(): list<string>
     act_keys->add('id')
     mappings->add('shortcut')
     #AddBlanks()
-    for mappings_item in MappingsList()->AddSeparators(() => [])
+    for mappings_item in i_keys.MappingsList()->i_keys.AddSeparators(() => [])
         if !! mappings_item
             var [ act_key, mings, dflt ] = mappings_item
             var first_ming = true
@@ -891,6 +885,6 @@ enddef
 
 def DisplayCommandsPopup()
     var text = CreateCurrentMappings()
-    ui.PopupMessage(text, 'Shortcuts (Splice9 ' .. splice9_string_version .. ')', 1)
+    i_ui.PopupMessage(text, 'Shortcuts (Splice9 ' .. splice9_string_version .. ')', 1)
 enddef
 

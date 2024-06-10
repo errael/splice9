@@ -1,31 +1,31 @@
 vim9script
 
-#   If the directory "raelity" exists in the same directory as this file
-#   then use it as raelity vim lib; otherwise use the autoload directory.
-
-# for example: "import Rlib('util/strings')"
+#
+# Return the full path to use for an import from raelity lib.
+# All raelity lib imports should use this function.
+# For example do: "import Rlib('util/strings')"
+#
 export def Rlib(raelity_autoload_fname: string): string
-    return base_lib_dir .. '/' .. raelity_autoload_fname
+    return rlib_dir .. '/' .. raelity_autoload_fname
 enddef
 
-# First look for lib packaged with splice9: autoload/splice9/raelity.
-var base_lib_dir: string = fnamemodify(
-    getscriptinfo(
-        {sid: str2nr(matchstr(expand('<SID>'), '\v\d+'))}
-    )[0].name, ':p:h') .. '/rlib/autoload/raelity'
+var rlib_dir: string
 
-### echomsg '(1)' base_lib_dir
-### echomsg '(2)' Rlib('config.vim')
+echomsg '(1)' getscriptinfo({sid: str2nr(matchstr(expand('<SID>'), '\v\d+'))})[0].name    
 
+#   Find the full path of the "raelity" lib for use in import statements.
+#   First check if the library is included with splice9, then try autoload.
+#   Use the path from the imported config.vim for the rlib imports.
 try 
-    ### echomsg 'About to import ' Rlib('config.vim')
-    # The following import throws if not a local raelity vim lib.
-    import Rlib('config.vim')
+    # First check if the lib is packaged with splice9:
+    # Import throws if not a local raelity vim lib.
+    import './rlib/autoload/raelity/config.vim'
+    # TODO???: import rlib_dir .. '/config.vim'
+
     # Use the absolute real path (not a possible symbolic link)
-    base_lib_dir = config.lib_dir
-    ### echomsg '(3) raelities lib_dir:' base_lib_dir
-    lockvar base_lib_dir
-    ### echomsg 'base_libdir:' base_lib_dir
+    rlib_dir = config.lib_dir
+    echomsg '(2) raelity''s rlib_dir:' rlib_dir
+    lockvar rlib_dir
     finish
 catch /E1053/
     echomsg v:exception
@@ -33,11 +33,17 @@ catch /E1053/
     echomsg 'NOT PACKAGED WITH LIB'
 endtry
 
+#&runtimepath->split(',')->sort()->foreach((_, v) => {
+#    echom v
+#})
+
+##### DEBUG
 #set runtimepath^=/src/lib/vim
 set runtimepath-=/src/lib/vim
+#####
 
-import autoload 'raelity/config.vim' as r_config
-base_lib_dir = r_config.lib_dir
-lockvar base_lib_dir
+import autoload 'raelity/config.vim'
+rlib_dir = config.lib_dir
+lockvar rlib_dir
 
-### echomsg 'base_libdir:' base_lib_dir
+echomsg '(3) rlib_dir:' rlib_dir

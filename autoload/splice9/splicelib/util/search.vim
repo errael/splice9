@@ -1,13 +1,6 @@
 vim9script
 
-import '../../rlib.vim'
-const Rlib = rlib.Rlib
-
-#import autoload Rlib('util/log.vim')
-#var SplicePopup = log.SplicePopup
-
-import autoload './ui.vim'
-const SplicePopup = ui.SplicePopup
+import autoload './ui.vim' as i_ui
 
 var debug = false
 
@@ -97,7 +90,7 @@ export def MoveToConflict(forw: bool = true)
     # the next/prev conflict
     var lino = search(CONFLICT_PATTERN, flags)
     if lino == 0
-        SplicePopup('ENOCONFLICT')
+        i_ui.SplicePopup('ENOCONFLICT')
         return
     endif
     #log.Log('cur_conf ids before:' .. string(id_cur_conflict))
