@@ -23,23 +23,9 @@ enddef
 
 export def Close_all()
     Focus(1)
-    :only
-enddef
-
-export def Split()
-    :split
-enddef
-
-export def Vsplit()
-    :vsplit
-enddef
-
-export def Currentnr(): number
-    return winnr()
-enddef
-
-export def Pos(): list<number>
-    return getpos('.')
+    if getwininfo()->len() > 1
+        :only
+    endif
 enddef
 
 export def Remain(): i_with.WithEE

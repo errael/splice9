@@ -180,10 +180,12 @@ var setting_info = {
     hl_command:                 [ ValidHlRef, 'SpliceCommand' ],
     hl_rollover:                [ ValidHlRef, 'Pmenu' ],
     hl_active:                  [ ValidHlRef, 'Keyword' ],
+    hl_diff:                    [ ValidHlRef, 'DiffChange' ],
     hl_alert_popup:             [ ValidHlRef, 'Pmenu' ],
     hl_popup:                   [ ValidHlRef, 'ColorColumn' ],
-    hl_diff:                    [ ValidHlRef, 'DiffChange' ],
     hl_heading:                 [ ValidHlRef, 'SpliceUnderline' ],
+    hl_conflict:                [ ValidHlRef, 'SpliceConflict' ],
+    hl_cur_conflict:            [ ValidHlRef, 'SpliceCConflict' ],
 
     # logging validation/init is handled before settings initialization
     log_enable:                 [ [ 0, 1, false, true ], false ],

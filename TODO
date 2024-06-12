@@ -1,18 +1,34 @@
 TODO:   In search.vim get rid of "var use_props". Also "debug"?
+        CAN'T DO THIS until props can override diff coloration
+        Diff highlighing not replaced by text property highlighting when combine false
+        https://github.com/vim/vim/issues/14966
+
+TODO:   Higlight interactions with vim's diff mode.
+        Query vim to find out buffer-line/window-line correspondence
+        for conflict display across all windows. Other uses?
+
+
 
 TODO:   When searching for conflicts look only between <<<<,>>>>.
         Build a structure for conflict {start,end,marker}.
 TODO:   Play with how can take both sides
 
-TODO:   zipit: copy stuff to separate directory, remove ".fn*" and "*~" files.
 
-TODO:   doc logging
-        the log file is never trunctated, persists, grows without limit
+
+TODO:   <M-n>,<M-N> highlight conflict in all windows?
+        UI
+
+TODO:   Use construct like: buffers.result.winnr (NOTE: the -1)
+        Make winnr a property rather than function?
+
+TODO:   Understand scrollbind,syncbind,scrollopt
+        'diff' mode, diff.txt
+
+=== Do the other premerge options work? keep-merge3, keep-mergediff
+
+===========  UI  ===========
 
 TODO:   option to disable mouse/rollover
-
-TODO:   If not vim9script, map SpliceInit (or whatever) to no vim9 message.
-        Or, make message clear that the plugin should be removed?
 
 TODO:   Baloon popup when hover over a command?
 
@@ -24,42 +40,18 @@ TODO:   Shortcut as button with list and popup when hover?
             In some cases, rather than loading that file into window,
             it switches to the window named.
 
-TODO:   Higlight interactions with vim's diff mode.
-        Query vim to find out buffer-line/window-line correspondence
-        for conflict display across all windows. Other uses?
+TODO:   If not vim9script, map SpliceInit (or whatever) to no vim9 message.
+        Or, make message clear that the plugin should be removed?
 
-TODO:   In keys.vim, GetMapping() return null not ''
+=========== DOC  ===========
 
-TODO:   Use construct like: buffers.result.winnr (NOTE: the -1)
-        Make winnr a property rather than method?
+TODO:   doc logging
+        the log file is never trunctated, persists, grows without limit
 
-TODO:   Add help tag 'Splice' *before* the table of contents
-
-TODO:   search.vim
-        Do HighlightConflict at very beginning.
-        Handle it separately from NextHightlight.
-        Get rid of 'use_props', it's always true.
-        Check'debug', may no longer be meaningful as used.
-
-TODO:   show conflicts on startup?
-
-TODO:   Understand scrollbind,syncbind,scrollopt
-        'diff' mode, diff.txt
-
-TODO:   <M-n>,<M-N> highlight conflict in all windows
+=========== DONE ===========
 
 DONE:   boolsetting bug, BUT: see comment with defaults in splice.vim
-
-TODO:   The help has 'splice_initial_diff_*' never referenced.
-        What are they?
-
-=== Do the other premerge options work? keep-merge3, keep-mergediff
-
-=== If vim version or python problem,
-    execute (or option) :cq when popup dismissed
-
-=== boolsetting bug, see comment with defaults in splice.vim
-
+    === boolsetting bug, see comment with defaults in splice.vim
 
 
 =============================

@@ -32,7 +32,6 @@ export class Buffer
             # execute string(winnr) .. 'wincmd w'
         endif
         if this.bufnr >= 0
-            #execute string(this.bufnr) .. 'buffer'
             # TODO: get rid of "execute"
             execute 'buffer' this.bufnr
         endif

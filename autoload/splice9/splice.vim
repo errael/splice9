@@ -1,9 +1,7 @@
 vim9script
 
-# test_override('autoload', 1)
-# test_override('defcompile', 1)
-
-echomsg 'ABOUT TO IMPORT'
+#test_override('autoload', 1)
+#test_override('defcompile', 1)
 
 import './rlib.vim'
 const Rlib = rlib.Rlib
@@ -20,7 +18,7 @@ const Rlib = rlib.Rlib
 # import keys.vim, without "as", causes keys() usage to get an error
 import autoload './splicelib/util/keys.vim' as i_keys
 import autoload Rlib('util/log.vim') as i_log
-import autoload './splicelib/util/search.vim'
+import autoload './splicelib/util/search.vim' as i_search
 import autoload './splicelib/hud.vim'
 import autoload './splicelib/init.vim' as i_init
 import autoload './splicelib/settings.vim'
@@ -40,15 +38,20 @@ def InitHighlights()
     export const hl_command     = settings.Setting('hl_command')
     export const hl_rollover    = settings.Setting('hl_rollover')
     export const hl_active      = settings.Setting('hl_active')
+    export const hl_diff        = settings.Setting('hl_diff')
     export const hl_alert_popup = settings.Setting('hl_alert_popup')
     export const hl_popup       = settings.Setting('hl_popup')
-    export const hl_diff        = settings.Setting('hl_diff')
     export const hl_heading     = settings.Setting('hl_heading')
+    export const hl_conflict    = settings.Setting('hl_conflict')
+    export const hl_cur_conflict = settings.Setting('hl_cur_conflict')
 enddef
 
 highlight SpliceCommand term=bold cterm=bold gui=bold
 highlight SpliceLabel term=underline ctermfg=6 guifg=DarkCyan
 highlight SpliceUnderline term=underline cterm=underline gui=underline
+
+highlight link SpliceConflict CursorColumn
+highlight link SpliceCConflict Todo
 
 # Some startup peculiarities
 #       - The function "SpliceBoot" is caled only to load this file
@@ -185,6 +188,7 @@ def SpliceInit9()
     i_log.Log('starting splice')
 
     i_init.Init()
+    i_search.HighlightConflict()
 enddef
 
 

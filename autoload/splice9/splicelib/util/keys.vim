@@ -87,8 +87,9 @@ export def AddSeparators(l: list<any>, FSep: func): list<any>
     return l
 enddef
 
-# would like to return null, but string can't be null
-# TODO: string can be null now, be careful if you want to change it
+# Return the mapping for the key, or an empty string if no mapping.
+# NOTE: originally want to return null if no mapping, but the null_string
+#       stuff is such a mess.
 def GetMapping(key: string): string
     # if a command is explicitly mapped, then return it's mapping
     var mapping = i_settings.config_dict->get('bind_' .. key, null)
@@ -153,8 +154,16 @@ enddef
 # ['UseHunk1', ['<M-u><M-1>'], 'u1'], ['UseHunk2', ['<M-u><M-2>'], 'u2'],
 #     ['UseHunk', ['<M-u>'], 'u']]
 
-const FilterSpliceMap = i_mm_filter.MapModeFilterExpr(
-    'n', "m['rhs'] =~ '^<ScriptCmd>i_modes\.ModesDis'")
+var FilterSpliceMap: func
+def GetFilterSpliceMap(): func
+    if FilterSpliceMap == null
+        i_log.Log('***** CREATE FILTER SPLICE MAP *****')
+        FilterSpliceMap = i_mm_filter.MapModeFilterExpr(
+            'n', "m['rhs'] =~ '^<ScriptCmd>i_modes\.ModesDis'")
+        lockvar FilterSpliceMap
+    endif
+    return FilterSpliceMap
+enddef
 
 # Return list of mappings
 export def MappingsList(): list<any>
@@ -163,7 +172,7 @@ export def MappingsList(): list<any>
     for k in actions_info->keys()
         mappings[k] = []
     endfor
-    for [k, v] in maplist()->filter(FilterSpliceMap)
+    for [k, v] in maplist()->filter(GetFilterSpliceMap())
             ->map((i, m) => MappingPair(m['rhs'], m['lhs']))
         # only include known splice commands
         #i_log.Log(() => printf("MappingPair() '%s' '%s'", k, v))
