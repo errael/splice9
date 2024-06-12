@@ -1,5 +1,7 @@
 vim9script
 
+var rlib_dir: string
+
 #
 # Return the full path to use for an import from raelity lib.
 # All raelity lib imports should use this function.
@@ -9,9 +11,7 @@ export def Rlib(raelity_autoload_fname: string): string
     return rlib_dir .. '/' .. raelity_autoload_fname
 enddef
 
-var rlib_dir: string
-
-echomsg '(1)' getscriptinfo({sid: str2nr(matchstr(expand('<SID>'), '\v\d+'))})[0].name    
+#echomsg '(1)' getscriptinfo({sid: str2nr(matchstr(expand('<SID>'), '\v\d+'))})[0].name    
 
 #   Find the full path of the "raelity" lib for use in import statements.
 #   First check if the library is included with splice9, then try autoload.
@@ -24,13 +24,13 @@ try
 
     # Use the absolute real path (not a possible symbolic link)
     rlib_dir = config.lib_dir
-    echomsg '(2) raelity''s rlib_dir:' rlib_dir
+    #echomsg '(2) raelity''s rlib_dir:' rlib_dir
     lockvar rlib_dir
     finish
 catch /E1053/
-    echomsg v:exception
-    echomsg v:throwpoint
-    echomsg 'NOT PACKAGED WITH LIB'
+    #echomsg v:exception
+    #echomsg v:throwpoint
+    #echomsg 'NOT PACKAGED WITH LIB'
 endtry
 
 #&runtimepath->split(',')->sort()->foreach((_, v) => {
@@ -46,4 +46,4 @@ import autoload 'raelity/config.vim'
 rlib_dir = config.lib_dir
 lockvar rlib_dir
 
-echomsg '(3) rlib_dir:' rlib_dir
+#echomsg '(3) rlib_dir:' rlib_dir

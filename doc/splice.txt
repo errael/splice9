@@ -14,7 +14,7 @@
                        like Mercurial, Git and Bazaar.
 
 ==============================================================================
-CONTENTS                                                     *Splice-contents*
+CONTENTS                                            *Splice* *Splice-contents*
 
     1. Version Control Integration ............... |SpliceVCS|
         1.1 Mercurial ............................ |SpliceVCS_hg|
@@ -691,18 +691,20 @@ Default: ""
 ------------------------------------------------------------------------------
 5.21 g:splice_config.hl_<highlight>                  *SpliceConfig_highlights*
 
-Splice9 uses several highlights. They can be configured.
+Splice9 uses several highlights. They can be configured. Most are in the HUD.
 The highlights, their defaults and description are >
 
-        hl_label         'SpliceLabel'      3 region labels in HUD
-        hl_sep           'SpliceLabel'      region separators in HUD
-        hl_command       'SpliceCommand'    clickable commands in HUD
-        hl_rollover      'Pmenu'            command highlight when mouse over
-        hl_active        'Keyword'          active mode in Splice Modes region
-        hl_alert_popup   'Pmenu'            popup when problem encountered
+        hl_label         'SpliceLabel'      3 region labels                HUD
+        hl_sep           'SpliceLabel'      region separators              HUD
+        hl_command       'SpliceCommand'    clickable commands             HUD
+        hl_rollover      'Pmenu'            mouse over commands            HUD
+        hl_active        'Keyword'          active mode              Modes-HUD
+        hl_diff          'DiffChange'       participates in diff    Layout-HUD
+        hl_alert_popup   'Pmenu'            problem popup                  
         hl_popup         'ColorColumn'      info popup, like shortcuts
-        hl_diff          'DiffChange'       diff highlight when diffs on
-        hl_heading       'SpliceUnderline'  heading, see use in shortcut popup
+        hl_heading       'SpliceUnderline'  popup heading, like shortcuts
+        hl_conflict      'SpliceConflict'   conflict marker
+        hl_cur_conflict  'SpliceCConflict'  current conflict marker
 
 For example: >
     let g:splice_config.hl_label = 'WildMenu'
@@ -713,6 +715,7 @@ Options: Any valid highlight
 
 *Note: Bring up the shortcut popup by clicking on "Splice Commands:" at the
        top of the screen.
+*Note: SpliceConflict link CursorColumn, SpliceCConflict link Todo
 
 ==============================================================================
 6. License                                                     *SpliceLicense*

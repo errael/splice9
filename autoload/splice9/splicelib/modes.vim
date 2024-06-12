@@ -13,9 +13,6 @@ import autoload Rlib('util/with.vim') as i_with
 import autoload './util/keys.vim' as i_keys
 import autoload './util/search.vim' as i_search
 
-export def ForceLoad()
-enddef
-
 const buffers = i_bufferlib.buffers
 const nullBuffer = i_bufferlib.nullBuffer
 type Buffer = i_bufferlib.Buffer
@@ -208,7 +205,7 @@ class Mode
     # so don't Redraw_hud here.
     def Open_hud(winnr: number)
         # TODO: inline window commands?
-        windows.Split()
+        :split
         windows.Focus(winnr)
         buffers.hud.Open()
         :wincmd K
@@ -293,10 +290,10 @@ class GridMode extends Mode
 
         # Open the layout
         windows.Close_all()
-        windows.Split()
-        windows.Split()
+        :split
+        :split
         windows.Focus(2)
-        windows.Vsplit()
+        :vsplit
 
         # Put the buffers in the appropriate windows
         windows.Focus(1)
@@ -322,8 +319,8 @@ class GridMode extends Mode
 
         # Open the layout
         windows.Close_all()
-        windows.Vsplit()
-        windows.Vsplit()
+        :vsplit
+        :vsplit
 
         # Put the buffers in the appropriate windows
         windows.Focus(1)
@@ -346,8 +343,8 @@ class GridMode extends Mode
 
         # Open the layout
         windows.Close_all()
-        windows.Split()
-        windows.Split()
+        :split
+        :split
 
         # Put the buffers in the appropriate windows
         windows.Focus(1)
@@ -651,7 +648,7 @@ class CompareMode extends Mode
 
         # Open the layout
         windows.Close_all()
-        windows.Vsplit()
+        :vsplit
 
         # Put the buffers in the appropriate windows
         windows.Focus(1)
@@ -671,7 +668,7 @@ class CompareMode extends Mode
 
         # Open the layout
         windows.Close_all()
-        windows.Split()
+        :split
 
         # Put the buffers in the appropriate windows
         windows.Focus(1)
@@ -707,7 +704,7 @@ class CompareMode extends Mode
             this.Redraw_hud()
         enddef
 
-        var curwindow = windows.Currentnr()
+        var curwindow = winnr()
         if curwindow == 1
             curwindow = 2
         endif
@@ -757,7 +754,7 @@ class CompareMode extends Mode
             this.Redraw_hud()
         enddef
 
-        var curwindow = windows.Currentnr()
+        var curwindow = winnr()
         if curwindow == 1
             curwindow = 2
         endif
@@ -934,8 +931,8 @@ class PathMode extends Mode
 
         # Open the layout
         windows.Close_all()
-        windows.Vsplit()
-        windows.Vsplit()
+        :vsplit
+        :vsplit
 
         # Put the buffers in the appropriate windows
         windows.Focus(1)
@@ -958,8 +955,8 @@ class PathMode extends Mode
 
         # Open the layout
         windows.Close_all()
-        windows.Split()
-        windows.Split()
+        :split
+        :split
 
         # Put the buffers in the appropriate windows
         windows.Focus(1)
@@ -1077,19 +1074,19 @@ export def GetDiffLabels(): list<string>
     return current_mode.GetDiffLabels()
 enddef
 
-export def Key_grid()
+def Key_grid()
     Change2Mode('grid')
 enddef
 
-export def Key_loupe()
+def Key_loupe()
     Change2Mode('loupe')
 enddef
 
-export def Key_compare()
+def Key_compare()
     Change2Mode('compare')
 enddef
 
-export def Key_path()
+def Key_path()
     Change2Mode('path')
 enddef
 
