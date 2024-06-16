@@ -60,10 +60,11 @@ enddef
 
 def Setlocal_fixed_buffer(b: Buffer, filetype: string)
     b.Open()
+    # the following are buffer local
     &swapfile = false
     &modifiable = false
     &filetype = filetype
-    i_settings.Init_cur_window_wrap()
+    Init_cur_window_wrap()
 enddef
 
 def Setlocal_buffers()
@@ -75,7 +76,17 @@ def Setlocal_buffers()
     Setlocal_fixed_buffer(buffers.two, filetype)
 
     buffers.result.Open()
-    i_settings.Init_cur_window_wrap()
+    Init_cur_window_wrap()
+enddef
+
+# NOTE: This was in init.vim, import hell.
+#       Seems to actually belong here anyway.
+export def Init_cur_window_wrap()
+    var setting = i_settings.Setting('wrap')
+    if setting != null
+        &wrap = setting == 'wrap' ? true : false
+        i_log.Log(() => printf("winnr %d, &wrap set to %s", winnr(), &wrap), 'setting')
+    endif
 enddef
 
 export def Init()

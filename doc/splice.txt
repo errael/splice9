@@ -701,8 +701,8 @@ The highlights, their defaults and description are >
         hl_active        'Keyword'          active mode              Modes-HUD
         hl_diff          'DiffChange'       participates in diff    Layout-HUD
         hl_alert_popup   'Pmenu'            problem popup                  
-        hl_popup         'ColorColumn'      info popup, like shortcuts
-        hl_heading       'SpliceUnderline'  popup heading, like shortcuts
+        hl_popup         'ColorColumn'      info popup, like for shortcuts
+        hl_heading       'SpliceUnderline'  popup heading, like for shortcuts
         hl_conflict      'SpliceConflict'   conflict marker
         hl_cur_conflict  'SpliceCConflict'  current conflict marker
 

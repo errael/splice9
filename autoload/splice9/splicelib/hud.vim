@@ -19,14 +19,10 @@ export const hud_name = '__Splice_HUD__'
 import autoload Rlib('util/log.vim') as i_log
 import autoload Rlib('util/with.vim') as i_with
 import autoload Rlib('util/strings.vim') as i_strings
-import autoload './util/keys.vim' as i_keys
-import autoload './util/ui.vim' as i_ui
 import autoload './util/windows.vim'
 import autoload '../splice.vim'
 import autoload './modes.vim' as i_modes
-
-import "../../../plugin/splice.vim" as i_plugin
-const splice9_string_version = i_plugin.splice9_string_version 
+import autoload './popups.vim' as i_popups
 
 # highlights used on the HUD and in its text properties
 
@@ -41,6 +37,7 @@ if exists('&mousemoveevent')
     &mousemoveevent = true
 endif
 
+# Might as well load strings right away
 const Pad = i_strings.Pad
 const Replace = i_strings.Replace
 const ReplaceBuf = i_strings.ReplaceBuf
@@ -83,14 +80,18 @@ const label_modes = 'Splice Modes:'
 const label_layout = 'Layout:'
 const label_commands = 'Splice Commands:'
 
-const local_commands_popup = 'DisplayCommandsPopup'
+const local_commands = [ 'DisplayCommandsPopup', 'DiffOptionsPopup' ]
 
+var command_display_names: dict<string> = {}
 #
 # There are local_cmds, these are ui related
 # and handled within the HUD.
 #
 const local_ops: dict<func> = {
-    ['Splice' .. local_commands_popup]: () => call(local_commands_popup, [])
+    ['Splice' .. local_commands[0]]:
+        () => call('i_popups.' .. local_commands[0], [command_display_names]),
+    ['Splice' .. local_commands[1]]:
+        () => call(local_commands[1], [])
 }
 
 #
@@ -193,12 +194,18 @@ def ActionsByIndex(): list<string>
     return command_actions
 enddef
 # [ 'cycle diffs', 'next conflict', ... ]
-var command_display_names: dict<string>
 
-# Extract the button outlines from command_display (extracting 1 and 3 but...)
+var commands_section_top =<< EOF
+Splice Modes:             Diff Options                     u0:  use both
+AAAAAAAAAAAAA             BBBBBBBBBBBB                     ZZZZZZZZZZZZZ
+EOF
+
+# Extract the button outlines from command_display.
+# Extracting 1 and 3 but when 1 is extracted, 3 becomes index 2.
 var command_markers = [ command_display->remove(1) ]
     ->add(command_display->remove(2))
-command_display->insert(label_commands)->Pad()
+# add some specials to the top line
+command_display->insert(commands_section_top[0])->Pad()
 lockvar! command_display
 lockvar! command_markers
 lockvar! command_actions
@@ -352,28 +359,21 @@ def BuildBaseActions(): dict<list<number>>
     var line = 2
     for m in command_markers
         start = 0
-        while true
-            # result is button boundaries for highlight/rollover.
-            var result = matchstrpos(m,
-                '\v(A+)|(B+)|(C+)|(D+)|(E+)|(F+)|(G+)', start)
-            if result[1] == -1 | break | endif
-
+        for bbound in FindButtonBoundaries(m)
             var actKey = command_action_keys[cmd_idx]
-
             # 1 - Extract displayed command names, discard like: "u1: "
-            var t = command_display[line - 1]->slice(result[1], result[2])
+            var t = command_display[line - 1]->slice(bbound[1], bbound[2])
             command_display_names[actKey] = matchlist(t, '\v.*:\s+(.*)')[1]
 
             # 2 - Create actions button parameters for text propertiess
             # Add one to make the column values 1 based.
             t_actions[actKey] = [ line,
-                actions_offset + result[1] + 1,
-                actions_offset + result[2] + 1,
+                actions_offset + bbound[1] + 1,
+                actions_offset + bbound[2] + 1,
                 AddActionPropId(actKey) ]
 
-            start = result[2]
             cmd_idx += 1
-        endwhile
+        endfor
         line += 1
     endfor
 
@@ -457,6 +457,20 @@ def AddHeaderProps(d: dict<any> = null_dict)
     did_action_props = true
 enddef
 
+def FindButtonBoundaries(input: string): list<list<any>>
+    var ret: list<list<any>>
+    var start = 0
+    while true
+        # bbound is button boundaries for highlight/rollover.
+        var bbound = matchstrpos(input,
+            '\v(A+)|(B+)|(C+)|(D+)|(E+)|(F+)|(G+)', start)
+        if bbound[1] == -1 | break | endif
+        ret->add(bbound)
+        start = bbound[2]
+    endwhile
+    return ret
+enddef
+
 # StartupInit doesn't depend on hudbnr.
 # This is only done once during startup
 var did_init_1 = false
@@ -486,10 +500,16 @@ def StartupInit()
     command_display_names[u_h] = matchlist(u_h_name, '\v.*:\s+(.*)')[1]
 
     # add some local UI commands
-    base_actions[local_commands_popup] = [ 1,
-        actions_offset + 1,
-        actions_offset + 1 + label_commands->len(),
-        AddActionPropId(local_commands_popup) ]
+    var cmd_idx = 0
+    for bbound in FindButtonBoundaries(commands_section_top[1])
+        var actKey = local_commands[cmd_idx]
+        base_actions[actKey] = [ 1,
+            actions_offset + bbound[1] + 1,
+            actions_offset + bbound[2] + 1,
+            AddActionPropId(actKey) ]
+        echom base_actions[actKey]
+        cmd_idx += 1
+    endfor
 
     lockvar! base_actions
     lockvar! hunk_action2
@@ -498,6 +518,7 @@ def StartupInit()
     lockvar! actions_ids
 
     did_init_1 = true
+    lockvar did_init_1
 enddef
 
 ################################################################
@@ -756,6 +777,36 @@ enddef
 
 ################################################################
 #
+# Diff Options
+#
+
+# This is a modal dialog, nothing happens until it's closed
+
+var winid_props: number
+def DiffOptionsPopup()
+    if winid_props != 0
+        # IMPOSSIBLE
+        # TODO: log something, popup error dialog
+        # TODO: close the popup
+        return
+    endif
+    winid_props = i_popups.DisplayDiffOptsPopup()
+    popup_setoptions(winid_props, { callback: PropertyDialogClosing })
+enddef
+
+def PropertyDialogClosing(winid: number, result_NOTUSED: any): void
+    var enabled_props = i_popups.GetCheckedProperties(winid)
+    #
+    # TODO: handle "wrap" specially
+    # take it out of the list and ....
+    #
+    echom 'RESULT:' enabled_props
+    echom enabled_props->join(',')
+    winid_props = 0
+enddef
+
+################################################################
+#
 # Mouse rollover/click
 # Interactive
 #
@@ -828,63 +879,5 @@ enddef
 def RefreshMouseCache()
     current_hud_rollover = null_string
     Move()
-enddef
-
-# for displaying mappings in a popup
-export def CreateCurrentMappings(): list<string>
-    # create a separate list for each column
-    var act_keys: list<string>
-    var defaults: list<string>
-    var mappings: list<string>
-    var act_names: list<string>
-    def AddBlanks(blank_mapping = true)
-        defaults->add('')
-        act_names->add('')
-        act_keys->add('')
-        if blank_mapping
-            mappings->add('')
-        endif
-    enddef
-
-    # ['Grid', ['<M-x>', '<M-g>'], 'g']
-    defaults->add('default')
-    act_names->add('command')
-    act_keys->add('id')
-    mappings->add('shortcut')
-    #AddBlanks()
-    for mappings_item in i_keys.MappingsList()->i_keys.AddSeparators(() => [])
-        if !! mappings_item
-            var [ act_key, mings, dflt ] = mappings_item
-            var first_ming = true
-            for ming in mings
-                mappings->add(ming)
-                if first_ming
-                    act_keys->add(act_key)
-                    defaults->add(dflt)
-                    act_names->add("'" .. command_display_names[act_key] .. "'")
-                else
-                    AddBlanks(false)
-                endif
-                first_ming = false
-            endfor
-        else
-            AddBlanks()
-        endif
-    endfor
-    defaults->Pad('r')
-    act_names->Pad('l')
-    act_keys->Pad('r')
-    mappings->Pad('l')
-    var ret: list<string>
-    for i in range(len(mappings))
-        ret->add(printf("%s %s %s   %s",
-            defaults[i], act_names[i], act_keys[i], mappings[i]))
-    endfor
-    return ret
-enddef
-
-def DisplayCommandsPopup()
-    var text = CreateCurrentMappings()
-    i_ui.PopupMessage(text, 'Shortcuts (Splice9 ' .. splice9_string_version .. ')', 1)
 enddef
 
