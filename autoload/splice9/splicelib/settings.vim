@@ -36,16 +36,6 @@ export def Setting(key: string): any
     return config_dict->get(key)
 enddef
 
-# NOTE: This was in init.vim, import hell.
-#       Seems to actually belong here anyway.
-export def Init_cur_window_wrap()
-    var setting = Setting('wrap')
-    if setting != null
-        &wrap = setting == 'wrap' ? true : false
-        i_log.Log(() => printf("winnr %d, &wrap set to %s", winnr(), &wrap), 'setting')
-    endif
-enddef
-
 var settings_errors: list<string>
 
 # Assume VAL already quoted by string() method.

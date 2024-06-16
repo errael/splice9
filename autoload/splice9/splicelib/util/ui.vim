@@ -12,35 +12,80 @@ def FilterCloseAnyKey(winid: number, key: string): bool
     return true
 enddef
 
-prop_type_add('popupheading', {highlight: splice.hl_heading})
-export def PopupMessage(msg: list<string>, title: string, header_line = -1)
+export def PopupMessage(msg: list<string>, title: string, header_line = -1): number
+    return PopupMessageCommon(msg, title, header_line,
+        { close: 'click' })
+enddef
 
-    var options = {
+export def PopupProperties(msg: list<string>, title: string = '', header_line = -1,
+        tweak_options: dict<any> = null_dict): number
+    var options: dict<any> = {
+        close: 'button',
+        filter: PropertyDialogClickOrClose,
+        mapping: true,   # otherwise don't get <ScriptCmd>
+    }
+    options->extend(tweak_options)
+    return PopupMessageCommon(msg, title, header_line, options)
+enddef
+
+def PropertyDialogClickOrClose(winid: number, key: string): bool
+    if char2nr(key) == char2nr("\<ScriptCmd>")
+        return false    # wan't these handled
+    endif
+    if key == 'x' || key == "\x1b"
+        popup_close(winid)
+        return true
+    endif
+
+    return true
+enddef
+
+prop_type_add('popupheading', {highlight: splice.hl_heading})
+
+# msg - popup's buffer contents
+# title - the popup title property
+# header_line - highlight this buffer line with hl_heading
+# tweak_options - 
+def PopupMessageCommon(msg: list<string>,
+                                title: string = '',
+                                header_line: number = -1,
+                                tweak_options: dict<any> = null_dict): number
+
+    var options: dict<any> = {
         minwidth: 20,
         tabpage: -1,
         zindex: 300,
         border: [],
         padding: [1, 2, 1, 2],
         highlight: splice.hl_popup,
-        close: 'click',
         drag: 1,
+        mapping: false,
+
+        #close: 'click',
         #mousemoved: 'any', moved: 'any',
         #moved: [0, 0, 0, 0],
         #mousemoved: [0, 0, 0, 0],
-        mapping: false,
         #filter: FilterCloseAnyKey
     }
+    options->extend(tweak_options)
 
-    if len(title) > 0
+    if ! empty(title)
         options.title = ' ' .. title .. ' '
     endif
-    var outmsg = msg + [ '', '(Click on Popup to Dismiss. Drag Border.)' ]
 
-    var bnr = popup_create(outmsg, options)->winbufnr()
+    var outmsg: list<string> = msg->copy()
+    if options->get('close', '') == 'click'
+        outmsg->extend(['', '(Click on Popup to Dismiss. Drag Border.)' ])
+    endif
+
+    var winid = popup_create(outmsg, options)
+    var bnr = winid->winbufnr()
     if header_line >= 0
         prop_add(header_line, 1,
             {length: len(msg[0]), bufnr: bnr, type: 'popupheading'})
     endif
+
+    return winid
 enddef
 
 export def PopupError(msg: list<string>, other: list<any> = [])

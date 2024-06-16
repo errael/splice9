@@ -3,6 +3,7 @@ vim9script
 import '../rlib.vim'
 const Rlib = rlib.Rlib
 
+import autoload './init.vim' as i_init
 import autoload './settings.vim' as i_settings
 import autoload './hud.vim' as i_hud
 import autoload './util/windows.vim'
@@ -80,7 +81,7 @@ class Mode
                 for buffer in buffers.all
                     buffer.Open()
                     :diffoff
-                    i_settings.Init_cur_window_wrap()
+                    i_init.Init_cur_window_wrap()
                 endfor
 
                 curbuffer.Open()

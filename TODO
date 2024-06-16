@@ -1,3 +1,10 @@
+TODO:   Top window wiggle when click on diff options
+TODO:   Yellow highlight extends on "Splice Commands"
+TODO:   No shortcuts for diff options.
+TODO:   Have diff options be dynamic change as you click properties
+TODO:   To diffopts text: ("x" or ESC to Dismiss. Drag Border.)
+TODO:   Get rid of debug from popups.vim
+
 TODO:   In search.vim get rid of "var use_props". Also "debug"?
         CAN'T DO THIS until props can override diff coloration
         Diff highlighing not replaced by text property highlighting when combine false
