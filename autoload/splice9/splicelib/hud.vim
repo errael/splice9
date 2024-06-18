@@ -507,7 +507,6 @@ def StartupInit()
             actions_offset + bbound[1] + 1,
             actions_offset + bbound[2] + 1,
             AddActionPropId(actKey) ]
-        echom base_actions[actKey]
         cmd_idx += 1
     endfor
 
@@ -782,27 +781,84 @@ enddef
 
 # This is a modal dialog, nothing happens until it's closed
 
+# TODO: maybe need to precede property with '*'
+#       or something so that arbitrary text can be easily included.
+
+# g_diff_translations, after changing do "set syntax=diff"
+const diffopts: list<string> =<< trim END
+    filler
+    iblank
+    icase
+    iwhite
+    iwhiteall
+    iwhiteeol
+    followwrap
+    internal
+    indent-heuristic
+
+    wrap-all-on
+    wrap-all-off
+END
+#horizontal
+#vertical
+#closeoff
+#context:{n}
+#hiddenoff
+#foldcolumn:{n}
+#algorithm: myers minimal patience histogram
+
+const radio_btn_group_wrap_opts = [
+    'wrap-all-on', 'wrap-all-off'
+]
+
 var winid_props: number
 def DiffOptionsPopup()
+    i_popups.AddRadioBtnGroup(radio_btn_group_wrap_opts)
     if winid_props != 0
-        # IMPOSSIBLE
-        # TODO: log something, popup error dialog
-        # TODO: close the popup
+        i_log.Log(() => 'DiffOptionsPopup: ERROR: DiffOpts dialog active flag out out sync')
         return
     endif
-    winid_props = i_popups.DisplayDiffOptsPopup()
+    i_log.Log(() => printf("DiffOptionsPopup: &diffopt= '%s'", &diffopt))
+    var cur_opts: list<string> = &diffopt->split(',')
+    winid_props = i_popups.DisplayPropertyPopup(diffopts, cur_opts)
     popup_setoptions(winid_props, { callback: PropertyDialogClosing })
 enddef
 
 def PropertyDialogClosing(winid: number, result_NOTUSED: any): void
-    var enabled_props = i_popups.GetCheckedProperties(winid)
-    #
-    # TODO: handle "wrap" specially
-    # take it out of the list and ....
-    #
-    echom 'RESULT:' enabled_props
-    echom enabled_props->join(',')
+    if winid != winid_props
+        i_log.Log(() => 'PropertyDialogClosing: ERROR: DiffOpts dialog active flag out out sync')
+    endif
     winid_props = 0
+    var props = i_popups.GetPropertyState(winid)
+
+    echom props
+
+    var enabled_props: list<string> = props[0]
+    var disabled_props: list<string> = props[1]
+    i_log.Log(() => printf("PropertyDialogClosing: enabled_props=%s, disabled_props=%s",
+        enabled_props, disabled_props))
+
+    for o in disabled_props
+        if radio_btn_group_wrap_opts->index(o) < 0
+            execute 'set' 'diffopt-=' .. o
+        endif
+    endfor
+
+    for o in enabled_props
+        if radio_btn_group_wrap_opts->index(o) < 0
+            execute 'set' 'diffopt+=' .. o
+        else
+            echo 'WRAP ALL:' o
+            # turn wrap on/off in all the diff windows
+            if o == 'wrap-all-on'
+                #
+            else
+                #
+            endif
+        endif
+    endfor
+    #echom enabled_props->join(',')
+    i_popups.PropertyDialogClose(winid)
 enddef
 
 ################################################################

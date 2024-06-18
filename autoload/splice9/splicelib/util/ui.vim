@@ -13,8 +13,10 @@ def FilterCloseAnyKey(winid: number, key: string): bool
 enddef
 
 export def PopupMessage(msg: list<string>, title: string, header_line = -1): number
-    return PopupMessageCommon(msg, title, header_line,
-        { close: 'click' })
+    var options: dict<any> = {
+        close: 'click',
+    }
+    return PopupMessageCommon(msg, title, header_line, options)
 enddef
 
 export def PopupProperties(msg: list<string>, title: string = '', header_line = -1,
