@@ -24,6 +24,8 @@ import autoload '../splice.vim'
 import autoload './modes.vim' as i_modes
 import autoload './popups.vim' as i_popups
 
+import autoload "../../../plugin/splice.vim" as i_plugin
+
 # highlights used on the HUD and in its text properties
 
 var hl_label: string    = splice.hl_label
@@ -80,18 +82,18 @@ const label_modes = 'Splice Modes:'
 const label_layout = 'Layout:'
 const label_commands = 'Splice Commands:'
 
-const local_commands = [ 'DisplayCommandsPopup', 'DiffOptionsPopup' ]
-
 var command_display_names: dict<string> = {}
+
 #
 # There are local_cmds, these are ui related
 # and handled within the HUD.
 #
+
+const local_commands = [ 'DisplayCommandShortcutPopup', 'DiffOptionsPopup' ]
+
 const local_ops: dict<func> = {
-    ['Splice' .. local_commands[0]]:
-        () => call('i_popups.' .. local_commands[0], [command_display_names]),
-    ['Splice' .. local_commands[1]]:
-        () => call(local_commands[1], [])
+    ['Splice' .. local_commands[0]]: () => call(local_commands[0], []),
+    ['Splice' .. local_commands[1]]: () => call(local_commands[1], [])
 }
 
 #
@@ -776,15 +778,30 @@ enddef
 
 ################################################################
 #
+# Display Shortcuts
+#
+
+export def DisplayCommandShortcutPopup()
+    var text = i_popups.CreateCurrentMappings(command_display_names)
+    var extras: dict<any> = { tweak_options: {} }
+    extras.tweak_options.title = ' Shortcuts (Splice9 '
+                                    .. i_plugin.splice9_string_version .. ') '
+    extras.header_line = 1
+    i_popups.DisplayTextPopup(text, extras)
+enddef
+
+################################################################
+#
 # Diff Options
 #
 
 # This is a modal dialog, nothing happens until it's closed
 
-# TODO: maybe need to precede property with '*'
+# TODO: maybe should precede property with '*'
 #       or something so that arbitrary text can be easily included.
 
 # g_diff_translations, after changing do "set syntax=diff"
+
 const diffopts: list<string> =<< trim END
     filler
     iblank
@@ -819,8 +836,26 @@ def DiffOptionsPopup()
         return
     endif
     i_log.Log(() => printf("DiffOptionsPopup: &diffopt= '%s'", &diffopt))
+
+    # RIGHT NOW, state values are bool, in the future might have other things
+    # like a text value associated with a property
+    var diffopt_state: dict<any>
+    diffopts->foreach((_, v) => {
+        if !v->empty()
+            diffopt_state[v] = false
+        endif
+    })
+    &diffopt->split(',')->foreach((_, v) => {
+        diffopt_state[v] = true
+    })
+
     var cur_opts: list<string> = &diffopt->split(',')
-    winid_props = i_popups.DisplayPropertyPopup(diffopts, cur_opts)
+    var extras: dict<any> = {
+        tweak_options: {},
+        append_msgs: ["Close: 'x', 'ESC', or 'CTRL-C'"],
+    }
+    extras.tweak_options.title = ' Diff Options '
+    winid_props = i_popups.DisplayPropertyPopup(diffopts, diffopt_state, extras)
     popup_setoptions(winid_props, { callback: PropertyDialogClosing })
 enddef
 
@@ -829,35 +864,35 @@ def PropertyDialogClosing(winid: number, result_NOTUSED: any): void
         i_log.Log(() => 'PropertyDialogClosing: ERROR: DiffOpts dialog active flag out out sync')
     endif
     winid_props = 0
-    var props = i_popups.GetPropertyState(winid)
 
-    echom props
+    var state = i_popups.GetPropertyState(winid)
+    i_log.Log(() => printf("PropertyDialogClosing: state=%s", state))
 
-    var enabled_props: list<string> = props[0]
-    var disabled_props: list<string> = props[1]
-    i_log.Log(() => printf("PropertyDialogClosing: enabled_props=%s, disabled_props=%s",
-        enabled_props, disabled_props))
-
-    for o in disabled_props
-        if radio_btn_group_wrap_opts->index(o) < 0
-            execute 'set' 'diffopt-=' .. o
-        endif
-    endfor
-
-    for o in enabled_props
-        if radio_btn_group_wrap_opts->index(o) < 0
-            execute 'set' 'diffopt+=' .. o
+    state->foreach((k, v) => {
+        if radio_btn_group_wrap_opts->index(k) >= 0
+            # handle wrap radio buttons
+            if type(v) == v:t_bool
+                i_log.Log(() => printf("WRAP_ALL: key=%s, val=%s", k, v))
+                # turn wrap on/off in all the diff windows
+                if k == 'wrap-all-on' && v
+                    #
+                endif
+                if k == 'wrap-all-off' && v
+                    #
+                endif
+            endif
         else
-            echo 'WRAP ALL:' o
-            # turn wrap on/off in all the diff windows
-            if o == 'wrap-all-on'
-                #
-            else
-                #
+            # handle diffopt
+            if type(v) == v:t_bool
+                if v
+                    execute 'set' 'diffopt+=' .. k
+                else
+                    execute 'set' 'diffopt-=' .. k
+                endif
             endif
         endif
-    endfor
-    #echom enabled_props->join(',')
+    })
+
     i_popups.PropertyDialogClose(winid)
 enddef
 

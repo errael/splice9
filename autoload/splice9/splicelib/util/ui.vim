@@ -6,28 +6,39 @@ const Rlib = rlib.Rlib
 import autoload '../../splice.vim'
 import autoload Rlib('util/log.vim') as i_log
 
-# dismiss on any key
-def FilterCloseAnyKey(winid: number, key: string): bool
-    popup_close(winid)
-    return true
-enddef
+prop_type_add('popupheading', {highlight: splice.hl_heading})
 
-export def PopupMessage(msg: list<string>, title: string, header_line = -1): number
-    var options: dict<any> = {
+#
+# The "extra" parameter for PopupMessage() and PopupProperties may contain
+#
+#       tweak_options - used to extend the options given to popup_create
+#       at_mouse: bool - if true popup at mouse; default false
+#       header_line: number - >= 1, highlight line with hl_heading
+
+
+export def PopupMessage(msg: list<string>, extras: dict<any> = {}): number
+    AddToTweakOptions(extras, {
         close: 'click',
-    }
-    return PopupMessageCommon(msg, title, header_line, options)
+    })
+    return PopupMessageCommon(msg, extras)
 enddef
 
-export def PopupProperties(msg: list<string>, title: string = '', header_line = -1,
-        tweak_options: dict<any> = null_dict): number
-    var options: dict<any> = {
+# TODO: should probably be PopupDialog()
+export def PopupProperties(msg: list<string>, extras: dict<any> = {}): number
+    #var options: dict<any> = {
+    AddToTweakOptions(extras, {
         close: 'button',
         filter: PropertyDialogClickOrClose,
         mapping: true,   # otherwise don't get <ScriptCmd>
-    }
-    options->extend(tweak_options)
-    return PopupMessageCommon(msg, title, header_line, options)
+    })
+    return PopupMessageCommon(msg, extras)
+enddef
+
+def AddToTweakOptions(extras: dict<any>, tweak_options: dict<any>)
+    if !extras->has_key('tweak_options')
+        extras.tweak_options = {}
+    endif
+    extras.tweak_options->extend(tweak_options)
 enddef
 
 def PropertyDialogClickOrClose(winid: number, key: string): bool
@@ -42,16 +53,16 @@ def PropertyDialogClickOrClose(winid: number, key: string): bool
     return true
 enddef
 
-prop_type_add('popupheading', {highlight: splice.hl_heading})
+# dismiss on any key
+def FilterCloseAnyKey(winid: number, key: string): bool
+    popup_close(winid)
+    return true
+enddef
 
 # msg - popup's buffer contents
-# title - the popup title property
-# header_line - highlight this buffer line with hl_heading
-# tweak_options - 
-def PopupMessageCommon(msg: list<string>,
-                                title: string = '',
-                                header_line: number = -1,
-                                tweak_options: dict<any> = null_dict): number
+# extras - see top of this file
+# return: popup's winid
+def PopupMessageCommon(msg: list<string>, extras: dict<any> = {}): number
 
     var options: dict<any> = {
         minwidth: 20,
@@ -69,22 +80,41 @@ def PopupMessageCommon(msg: list<string>,
         #mousemoved: [0, 0, 0, 0],
         #filter: FilterCloseAnyKey
     }
-    options->extend(tweak_options)
 
-    if ! empty(title)
-        options.title = ' ' .. title .. ' '
+    if extras->has_key('tweak_options')
+        options->extend(extras.tweak_options)
     endif
 
-    var outmsg: list<string> = msg->copy()
+    if extras->has_key('at_mouse') && extras.at_mouse
+        var mp = getmousepos()
+        options->extend({line: mp.screenrow, col: mp.screencol})
+    endif
+
+    # Sigh!
+    if extras->get('no_close', false)
+        options->remove('close')
+    endif
+
+    var out_msg: list<string> = msg->copy()
+    var append_msgs: list<string>
     if options->get('close', '') == 'click'
-        outmsg->extend(['', '(Click on Popup to Dismiss. Drag Border.)' ])
+        append_msgs->extend(['Click on Popup to Dismiss.',
+                            'Drag border to move'])
     endif
 
-    var winid = popup_create(outmsg, options)
+    if extras->has_key('append_msgs')
+        append_msgs->extend(extras.append_msgs)
+    endif
+
+    if !append_msgs->empty()
+        out_msg += ['', append_msgs->join(' ')]
+    endif
+
+    var winid = popup_create(out_msg, options)
     var bnr = winid->winbufnr()
-    if header_line >= 0
-        prop_add(header_line, 1,
-            {length: len(msg[0]), bufnr: bnr, type: 'popupheading'})
+    if extras->has_key('header_line') && extras.header_line > 0
+        prop_add(extras.header_line, 1,
+            {length: len(msg[extras.header_line - 1]), bufnr: bnr, type: 'popupheading'})
     endif
 
     return winid
