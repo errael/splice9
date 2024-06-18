@@ -8,47 +8,42 @@ import autoload './util/ui.vim' as i_ui
 import autoload Rlib('util/strings.vim') as i_strings
 import autoload Rlib('util/log.vim') as i_log
 
-import autoload "../../../plugin/splice.vim" as i_plugin
-
-export def DisplayCommandsPopup(command_display_names: dict<string>)
-    var options: dict<any> = {}
-    var text = CreateCurrentMappings(command_display_names)
-    i_ui.PopupMessage(text, 'Shortcuts (Splice9 ' .. i_plugin.splice9_string_version .. ')', 1)
+# at_mouse - defaults to false
+export def DisplayTextPopup(text: list<string>, extras: dict<any> = null_dict)
+    i_ui.PopupMessage(text, extras)
 enddef
-
-#export def DisplayDiffOptsPopup(at_mouse: bool = true, tweak_options: dict<any> = {}): number
-#    if at_mouse
-#        # put the dialog at the mouse position
-#        var mp = getmousepos()
-#        tweak_options->extend({line: mp.screenrow, col: mp.screencol})
-#    endif
-#    var winid = i_ui.PopupProperties(FormattedDiffOpts(), 'Diff Options',
-#        v:none, tweak_options)
-#    popup_setoptions(winid, { filter: PropertyDialogClickOrClose })
-#    return winid
-#enddef
 
 # map winid to list of properties it contains
 var properties_map: dict<list<string>>
 
+# RIGHT NOW, state values are always bool, in the future might have other things
+# at_mouse - defaults to true
 export def DisplayPropertyPopup(properties: list<string>,
-                                enabled: list<string>,
-                                at_mouse: bool = true,
-                                tweak_options: dict<any> = {}): number
-    if at_mouse
-        # put the dialog at the mouse position
-        var mp = getmousepos()
-        tweak_options->extend({line: mp.screenrow, col: mp.screencol})
+                                state: dict<any>,
+                                extras: dict<any> = {}): number
+    if !extras->has_key('at_mouse')
+        extras.at_mouse = true
     endif
-    var winid = i_ui.PopupProperties(FormattedProperties(properties, enabled),
-                                     'Diff Options', v:none, tweak_options)
+
+    # Can't remove 'close' with popup_setoptions
+    # Insure no 'X' to dismiss. Clicking caused weird selections.
+    extras.no_close = true
+
+    # TODO: should probably invoke something like i_ui.PopupDialog()
+    var winid = i_ui.PopupProperties(FormattedProperties(properties, state), extras)
     popup_setoptions(winid, { filter: PropertyDialogClickOrClose })
     properties_map[winid] = properties
     i_log.Log(() => printf("DisplayPropertyPopup: %s %s", winid, properties_map))
     return winid
 enddef
 
+# NOTE: always returning true prevents border drag
 def PropertyDialogClickOrClose(winid: number, key: string): bool
+    # TODO: why The check for RET/NL ends up causing window scroll
+    #if key == "\r" || key == "\n"
+    #    return false
+    #endif
+
     if key == "\<LeftRelease>"
         var mp = getmousepos()
         var isProp = CheckClickProperty(winid, mp)
@@ -66,23 +61,18 @@ enddef
 
 # Put the checkbox "[ ] " or "[X] " in front of each diff options.
 #
-# TODO: maybe need to precede property with '*'
+# TODO: maybe should precede property with '*'
 #       or something so that arbitrary text can be easily included.
-def FormattedProperties(properties: list<string>, enabled: list<string>): list<string>
-    #var cur_opts = &diffopt->split(',')
-    #i_log.Log(() => printf("FormattedProperties: &diffopt= '%s', cur_opts= %s",
-    #    &diffopt, cur_opts))
+def FormattedProperties(properties: list<string>, state: dict<any>): list<string>
     return properties->mapnew((_, val) =>
         val->empty() ? ''
-            : printf('[%s] %s', enabled->index(val) >= 0 ? 'X' : ' ', val)
+            : printf('[%s] %s', state[val] ? 'X' : ' ', val)
     )
 enddef
 
-#
-# TODO: how about "AddRadioBtnGroup(), 
-#
-
 # Sets of radio buttons
+
+var radio_btn_groups: list<list<string>> = [ ]
 
 export def AddRadioBtnGroup(radio_btn_group: list<string>)
     if radio_btn_groups->index(radio_btn_group) < 0
@@ -92,8 +82,6 @@ export def AddRadioBtnGroup(radio_btn_group: list<string>)
 
     endif
 enddef
-
-var radio_btn_groups: list<list<string>> = [ ]
 
 # The radio buttons with the group they belond to
 var radioButtons: dict<list<string>> = {}
@@ -150,25 +138,16 @@ def CheckClickProperty(winid: number, mp: dict<number>): bool
         var property_list = properties_map->get(winid, null_list)
         if property_list != null
             var bnr = getwininfo(winid)[0].bufnr
-            #if mp.line >= 1 && mp.line <= getbufinfo(bnr)[0].linecount
             if mp.line >= 1 && mp.line <= len(property_list)
                 var s = bnr->getbufoneline(mp.line)
-                # TODO: also verify that "s" has '[' and ']'
-                if s->empty()
+
+                # skip line if doesn't look like a property "[ ]"/"[X]"
+                if len(s) <= 4 || s[0] != '[' || s[2] != ']'
                     return false
                 endif
                 if ! HandleRadioButton(winid, bnr, mp.line)
                     FlipProperty(bnr, mp.line)
                 endif
-
-                #var s = bnr->getbufoneline(mp.line)
-                #var enabled = s[1] != ' '
-                #echom enabled s
-                # flip the checkmark
-
-                #s = (enabled ? '[ ]' : '[X]') .. s[3 : ]
-                #s->setbufline(bnr, mp.line)
-                #FlipProperty(bnr, mp.line)
                 return true
             endif
         endif
@@ -176,28 +155,22 @@ def CheckClickProperty(winid: number, mp: dict<number>): bool
     return false
 enddef
 
-# return [ [enabled props], [disabled_props] ]
-export def GetPropertyState(winid: number): list<list<string>>
-    var enabled_props: list<string> = []
-    var disabled_props: list<string> = []
+# return state for each property
+export def GetPropertyState(winid: number): dict<any>
+    var state: dict<any>
     if winid != 0
-        enabled_props = []
         var bnr = getwininfo(winid)[0].bufnr
         for s in bnr->getbufline(1, '$')
             if len(s) > 4 && s[0] == '[' && s[2] == ']'
-                if s[1] == ' '
-                    disabled_props->add(s[4 : ])
-                else
-                    enabled_props->add(s[4 : ])
-                endif
+                state[s[4 : ]] = s[1] != ' '
             endif
         endfor
     endif
-    return [ enabled_props, disabled_props ]
+    return state
 enddef
 
 # for displaying mappings in a popup
-def CreateCurrentMappings(command_display_names: dict<string>): list<string>
+export def CreateCurrentMappings(command_display_names: dict<string>): list<string>
     # create a separate list for each column
     var act_keys: list<string>
     var defaults: list<string>
