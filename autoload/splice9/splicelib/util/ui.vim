@@ -107,7 +107,7 @@ def PopupMessageCommon(msg: list<string>, extras: dict<any> = {}): number
     endif
 
     if !append_msgs->empty()
-        out_msg += ['', append_msgs->join(' ')]
+        out_msg += [''] + append_msgs
     endif
 
     var winid = popup_create(out_msg, options)

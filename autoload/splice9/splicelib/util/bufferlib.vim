@@ -33,7 +33,7 @@ export class Buffer
         endif
         if this.bufnr >= 0
             # TODO: get rid of "execute"
-            execute 'buffer' this.bufnr
+            execute ':buffer' this.bufnr
         endif
     enddef
 
@@ -80,7 +80,7 @@ class BufferList
     enddef
 
     def Current(): Buffer
-        var bnr = bufnr('')
+        var bnr = bufnr()
         if bnr >= 1 && bnr <= 4
             return this.all[bnr - 1]
         endif

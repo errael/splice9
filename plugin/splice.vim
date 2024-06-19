@@ -9,27 +9,29 @@
 
 " Vim version check
 
-if ! has('vim9script') || v:versionlong < 9010000 + 0000
-    let s:patch = 0000
+if ! has('vim9script') || v:versionlong < 9010000 + 0369
+    let s:patch = 0369
     let s:minver = 9010000 + s:patch
 
     " TODO: if vim >= 9 then do popup 
 
-    echomsg 'The installed Splice Merge Tool plugin'
-    echomsg 'requires vim9script and vim version 9.1'
-    "echomsg 'The installed Splice Merge Tool plugin requires vim9script'
-    "echomsg 'and vim version 9.1 with patch level ' .. s:patch .. '.'
+    "echomsg 'The installed Splice Merge Tool plugin'
+    "echomsg 'requires vim9script and vim version 9.1'
+
+    echomsg 'The installed Splice Merge Tool plugin requires vim9script'
+    echomsg 'and vim version 9.1 with patch level ' .. s:patch .. '.'
     echomsg ' '
     echomsg 'Check Vim and Splice versions and configurations.'
     echomsg 'Running version: ' .. v:version
+    echomsg ' '
+    echomsg ' '
+    command! -nargs=0 Splice9Init :cq
+
     "echomsg ' '
     "echomsg 'Since the merge can not be completed, the merge'
     "echomsg 'should be aborted so it can be completed later.'
     "echomsg ' '
     "echomsg 'NOTE: the vim command ":cq" aborts the merge.'
-    echomsg ' '
-    echomsg ' '
-    command! -nargs=0 Splice9Init :cq
 
     finish
 endif

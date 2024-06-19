@@ -14,7 +14,8 @@ export def DisplayTextPopup(text: list<string>, extras: dict<any> = null_dict)
 enddef
 
 # map winid to list of properties it contains
-var properties_map: dict<list<string>>
+var winid_properties: dict<list<string>>
+var winid_extras: dict<dict<any>>
 
 # RIGHT NOW, state values are always bool, in the future might have other things
 # at_mouse - defaults to true
@@ -32,30 +33,60 @@ export def DisplayPropertyPopup(properties: list<string>,
     # TODO: should probably invoke something like i_ui.PopupDialog()
     var winid = i_ui.PopupProperties(FormattedProperties(properties, state), extras)
     popup_setoptions(winid, { filter: PropertyDialogClickOrClose })
-    properties_map[winid] = properties
-    i_log.Log(() => printf("DisplayPropertyPopup: %s %s", winid, properties_map))
+    winid_properties[winid] = properties
+    winid_extras[winid] = extras
+    i_log.Log(() => printf("DisplayPropertyPopup: %s %s", winid, winid_properties), 'setting')
     return winid
 enddef
 
+# If extra.close_click_idx exists, it is a number and a mouse click
+# in the append_extra >= close_click_idx will close dialog
+#
+# If the return value for prop close is a list,
+# it is [ buffer_line, append_msg_idx ]
+# buffer_line is zero if not in buffer, append_msg_idx is < 0 if not valid
+#
 # NOTE: always returning true prevents border drag
+#
 def PropertyDialogClickOrClose(winid: number, key: string): bool
     # TODO: why The check for RET/NL ends up causing window scroll
     #if key == "\r" || key == "\n"
     #    return false
     #endif
 
-    if key == "\<LeftRelease>"
-        var mp = getmousepos()
+    var mp = getmousepos()
+    if key == "\<LeftRelease>" && mp.winid == winid
         var isProp = CheckClickProperty(winid, mp)
+        # It wasn't a property, possibly close if close_click_idx
+        if !isProp && winid_extras->has_key(winid) # actually, must have extras
+            var extras = winid_extras[winid]
+            if extras->has_key('close_click_idx') && extras->has_key('append_msgs')
+                # if line clicked in append_msgs after "close_click_idx" then close
+                if mp.line > winid_properties[winid]->len()
+                    # -2 is -1 to skip blank line, and -1 to change line number to idx
+                    var idx = mp.line - winid_properties[winid]->len() - 2
+                    if idx >= extras.close_click_idx
+                            && idx < extras.append_msgs->len()
+                        popup_close(winid, {line: mp.line, idx: idx})
+                    endif
+                endif
+            endif
+        endif
     elseif key == 'x' || key == "\x1b"
-        popup_close(winid)
+        var rc = mp.winid == winid ? {line: mp.line, idx: -1} : key
+        popup_close(winid, rc)
     endif
     return true
 enddef
 
+export def GetDummyPropertyDialogResult(): dict<any>
+    return {line: 0, idx: -1}
+enddef
+
 export def PropertyDialogClose(winid: number)
-    i_log.Log(() => printf("PropertyDialogClose: %s %s", winid, properties_map))
-    properties_map->remove(winid)
+    i_log.Log(() => printf("PropertyDialogClose: %s %s", winid, winid_properties))
+    winid_properties->remove(winid)
+    winid_extras->remove(winid)
 enddef
 
 
@@ -109,7 +140,7 @@ def HandleRadioButton(winid: number, bnr: number, line: number): bool
         if opt == opt2
             SetProperty(bnr, line, true)
         else
-            var property_list = properties_map->get(winid, null_list)
+            var property_list = winid_properties->get(winid, null_list)
             if property_list != null
                 SetProperty(bnr, property_list->index(opt2) + 1, false)
             endif
@@ -122,6 +153,7 @@ enddef
 def SetProperty(bnr: number, line: number, enable: bool)
     var s = bnr->getbufoneline(line)
     s = (enable ? '[X]' : '[ ]') .. s[3 : ]
+    # TODO: find out why following causes window 2 to scroll
     s->setbufline(bnr, line)
 enddef
 
@@ -135,7 +167,7 @@ enddef
 # If a boolean property is clicked, then flip it to other state
 def CheckClickProperty(winid: number, mp: dict<number>): bool
     if mp.winid == winid
-        var property_list = properties_map->get(winid, null_list)
+        var property_list = winid_properties->get(winid, null_list)
         if property_list != null
             var bnr = getwininfo(winid)[0].bufnr
             if mp.line >= 1 && mp.line <= len(property_list)
