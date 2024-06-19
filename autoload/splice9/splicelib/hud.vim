@@ -23,6 +23,7 @@ import autoload './util/windows.vim'
 import autoload '../splice.vim'
 import autoload './modes.vim' as i_modes
 import autoload './popups.vim' as i_popups
+import autoload './settings.vim' as i_settings
 
 import autoload "../../../plugin/splice.vim" as i_plugin
 
@@ -198,8 +199,8 @@ enddef
 # [ 'cycle diffs', 'next conflict', ... ]
 
 var commands_section_top =<< EOF
-Splice Modes:             Diff Options                     u0:  use both
-AAAAAAAAAAAAA             BBBBBBBBBBBB                     ZZZZZZZZZZZZZ
+Splice Commands:          Diff Options                     u0:  use both
+AAAAAAAAAAAAAAAA          BBBBBBBBBBBB                     ZZZZZZZZZZZZZ
 EOF
 
 # Extract the button outlines from command_display.
@@ -813,6 +814,8 @@ const diffopts: list<string> =<< trim END
     internal
     indent-heuristic
 
+    wrap
+
     wrap-all-on
     wrap-all-off
 END
@@ -829,6 +832,7 @@ const radio_btn_group_wrap_opts = [
 ]
 
 var winid_props: number
+var diff_options_append_msgs: list<string>
 def DiffOptionsPopup()
     i_popups.AddRadioBtnGroup(radio_btn_group_wrap_opts)
     if winid_props != 0
@@ -845,41 +849,68 @@ def DiffOptionsPopup()
             diffopt_state[v] = false
         endif
     })
+    diffopt_state['wrap'] = i_settings.Setting('wrap') == 'wrap'
     &diffopt->split(',')->foreach((_, v) => {
         diffopt_state[v] = true
     })
+    var wraps = i_settings.WindowWrapInfo()
+    #i_log.Log(() => printf('WindowWrapInfo: %s', wraps))
 
-    var cur_opts: list<string> = &diffopt->split(',')
+    diff_options_append_msgs = [
+        $"Win wrap: {wraps[1] ? (wraps[2] ? "all wrapped" : "none wrapped") : wraps[0]}",
+        "wrap-all-* - overrides 'wrap' setting",
+        "=Clicking this line or below like 'x'=",
+        "'CTRL-C'   - dismiss without changes",
+        "'x', 'ESC' - dismiss and make changes",
+    ]
     var extras: dict<any> = {
         tweak_options: {},
-        append_msgs: ["Close: 'x', 'ESC', or 'CTRL-C'"],
+        append_msgs: diff_options_append_msgs,
+        close_click_idx: 2,
     }
     extras.tweak_options.title = ' Diff Options '
     winid_props = i_popups.DisplayPropertyPopup(diffopts, diffopt_state, extras)
-    popup_setoptions(winid_props, { callback: PropertyDialogClosing })
+    popup_setoptions(winid_props, { callback: DiffOptsDialogClosing })
 enddef
 
-def PropertyDialogClosing(winid: number, result_NOTUSED: any): void
+def DiffOptsDialogClosing(winid: number, result: any): void
+
     if winid != winid_props
-        i_log.Log(() => 'PropertyDialogClosing: ERROR: DiffOpts dialog active flag out out sync')
+        i_log.Log(() => 'DiffOptsDialogClosing: ERROR: DiffOpts dialog active flag out out sync')
     endif
     winid_props = 0
 
     var state = i_popups.GetPropertyState(winid)
-    i_log.Log(() => printf("PropertyDialogClosing: state=%s", state))
+    var rc = type(result) == v:t_number ? result : 0
+    var click_info = type(result) == v:t_dict ? result : i_popups.GetDummyPropertyDialogResult()
+
+    i_log.Log(() => printf("DiffOptsDialogClosing: result: %s, pick: >>%s<<, state=%s",
+        rc, click_info.idx >= 0 ? diff_options_append_msgs[click_info.idx] : "NONE", state))
+
+    if rc < 0   # Do nothing if CTRL-C
+        return
+    endif
+
+    # if wrap-all-*, then ignore the 'wrap' property
+    var wrap_all = state['wrap-all-on'] || state['wrap-all-off']
 
     state->foreach((k, v) => {
         if radio_btn_group_wrap_opts->index(k) >= 0
             # handle wrap radio buttons
             if type(v) == v:t_bool
-                i_log.Log(() => printf("WRAP_ALL: key=%s, val=%s", k, v))
-                # turn wrap on/off in all the diff windows
+                i_log.Log(() => printf("WRAP_ALL: key=%s, val=%s", k, v), 'setting')
+                # turn wrap on/off in all the diff windows, don't change setting
                 if k == 'wrap-all-on' && v
-                    #
+                    i_settings.ApplyWrap(true)
                 endif
                 if k == 'wrap-all-off' && v
-                    #
+                    i_settings.ApplyWrap(false)
                 endif
+            endif
+        elseif k == 'wrap'
+            if !wrap_all
+                i_settings.ChangeSetting(k, v ? 'wrap' : 'nowrap')
+                i_settings.ApplyWrap(v)
             endif
         else
             # handle diffopt

@@ -65,7 +65,7 @@ def Setlocal_fixed_buffer(b: Buffer, filetype: string)
     &modifiable = false
     &filetype = filetype
     # wrap is window local
-    Init_cur_window_wrap()
+    i_settings.Set_cur_window_wrap()
 enddef
 
 def Setlocal_buffers()
@@ -77,15 +77,7 @@ def Setlocal_buffers()
     Setlocal_fixed_buffer(buffers.two, filetype)
 
     buffers.result.Open()
-    Init_cur_window_wrap()
-enddef
-
-export def Init_cur_window_wrap()
-    var setting = i_settings.Setting('wrap')
-    if setting != null
-        &wrap = setting == 'wrap' ? true : false
-        i_log.Log(() => printf("winnr %d, &wrap set to %s", winnr(), &wrap), 'setting')
-    endif
+    i_settings.Set_cur_window_wrap()
 enddef
 
 export def Init()

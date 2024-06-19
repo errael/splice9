@@ -73,16 +73,22 @@ class Mode
     enddef
 
     def Diffoff()
+        i_log.Log(() => printf("=== Diffoff %s, nWind %d", this.id, this._number_of_windows - 1))
         i_with.With(windows.Remain(), (_) => {
             for winnr in range(2, 2 + this._number_of_windows - 1)
                 windows.Focus(winnr)
                 var curbuffer = buffers.Current()
 
-                for buffer in buffers.all
-                    buffer.Open()
-                    :diffoff
-                    i_init.Init_cur_window_wrap()
-                endfor
+                #i_log.Log(() => printf("    WNR %d, BNR %d", winnr, curbuffer.bufnr))
+                :diffoff
+                i_settings.Set_cur_window_wrap()
+
+                #for buffer in buffers.all
+                #    buffer.Open()
+                #    i_log.Log(() => printf("    WNR %d, BNR %d", winnr, buffer.bufnr))
+                #    :diffoff
+                #    i_init.Init_cur_window_wrap()
+                #endfor
 
                 curbuffer.Open()
             endfor

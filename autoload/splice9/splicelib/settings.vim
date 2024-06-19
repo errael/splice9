@@ -36,6 +36,70 @@ export def Setting(key: string): any
     return config_dict->get(key)
 enddef
 
+export def Set_cur_window_wrap()
+    var setting = Setting('wrap')
+    if setting != null
+        &wrap = setting == 'wrap'
+        i_log.Log(() => printf("winnr %d, &wrap set to %s", winnr(), &wrap), 'setting')
+    endif
+enddef
+
+export def ApplyWrap(is_wrap: bool)
+    getwininfo()->foreach((_, d) => {
+        # Skip the HUD
+        if d.winnr != 1
+            #i_log.Log(() => printf("    WID %d, WNR %d, BNR %d, set %s",
+            #    d.winid, d.winnr, d.bufnr, is_wrap ? 'wrap' : 'nowrap'))
+            win_execute(d.winid, ":set " .. (is_wrap ? 'wrap' : 'nowrap'))
+        endif
+    })
+enddef
+
+#export def ApplyWrapSetting()
+#    ApplyWrap(Setting('wrap') == 'wrap')
+#enddef
+
+# return[0] list, one on/off-bool per window
+# return[1] == true if all the same
+# return[2] ignore if return[0] is false, otherwise true means all_on
+export def WindowWrapInfo(): list<any>
+    var all_on: bool = true
+    var all_off: bool = true
+    var on_off: list<bool>
+    getwininfo()->foreach((_, d) => {
+        # Skip the HUD
+        if d.winnr != 1
+            var is_wrap = getwinvar(d.winnr, '&wrap')
+            on_off->add(is_wrap)
+            if is_wrap
+                all_off = false
+            else
+                all_on = false
+            endif
+            #i_log.Log(() => printf("    WNR %d, on %s, off %s", d.winnr, all_on, all_off))
+        endif
+    })
+    return [ on_off, all_on || all_off, all_on]
+enddef
+
+export def ChangeSetting(key: string, value: any)
+    # only allow wrap to change
+    if key == 'wrap'
+        i_log.Log(printf("ChangeSetting: %s old: %s, new %s", key, config_dict[key], value))
+        if ['wrap', 'nowrap']->index(value) < 0
+            i_log.Log(printf("ChangeSetting: ERROR value %s'"))
+            return
+        endif
+    else
+        i_log.Log(printf("ChangeSetting: ERROR key %s'"))
+        return
+    endif
+
+    unlockvar config_dict
+    config_dict[key] = value
+    lockvar config_dict
+enddef
+
 var settings_errors: list<string>
 
 # Assume VAL already quoted by string() method.
