@@ -35,16 +35,19 @@ export def DisplayPropertyPopup(properties: list<string>,
     popup_setoptions(winid, { filter: PropertyDialogClickOrClose })
     winid_properties[winid] = properties
     winid_extras[winid] = extras
-    i_log.Log(() => printf("DisplayPropertyPopup: %s %s", winid, winid_properties), 'setting')
+    i_log.Log(() => printf("DisplayPropertyPopup: %s %s", winid, winid_properties))
     return winid
 enddef
 
-# If extra.close_click_idx exists, it is a number and a mouse click
+# If extra.close_click_idx exists and it is a number and a mouse click
 # in the append_extra >= close_click_idx will close dialog
 #
-# If the return value for prop close is a list,
-# it is [ buffer_line, append_msg_idx ]
-# buffer_line is zero if not in buffer, append_msg_idx is < 0 if not valid
+# TODO: use a class instead of a dict
+# When this invokes popup_close the return value is a dict,
+#       line:   mp.line or 0
+#       idx:    index into extras.append_msgs or -1
+#       key:    str2list() of key passed to filter callback or [-2]
+#       mp:     mouse position may be null_dict
 #
 # NOTE: always returning true prevents border drag
 #
@@ -57,7 +60,7 @@ def PropertyDialogClickOrClose(winid: number, key: string): bool
     var mp = getmousepos()
     if key == "\<LeftRelease>" && mp.winid == winid
         var isProp = CheckClickProperty(winid, mp)
-        # It wasn't a property, possibly close if close_click_idx
+        # if it wasn't a property, possibly close if close_click_idx
         if !isProp && winid_extras->has_key(winid) # actually, must have extras
             var extras = winid_extras[winid]
             if extras->has_key('close_click_idx') && extras->has_key('append_msgs')
@@ -67,24 +70,25 @@ def PropertyDialogClickOrClose(winid: number, key: string): bool
                     var idx = mp.line - winid_properties[winid]->len() - 2
                     if idx >= extras.close_click_idx
                             && idx < extras.append_msgs->len()
-                        popup_close(winid, {line: mp.line, idx: idx})
+                        popup_close(winid,
+                            {line: mp.line, idx: idx, key: key->str2list(), mp: mp})
                     endif
                 endif
             endif
         endif
     elseif key == 'x' || key == "\x1b"
-        var rc = mp.winid == winid ? {line: mp.line, idx: -1} : key
+        var rc = {line: mp.line, idx: -1, key: key->str2list(), mp: mp}
         popup_close(winid, rc)
     endif
     return true
 enddef
 
-export def GetDummyPropertyDialogResult(): dict<any>
-    return {line: 0, idx: -1}
+export def DummyPropertyDialogResult(): dict<any>
+    return {line: 0, idx: -1, key: [-2], mp: null_dict}
 enddef
 
 export def PropertyDialogClose(winid: number)
-    i_log.Log(() => printf("PropertyDialogClose: %s %s", winid, winid_properties))
+    i_log.Log(() => printf("PropertyDialogClose: %s %s", winid, winid_properties), 'diffopts')
     winid_properties->remove(winid)
     winid_extras->remove(winid)
 enddef

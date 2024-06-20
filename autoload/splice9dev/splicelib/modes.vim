@@ -79,13 +79,13 @@ class Mode
                 windows.Focus(winnr)
                 var curbuffer = buffers.Current()
 
-                #i_log.Log(() => printf("    WNR %d, BNR %d", winnr, curbuffer.bufnr))
+                i_log.Log(() => printf("    WNR %d, BNR %d", winnr, curbuffer.bufnr), 'diffopts')
                 :diffoff
                 i_settings.Set_cur_window_wrap()
 
                 #for buffer in buffers.all
                 #    buffer.Open()
-                #    i_log.Log(() => printf("    WNR %d, BNR %d", winnr, buffer.bufnr))
+                #    i_log.Log(() => printf("    WNR %d, BNR %d", winnr, buffer.bufnr), 'diffopts')
                 #    :diffoff
                 #    i_init.Init_cur_window_wrap()
                 #endfor
@@ -143,8 +143,8 @@ class Mode
     #       Why not save it here, or in Layout above, instead of the several places M_layout_#?
     def Key_layout(diffmode: number = -1) # diffmode not used
         var next_layout = (this._current_layout + 1) % len(this._layouts)
-        i_log.Log(printf("Key_layout: id: %s, next %d, %s", this.id, next_layout, this._layouts))
-        i_log.Log(() => $'Mode: Key_layout: next_layout {next_layout}', 'layout')
+        i_log.Log(() => printf("Key_layout: id: %s, next %d, this.layouts %s",
+            this.id, next_layout, this._layouts), 'layout')
         this.Layout(next_layout)
     enddef
 

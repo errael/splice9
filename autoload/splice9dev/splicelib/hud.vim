@@ -803,40 +803,50 @@ enddef
 
 # g_diff_translations, after changing do "set syntax=diff"
 
-const diffopts: list<string> =<< trim END
-    filler
-    iblank
-    icase
-    iwhite
-    iwhiteall
-    iwhiteeol
-    followwrap
-    internal
-    indent-heuristic
+var radio_btn_group_wrap_opts: list<string>
 
-    wrap
+var diffopts: list<string>
 
-    wrap-all-on
-    wrap-all-off
-END
-#horizontal
-#vertical
-#closeoff
-#context:{n}
-#hiddenoff
-#foldcolumn:{n}
-#algorithm: myers minimal patience histogram
+def AddWrapRadio()
+    if radio_btn_group_wrap_opts->empty()
+        radio_btn_group_wrap_opts = [
+            'wrap-all-on', 'wrap-all-off', 'wrap-all-no-change'
+        ]
+        lockvar radio_btn_group_wrap_opts 
 
-const radio_btn_group_wrap_opts = [
-    'wrap-all-on', 'wrap-all-off'
-]
+        diffopts  =<< trim END
+            filler
+            iblank
+            icase
+            iwhite
+            iwhiteall
+            iwhiteeol
+            followwrap
+            internal
+            indent-heuristic
+
+            wrap
+
+        END
+                    #horizontal
+                    #vertical
+                    #closeoff
+                    #context:{n}
+                    #hiddenoff
+                    #foldcolumn:{n}
+                    #algorithm: myers minimal patience histogram
+        diffopts->extend(radio_btn_group_wrap_opts)
+        lockvar diffopts
+        i_popups.AddRadioBtnGroup(radio_btn_group_wrap_opts)
+    endif
+enddef
 
 var winid_props: number
 var diff_options_append_msgs: list<string>
 def DiffOptionsPopup()
-    i_popups.AddRadioBtnGroup(radio_btn_group_wrap_opts)
+    AddWrapRadio()
     if winid_props != 0
-        i_log.Log(() => 'DiffOptionsPopup: ERROR: DiffOpts dialog active flag out out sync')
+        i_log.Log(() => 'DiffOptionsPopup: DiffOpts winid out out sync', 'error')
         return
     endif
     i_log.Log(() => printf("DiffOptionsPopup: &diffopt= '%s'", &diffopt))
@@ -854,19 +864,20 @@ def DiffOptionsPopup()
         diffopt_state[v] = true
     })
     var wraps = i_settings.WindowWrapInfo()
-    #i_log.Log(() => printf('WindowWrapInfo: %s', wraps))
+    i_log.Log(() => printf('WindowWrapInfo: %s', wraps), 'diffopts')
 
     diff_options_append_msgs = [
         $"Win wrap: {wraps[1] ? (wraps[2] ? "all wrapped" : "none wrapped") : wraps[0]}",
-        "wrap-all-* - overrides 'wrap' setting",
-        "=Clicking this line or below like 'x'=",
-        "'CTRL-C'   - dismiss without changes",
+        "wrap-all-* - ignores 'wrap' setting",
+        "",
+        "= Click here or below; like 'x' =",
         "'x', 'ESC' - dismiss and make changes",
+        " 'CTRL-C'  - dismiss without changes",
     ]
     var extras: dict<any> = {
         tweak_options: {},
         append_msgs: diff_options_append_msgs,
-        close_click_idx: 2,
+        close_click_idx: 3,
     }
     extras.tweak_options.title = ' Diff Options '
     winid_props = i_popups.DisplayPropertyPopup(diffopts, diffopt_state, extras)
@@ -876,53 +887,61 @@ enddef
 def DiffOptsDialogClosing(winid: number, result: any): void
 
     if winid != winid_props
-        i_log.Log(() => 'DiffOptsDialogClosing: ERROR: DiffOpts dialog active flag out out sync')
+        i_log.Log(() => 'DiffOptsDialogClosing: DiffOpts winid out out sync', 'error')
     endif
     winid_props = 0
 
     var state = i_popups.GetPropertyState(winid)
-    var rc = type(result) == v:t_number ? result : 0
-    var click_info = type(result) == v:t_dict ? result : i_popups.GetDummyPropertyDialogResult()
 
-    i_log.Log(() => printf("DiffOptsDialogClosing: result: %s, pick: >>%s<<, state=%s",
-        rc, click_info.idx >= 0 ? diff_options_append_msgs[click_info.idx] : "NONE", state))
+    i_log.Log(() => printf("DiffOptsDialogClosing: result: %s, state=%s", result, state))
 
-    if rc < 0   # Do nothing if CTRL-C
-        return
-    endif
+    if type(result) == v:t_number   # Do nothing if CTRL-C
+        # NOTE: For a PropertyDialog if it's a number, it must be abort/result<0
+        #       since a PropertyDialog does prop_close with a dict.
+        i_log.Log(() => 'DiffOptsDialogClosing: CTRL-C abort')
+    else
+        # var result = type(result) == v:t_dict ? result : i_popups.DummyPropertyDialogResult()
+        # result.idx >= 0 ? diff_options_append_msgs[result.idx] : "NONE"
+        # var key = result.key
 
-    # if wrap-all-*, then ignore the 'wrap' property
-    var wrap_all = state['wrap-all-on'] || state['wrap-all-off']
-
-    state->foreach((k, v) => {
-        if radio_btn_group_wrap_opts->index(k) >= 0
-            # handle wrap radio buttons
-            if type(v) == v:t_bool
-                i_log.Log(() => printf("WRAP_ALL: key=%s, val=%s", k, v), 'setting')
-                # turn wrap on/off in all the diff windows, don't change setting
-                if k == 'wrap-all-on' && v
-                    i_settings.ApplyWrap(true)
-                endif
-                if k == 'wrap-all-off' && v
-                    i_settings.ApplyWrap(false)
-                endif
+        # if wrap-all-*, then ignore the 'wrap' property
+        var wrap_all_any: bool
+        radio_btn_group_wrap_opts->foreach((_, radio_btn) => {
+            if state[radio_btn]
+                wrap_all_any = true
             endif
-        elseif k == 'wrap'
-            if !wrap_all
+        })
+
+        state->foreach((k, v) => {
+            if radio_btn_group_wrap_opts->index(k) >= 0
+                # handle wrap radio buttons
+                if type(v) == v:t_bool
+                    i_log.Log(() => printf("WRAP-ALL: key=%s, val=%s", k, v), 'diffopts')
+                    # turn wrap on/off in all the diff windows, don't change setting
+                    if k == 'wrap-all-on' && v
+                        i_settings.ApplyWrap(true)
+                    endif
+                    if k == 'wrap-all-off' && v
+                        i_settings.ApplyWrap(false)
+                    endif
+                endif
+            elseif k == 'wrap'
                 i_settings.ChangeSetting(k, v ? 'wrap' : 'nowrap')
-                i_settings.ApplyWrap(v)
-            endif
-        else
-            # handle diffopt
-            if type(v) == v:t_bool
-                if v
-                    execute 'set' 'diffopt+=' .. k
-                else
-                    execute 'set' 'diffopt-=' .. k
+                if !wrap_all_any
+                    i_settings.ApplyWrap(v)
+                endif
+            else
+                # handle diffopt
+                if type(v) == v:t_bool
+                    if v
+                        execute 'set' 'diffopt+=' .. k
+                    else
+                        execute 'set' 'diffopt-=' .. k
+                    endif
                 endif
             endif
-        endif
-    })
+        })
+    endif
 
     i_popups.PropertyDialogClose(winid)
 enddef

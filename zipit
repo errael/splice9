@@ -3,35 +3,53 @@
 CMD=${0##*/}
 DIR=${0%/*}
 
-OUTDIR=$(realpath $DIR)
+# The repository
+BASEDIR=$(realpath $DIR)
 
-BUILD=build
+BUILD=$BASEDIR/build
 BUILD9=$BUILD/splice9
+SPLICE9_RLIB_DIR=$BUILD9/autoload/splice9/rlib
+
+# source of raelity vim lib
+RLIB_DIR=/src/lib/vim
 
 set -e
-
-# TODO: copy to separate directory, remove ".fn*" and "*~" files
-# TODO: fixup plugin/splice.vim to automaticaly change targets for release.
 
 #
 # Runs in the directory where "zipit" is found.
 # This is the top of the Splice9 source tree.
 #
 
-cd $OUTDIR
+cd $BASEDIR
 rm -rf $BUILD
 mkdir -p $BUILD9
 
 cp -a {plugin,doc,autoload} $BUILD9
-rm -f $BUILD9/autoload/splice9/rlib
 
-rm $(find $BUILD9 -name '*~')
+# For release rename splice9dev to splice9
+mv $BUILD9/autoload/splice9dev $BUILD9/autoload/splice9
+
+# copy in raelity lib
+rm -f $SPLICE9_RLIB_DIR
+mkdir $SPLICE9_RLIB_DIR
+cp -a $RLIB_DIR/{plugin,autoload} $SPLICE9_RLIB_DIR
+
+# Adjust plugin startup file to use release directory "autoload/splice9"
+sed -i \
+    -e '/^var ReleaseFlag = /s/false$/true/' \
+    $BUILD9/plugin/splice.vim
+# Take "-dev" out of the version
+sed -i \
+    -e '/^export.*splice9_string_version/s/-dev"$/"/' \
+    $BUILD9/plugin/splice.vim
+
+rm $(find $BUILD9 -name '*~' -o -name '.??*')
 
 rm $BUILD9/doc/tags
 vim -u NONE -c ":helptags $BUILD9/doc" -c ":quit"
 
-# grab the string in quotes
-version=$(grep '^export.*splice9_string_version' plugin/splice.vim \
+# grab the string in quotes from the version definition
+version=$(grep '^export.*splice9_string_version' $BUILD9/plugin/splice.vim \
                     | sed -E 's/^.*"(.+)".*$/\1/')
 
 if [[ -z "$version" ]]
@@ -40,10 +58,10 @@ then
     exit 1
 fi
 
-#echo "version:" $version $OUTDIR
+#echo "version:" $version $BUILD9
 
 cd $BUILD
-zip -q -r $OUTDIR/splice9-$version.zip splice9
+zip -q -r $BASEDIR/splice9-$version.zip splice9
 
 #jar -Mcvf splice9/splice9-$version.zip splice9/{plugin,doc,autoload}
 

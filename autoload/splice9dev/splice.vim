@@ -23,6 +23,8 @@ import autoload './splicelib/hud.vim'
 import autoload './splicelib/init.vim' as i_init
 import autoload './splicelib/settings.vim'
 import autoload './splicelib/modes.vim' as i_modes
+import autoload './splicelib/util/windows.vim'
+import autoload './splicelib/util/bufferlib.vim' as i_bufferlib
 
 # bounce HACK
 export def GetStatusDiffScrollbind(): list<bool>
@@ -188,6 +190,9 @@ def SpliceInit9()
     i_log.Log('starting splice')
 
     i_init.Init()
+
+    var result: i_bufferlib.Buffer = i_bufferlib.buffers.result
+    windows.Focus(result.Winnr())
     i_search.HighlightConflict()
 enddef
 
