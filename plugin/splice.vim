@@ -39,15 +39,23 @@ endif
 vim9script
 
 # NOTE: The following is grabbed by shell to label the release zip
-export const splice9_string_version = "1.0-alpha1"
+export const splice9_string_version = "1.0.0-beta1-dev"
 
 # TODO: SHOULD THERE BE A SPLICE COMMAND IF VERSION PREVENTS RUNNING?
 
 # call test_override('autoload', 1)
 
-import autoload '../autoload/splice9/splice.vim'
-#command! -nargs=0 Splice9Init call splice.SpliceBoot()
-command! -nargs=0 Splice9DevInit call splice.SpliceBoot()
+var ReleaseFlag = false
+
+if ReleaseFlag
+    # For release
+    import autoload '../autoload/splice9/splice.vim'
+    command! -nargs=0 Splice9Init call splice.SpliceBoot()
+else
+    # For development
+    import autoload '../autoload/splice9dev/splice.vim'
+    command! -nargs=0 Splice9DevInit call splice.SpliceBoot()
+endif
 
 
 # Multiple versions of splice9 can be made available. An additional version

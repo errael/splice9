@@ -40,7 +40,7 @@ export def Set_cur_window_wrap()
     var setting = Setting('wrap')
     if setting != null
         &wrap = setting == 'wrap'
-        i_log.Log(() => printf("winnr %d, &wrap set to %s", winnr(), &wrap), 'setting')
+        i_log.Log(() => printf("winnr %d, &wrap set to %s", winnr(), &wrap), 'diffopts')
     endif
 enddef
 
@@ -48,8 +48,8 @@ export def ApplyWrap(is_wrap: bool)
     getwininfo()->foreach((_, d) => {
         # Skip the HUD
         if d.winnr != 1
-            #i_log.Log(() => printf("    WID %d, WNR %d, BNR %d, set %s",
-            #    d.winid, d.winnr, d.bufnr, is_wrap ? 'wrap' : 'nowrap'))
+            i_log.Log(() => printf("    WID %d, WNR %d, BNR %d, set %s",
+                d.winid, d.winnr, d.bufnr, is_wrap ? 'wrap' : 'nowrap'), 'diffopts')
             win_execute(d.winid, ":set " .. (is_wrap ? 'wrap' : 'nowrap'))
         endif
     })
@@ -76,22 +76,23 @@ export def WindowWrapInfo(): list<any>
             else
                 all_on = false
             endif
-            #i_log.Log(() => printf("    WNR %d, on %s, off %s", d.winnr, all_on, all_off))
+            i_log.Log(() => printf("    WNR %d, on %s, off %s", d.winnr, all_on, all_off), 'diffopts')
         endif
     })
     return [ on_off, all_on || all_off, all_on]
 enddef
 
 export def ChangeSetting(key: string, value: any)
+    i_log.Log(() => printf("ChangeSetting: %s: old: %s, new: %s",
+        key, config_dict->get(key, "BAD_KEY"), value))
     # only allow wrap to change
     if key == 'wrap'
-        i_log.Log(printf("ChangeSetting: %s old: %s, new %s", key, config_dict[key], value))
         if ['wrap', 'nowrap']->index(value) < 0
-            i_log.Log(printf("ChangeSetting: ERROR value %s'"))
+            i_log.Log(printf("ChangeSetting: value %s'"), 'error')
             return
         endif
     else
-        i_log.Log(printf("ChangeSetting: ERROR key %s'"))
+        i_log.Log(printf("ChangeSetting: key %s'"), 'error')
         return
     endif
 
@@ -244,7 +245,8 @@ var setting_info = {
     # logging validation/init is handled before settings initialization
     log_enable:                 [ [ 0, 1, false, true ], false ],
     log_file:                   [ ValidAny, $HOME .. '/SPLICE_LOG' ],
-    logging_exclude_categories: [ ValidAny, [ 'focus', 'result', 'setting' ] ],
+    logging_exclude_categories: [ ValidAny, [ 'focus', 'result', 'setting',
+                                            'diffopts'] ],
 
     prefix:                     [ ValidAny, null ],
     leader:                     [ ValidAny, null ],
