@@ -122,14 +122,26 @@ This region shows the arrangement of the open windows and which file/buffer is l
 
 The label of this region, `Splice Commands:`, is active. Click on it to display a popup which has each command with its associated keyboard shortcut.
 
+There's a [Splice Commands Shortcuts Screenshot](https://github.com/errael/splice9/wiki/Dialogs#splice-command-shortcuts)
+
 #### D: diffs off
 
 The command `D: diffs off` has embedded status information. When `Splice9` is diffing files there is a `*` displayed after the `D:`; this is shown in the image above. When the `*` is displayed, clicking on this command (or using the shortcut), turns off diffing. When diffing is turned off, this command returns to the previously active diff state.
+
+See
 
 #### s: toggle scrollbind
 
 The command `s: toggle scrollbind` also has a `*` indicator; it means that `scrollbind` is on. Note that `scrollbind` automatically goes on when diffing, the files that participate in the diff are in `scrollbind`. When not diffing, click on `scrollbind` so displayed files scroll together.
 
+#### Diff Options
+
+Click on `Diff Options` to bring up a property sheet dialog. Use it to change
+- some of `vim`'s `'diffopt'` settings
+- `Splice9`'s `wrap` setting
+- wrap for open windows without changing any settings
+
+There's a [Diff Options Screenshot](https://github.com/errael/splice9/wiki/Dialogs#diff-options)
 
 ## configuration
 
