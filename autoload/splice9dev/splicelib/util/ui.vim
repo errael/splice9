@@ -148,11 +148,16 @@ const E = {
     ENOCONFLICT: ["No more conflicts"],
 }
 
-export def SplicePopup(e_idx: string, ...extra: list<any>)
-    var err = E[e_idx]
+export def SplicePopupKey(e_key: string, ...extra: list<any>)
+    var err = E[e_key]
     var msg = call('printf', [ err[0] ] + extra)
     i_log.Log(msg)
     PopupError([msg], err[ 1 : ])
+enddef
+
+export def SplicePopupMessage(msg: list<string>, title: string)
+    i_log.Log(() => msg->join(';'))
+    PopupError(msg, [title])
 enddef
 
 # vim:ts=8:sts=4:

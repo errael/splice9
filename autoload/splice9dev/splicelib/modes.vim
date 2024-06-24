@@ -3,7 +3,7 @@ vim9script
 import '../rlib.vim'
 const Rlib = rlib.Rlib
 
-import autoload './init.vim' as i_init
+import autoload './result.vim' as i_result
 import autoload './settings.vim' as i_settings
 import autoload './hud.vim' as i_hud
 import autoload './util/windows.vim'
@@ -13,13 +13,10 @@ import autoload Rlib('util/log.vim') as i_log
 import autoload Rlib('util/with.vim') as i_with
 import autoload './util/keys.vim' as i_keys
 import autoload './util/search.vim' as i_search
+import autoload './util/ui.vim' as i_ui
 
-const buffers = i_bufferlib.buffers
-const nullBuffer = i_bufferlib.nullBuffer
 type Buffer = i_bufferlib.Buffer
-const DrawHUD = i_hud.DrawHUD
-const UpdateHudStatus = i_hud.UpdateHudStatus
-const Setting = i_settings.Setting
+const buffers = i_bufferlib.buffers
 
 #
 # Could use "is" instead of "==" when comparing buffers,
@@ -167,6 +164,10 @@ class Mode
         i_extra.Bell()
     enddef
 
+    def Key_use0()
+        i_extra.Bell()
+    enddef
+
     def Key_use1()
         i_extra.Bell()
     enddef
@@ -233,7 +234,7 @@ class Mode
                 mod = 'compare'
             endif
 
-            DrawHUD(mod, this._current_layout,
+            i_hud.DrawHUD(mod, this._current_layout,
                 [this._lay_first, this._lay_second]->filter((_, v) => v != ''))
         })
     enddef
@@ -281,9 +282,9 @@ class GridMode extends Mode
 
     def new()
         this.id = 'grid'
-        this._current_layout = Setting('initial_layout_grid')
-        this._current_diff_mode = Setting('initial_diff_grid')
-        this._current_scrollbind = Setting('initial_scrollbind_grid')
+        this._current_layout = i_settings.Setting('initial_layout_grid')
+        this._current_diff_mode = i_settings.Setting('initial_diff_grid')
+        this._current_scrollbind = i_settings.Setting('initial_scrollbind_grid')
         i_log.Log(() => $"MODES: initial_scrollbind_grid: {this._current_scrollbind}")
 
         this._layouts = [ () => this.M_layout_0(), () => this.M_layout_1(),
@@ -455,6 +456,13 @@ class GridMode extends Mode
     enddef
 
 
+    # both side of conflict
+    def Key_use0()
+        # Following checks that in Result on conflict
+        i_result.RestoreOriginalConflictText()
+        # TODO: this.Diff(current_diff) or some other setup/fixup?
+    enddef
+
     def Key_use1()
         var current_diff = this._current_diff_mode
 
@@ -539,9 +547,9 @@ endclass
 class LoupeMode extends Mode
     def new()
         this.id = 'loup'
-        this._current_layout = Setting('initial_layout_loupe')
-        this._current_diff_mode = Setting('initial_diff_loupe')
-        this._current_scrollbind = Setting('initial_scrollbind_loupe')
+        this._current_layout = i_settings.Setting('initial_layout_loupe')
+        this._current_diff_mode = i_settings.Setting('initial_diff_loupe')
+        this._current_scrollbind = i_settings.Setting('initial_scrollbind_loupe')
         i_log.Log(() => $"MODES: 'initial_scrollbind_loupe: {this._current_scrollbind}")
 
         this._layouts = [ () => this.M_layout_0() ]
@@ -619,9 +627,9 @@ endclass
 class CompareMode extends Mode
     def new()
         this.id = 'comp'
-        this._current_layout = Setting('initial_layout_compare')
-        this._current_diff_mode = Setting('initial_diff_compare')
-        this._current_scrollbind = Setting('initial_scrollbind_compare')
+        this._current_layout = i_settings.Setting('initial_layout_compare')
+        this._current_diff_mode = i_settings.Setting('initial_diff_compare')
+        this._current_scrollbind = i_settings.Setting('initial_scrollbind_compare')
         i_log.Log(() => $"MODES: 'initial_scrollbind_compare: {this._current_scrollbind}")
 
         this._layouts = [ () => this.M_layout_0(), () => this.M_layout_1() ]
@@ -865,9 +873,9 @@ endclass
 class PathMode extends Mode
     def new()
         this.id = 'path'
-        this._current_layout = Setting('initial_layout_path')
-        this._current_diff_mode = Setting('initial_diff_path')
-        this._current_scrollbind = Setting('initial_scrollbind_path')
+        this._current_layout = i_settings.Setting('initial_layout_path')
+        this._current_diff_mode = i_settings.Setting('initial_diff_path')
+        this._current_scrollbind = i_settings.Setting('initial_scrollbind_path')
         i_log.Log(() => $"MODES: 'initial_scrollbind_path: {this._current_scrollbind}")
 
         this._layouts = [ () => this.M_layout_0(), () => this.M_layout_1() ]
@@ -1009,10 +1017,10 @@ class PathMode extends Mode
 
 
     def Key_use()
-        if buffers.Current() == nullBuffer
+        if buffers.Current() == i_bufferlib.nullBuffer
             var bname = buffers.hud.bufnr == bufnr() ? 'Splice_HUD' : bufname()
             # TODO: test
-            i_log.SplicePopup('ENOTFILE', bname, 'UseHunk')
+            i_ui.SplicePopupKey('ENOTFILE', bname, 'UseHunk')
             return
         endif
 
@@ -1137,6 +1145,7 @@ const dispatch: dict<func(): void> = {
     SpliceUseHunk:      () => current_mode.Key_use(),
     SpliceUseHunk1:     () => current_mode.Key_use1(),
     SpliceUseHunk2:     () => current_mode.Key_use2(),
+    SpliceUseHunk0:     () => current_mode.Key_use0(),
 
     SpliceQuit:         () => SpliceQuit(),
     SpliceCancel:       () => SpliceCancel(),
@@ -1150,7 +1159,7 @@ export def ModesDispatch(op: string)
 
     i_log.Log(() => printf('===EXECUTE COMMAND===: %s mode: %s', op, current_mode.id))
     dispatch->get(op, () => i_log.Log("Dispatch: unknown op: " .. op, 'error', true))()
-    UpdateHudStatus()
+    i_hud.UpdateHudStatus()
 enddef
 
 

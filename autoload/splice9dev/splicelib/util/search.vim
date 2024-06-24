@@ -6,6 +6,7 @@ const Rlib = rlib.Rlib
 import autoload './ui.vim' as i_ui
 import autoload '../../splice.vim'
 import autoload Rlib('util/with.vim') as i_with
+import autoload Rlib('util/log.vim') as i_log
 
 # TODO: props don't work interacting with diff coloration
 const use_props = false
@@ -20,7 +21,9 @@ const pri_hl_cur_conflict = 110
 
 const CONFLICT_MARKER_MARK = '======='
 
-const CONFLICT_PATTERN = '\m^=======*$'
+# NOTE: the numeric conflict ID is a capture group.
+export const CONFLICT_PATTERN = splice.numberedConflictPattern
+    ? '\m^=======* :\(\d\+\):$' : '\m^=======*$'
 
 # make them global properties
 def AddConflictProps()
@@ -70,7 +73,7 @@ export def HighlightConflict()
         id_conflict_prop->DeleteHighlights()
         id_conflict_prop = []
         var lines = FindLines(CONFLICT_PATTERN)
-        #log.Log('FindLines: ' .. string(lines))
+        #i_log.Log('FindLines: ' .. string(lines))
         id_prop += 1
         prop_add_list({ type: 'prop_conflict', id: id_prop },
             lines->mapnew((_, l) => [ l, 1, l, col([l, '$']) ] ))
@@ -80,9 +83,6 @@ export def HighlightConflict()
         id_conflict_match = []
         # {} can contain window
         id_conflict_match->add([winnr(), 
-
-
-            
             matchadd(splice.hl_conflict, CONFLICT_PATTERN, pri_hl_conflict)])
     endif
     #log.Log('conf ids after:' .. string(id_conflict))
@@ -99,9 +99,10 @@ export def MoveToConflict(forw: bool = true)
     # the next/prev conflict
     var lino = search(CONFLICT_PATTERN, flags)
     if lino == 0
-        i_ui.SplicePopup('ENOCONFLICT')
+        i_ui.SplicePopupKey('ENOCONFLICT')
         return
     endif
+
     #log.Log('cur_conf ids before:' .. string(id_cur_conflict))
     if use_props
         id_cur_conflict_prop->DeleteHighlights()
@@ -111,7 +112,9 @@ export def MoveToConflict(forw: bool = true)
         prop_add(lino, 1, { type: 'prop_cur_conflict', length: col, id: id_prop })
         id_cur_conflict_prop->add(id_prop)
     else
-        id_cur_conflict_match->DeleteHighlights()
+        # This line looses id_conflict_match
+        #id_cur_conflict_match->DeleteHighlights()
+
         id_cur_conflict_match = []
         var t = matchaddpos(splice.hl_cur_conflict, [ lino ], pri_hl_cur_conflict)
         id_cur_conflict_match->add([winnr(), t])

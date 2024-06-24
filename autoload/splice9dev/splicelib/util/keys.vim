@@ -45,13 +45,18 @@ const actions_info = {
     Layout:   { a_dflt: '<Space>', a_dsply: 12, },
     Scroll:   { a_dflt: 's',       a_dsply: 13, },
 
-    UseHunk1: { a_dflt: 'u1',      a_dsply: 14, },
-    UseHunk2: { a_dflt: 'u2',      a_dsply: 15, },
-    UseHunk:  { a_dflt: 'u',       a_dsply: 16, },
+    UseHunk0: { a_dflt: 'u0',      a_dsply: 14, },
+    UseHunk1: { a_dflt: 'u1',      a_dsply: 15, },
+    UseHunk2: { a_dflt: 'u2',      a_dsply: 16, },
+    UseHunk:  { a_dflt: 'u',       a_dsply: 17, },
 
-    Quit:     { a_dflt: 'q',       a_dsply: 17, },
-    Cancel:   { a_dflt: 'CC',      a_dsply: 18, },
+    Quit:     { a_dflt: 'q',       a_dsply: 18, },
+    Cancel:   { a_dflt: 'CC',      a_dsply: 19, },
 }
+
+# actions_grouping used for display spacing
+# or maybe put a flag/marker into anctions_info or could have a "a_grp" field
+var actions_groupings = [ 4, 4, 6, 4 ]
 
 var actionsSortedBy: dict<list<string>>
 
@@ -70,10 +75,6 @@ export def ActionsSortedBy(field: string): list<string>
     endif
     return actionsSortedBy[field]
 enddef
-
-# actions_grouping used for display spacing
-# or maybe put a flag/marker into anctions_info or could have a "a_grp" field
-var actions_groupings = [ 4, 4, 6, 3 ]
 
 # Add empty items, returned by FSep, in list to separate groups.
 # Input list should be sorted by 'a_dsply'.
@@ -236,6 +237,7 @@ export def ActivateGridBindings()
     UnBind('UseHunk')
     Bind('UseHunk1')
     Bind('UseHunk2')
+    Bind('UseHunk0')
     return
 enddef
 
@@ -243,6 +245,7 @@ export def DeactivateGridBindings()
     i_log.Log(i_stack.Func())
     UnBind('UseHunk1')
     UnBind('UseHunk2')
+    UnBind('UseHunk0')
     Bind('UseHunk')
     return
 enddef
