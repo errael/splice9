@@ -20,19 +20,12 @@ import autoload './splicelib/util/keys.vim' as i_keys
 import autoload Rlib('util/log.vim') as i_log
 import autoload './splicelib/util/search.vim' as i_search
 import autoload './splicelib/hud.vim'
-import autoload './splicelib/init.vim' as i_init
+import autoload './splicelib/result.vim' as i_result
 import autoload './splicelib/settings.vim'
-import autoload './splicelib/modes.vim' as i_modes
 import autoload './splicelib/util/windows.vim'
 import autoload './splicelib/util/bufferlib.vim' as i_bufferlib
 
-# bounce HACK
-export def GetStatusDiffScrollbind(): list<bool>
-    return i_modes.GetStatusDiffScrollbind()
-enddef
-export def GetDiffLabels(): list<string>
-    return i_modes.GetDiffLabels()
-enddef
+export const numberedConflictPattern = true
 
 def InitHighlights()
     export const hl_label       = settings.Setting('hl_label')
@@ -189,7 +182,7 @@ def SpliceInit9()
     ReportStartupIssues()
     i_log.Log('starting splice')
 
-    i_init.Init()
+    i_result.Init()
 
     var result: i_bufferlib.Buffer = i_bufferlib.buffers.result
     windows.Focus(result.Winnr())

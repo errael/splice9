@@ -68,15 +68,19 @@ var actions_offset: number
 # id is used for prop_add
 var actions: dict<list<number>>
 # actions_ids[id] === actions[actions_ids[id]][3]
-# which lets found property map to action name
+# which lets found property map lookup to action name
 var actions_ids: dict<string>
 var actions_id_next = 1
+
+# base_actions, hunk_action1, hunk_action2
+# are key'd by action and provide location of button in HUD.
 var base_actions: dict<list<number>>
 var hunk_action1: dict<list<number>>
 var hunk_action2: dict<list<number>>
 const u_h = 'UseHunk'
 const u_h1 = 'UseHunk1'
 const u_h2 = 'UseHunk2'
+const u_h0 = 'UseHunk0'
 const u_h_name = 'u :  use hunk'
 
 const label_modes = 'Splice Modes:'
@@ -90,7 +94,11 @@ var command_display_names: dict<string> = {}
 # and handled within the HUD.
 #
 
-const local_commands = [ 'DisplayCommandShortcutPopup', 'DiffOptionsPopup' ]
+const local_commands = [
+    'DisplayCommandShortcutPopup',
+    'DiffOptionsPopup',
+    u_h0,
+]
 
 const local_ops: dict<func> = {
     ['Splice' .. local_commands[0]]: () => call(local_commands[0], []),
@@ -200,7 +208,7 @@ enddef
 
 var commands_section_top =<< EOF
 Splice Commands:          Diff Options                     u0:  use both
-AAAAAAAAAAAAAAAA          BBBBBBBBBBBB                     ZZZZZZZZZZZZZ
+AAAAAAAAAAAAAAAA          BBBBBBBBBBBB                     CCCCCCCCCCCCC
 EOF
 
 # Extract the button outlines from command_display.
@@ -488,30 +496,38 @@ def StartupInit()
 
     base_actions = BuildBaseActions()
 
-    # The UseHunk1 location is also used for UseHunk
-    # Remove any UseHunk from base actions
-    # dicts: one for UsingHunk[12] and one for UseHunk
-    var tmp = base_actions->remove(u_h1)
-    hunk_action2[u_h1] = tmp
-    hunk_action1[u_h] = tmp->copy()
-    hunk_action1[u_h][3] = AddActionPropId(u_h)
-
-    tmp = base_actions->remove(u_h2)
-    hunk_action2[u_h2] = tmp
-
-    # add the displayed name for UseHunk
-    command_display_names[u_h] = matchlist(u_h_name, '\v.*:\s+(.*)')[1]
-
-    # add some local UI commands
+    # add some local UI commands, stuff on the top line
     var cmd_idx = 0
     for bbound in FindButtonBoundaries(commands_section_top[1])
         var actKey = local_commands[cmd_idx]
+        if actKey == u_h0
+            # 1 - Extract displayed command names, discard shortcut like: "u0: "
+            var t = commands_section_top[0]->slice(bbound[1], bbound[2])
+            command_display_names[actKey] = matchlist(t, '\v.*:\s+(.*)')[1]
+        endif
+
         base_actions[actKey] = [ 1,
             actions_offset + bbound[1] + 1,
             actions_offset + bbound[2] + 1,
             AddActionPropId(actKey) ]
         cmd_idx += 1
     endfor
+
+    # The UseHunk1 location on the HUD is also used for UseHunk (when not Grid).
+    # Remove any UseHunk* from base actions, save them in dicts.
+    # dicts: one for UseHunk0/1/2 and one for UseHunk
+    #       - hunk_action1 - data for "UseHunk"
+    #       - hunk_action2 - data for "UseHunk0/1/2" only for Grid
+
+    hunk_action1[u_h] = base_actions[u_h1]->copy()
+    hunk_action1[u_h][3] = AddActionPropId(u_h)
+
+    hunk_action2[u_h1] = base_actions->remove(u_h1)
+    hunk_action2[u_h2] = base_actions->remove(u_h2)
+    hunk_action2[u_h0] = base_actions->remove(u_h0)
+
+    # add the displayed name for UseHunk
+    command_display_names[u_h] = matchlist(u_h_name, '\v.*:\s+(.*)')[1]
 
     lockvar! base_actions
     lockvar! hunk_action2
@@ -667,8 +683,8 @@ enddef
 var hudbnr: number = -1
 
 export def UpdateHudStatus()
-    var status = splice.GetStatusDiffScrollbind()   # bounce HACK
-    var diffs = splice.GetDiffLabels()              # bounce HACK
+    var status = i_modes.GetStatusDiffScrollbind()
+    var diffs = i_modes.GetDiffLabels()
     var bnr = hudbnr
     #var bnr = _bnr ?? bufnr(hud_name)
     i_with.With(windows.Remain(), (_) => {
@@ -746,7 +762,7 @@ def HudActionsPropertiesAndHighlights(mode: string, bnr: number)
     if mode == 'grid'
         actions->extend(hunk_action2)   # two 'use' actions for 'grid'
     else
-        # not Grid, UseHunk replace UseHunk1, erase UseHunk2
+        # not Grid, UseHunk replace UseHunk1, erase UseHunk2/UseHunk0
         i_with.With(i_with.ModifyBufEE.new(bnr), (_) => {
             # blank, or change the name, of the first use item
             var tmp = hunk_action2[u_h1]
@@ -756,8 +772,10 @@ def HudActionsPropertiesAndHighlights(mode: string, bnr: number)
                 actions->extend(hunk_action1)
                 ReplaceBuf(bnr, tmp[0], tmp[1], u_h_name)
             endif
-            # blank the second use item
+            # blank the second use item and the zero'th item
             tmp = hunk_action2[u_h2]
+            ReplaceBuf(bnr, tmp[0], tmp[1], repeat(' ', len(u_h_name)))
+            tmp = hunk_action2[u_h0]
             ReplaceBuf(bnr, tmp[0], tmp[1], repeat(' ', len(u_h_name)))
         })
     endif
