@@ -22,7 +22,7 @@ if ! has('vim9script') || v:versionlong < 9010000 + 0369
     echomsg 'and vim version 9.1 with patch level ' .. s:patch .. '.'
     echomsg ' '
     echomsg 'Check Vim and Splice versions and configurations.'
-    echomsg 'Running version: ' .. v:version
+    echomsg 'Running version: ' .. v:versionlong
     echomsg ' '
     echomsg ' '
     command! -nargs=0 Splice9Init :cq
@@ -39,7 +39,7 @@ endif
 vim9script
 
 # NOTE: The following is grabbed by shell to label the release zip
-export const splice9_string_version = "1.0.0-beta1-dev"
+export const splice9_string_version = "1.0.0-beta2-dev"
 
 # TODO: SHOULD THERE BE A SPLICE COMMAND IF VERSION PREVENTS RUNNING?
 
