@@ -41,7 +41,7 @@ class Mode
     var _diffs: list<func(): void>
 
     var _current_diff_mode: number
-    var _diff_off_mode: number
+    var _restore_diff_mode: number
     var _current_layout: number
     var _current_scrollbind: bool
 
@@ -53,10 +53,13 @@ class Mode
     def new()
     enddef
 
+    # "diffmode" of zero is diffmode off.
+    # The method invoked to change the diff mode sets _current_diff_mode
     def Diff(diffmode: number)
+        i_log.Log(() => $'Diff: mode {this.id} diff {diffmode}')
         i_with.With(buffers.Remain(), (_) => {
             i_with.With(windows.Remain(), (_) => {
-                this._diffs[diffmode]()
+                this._diffs[diffmode % len(this._diffs)]()
             })
         })
 
@@ -66,11 +69,13 @@ class Mode
         endif
     enddef
 
-    # NOTE: diffmode not used
-    def Key_diff(diffmode: number = -1)
-        var next_diff_mode = (this._current_diff_mode + 1) % len(this._diffs)
-        i_log.Log(() => $'Key_diff: next_diff_mode: {next_diff_mode}')
-        this.Diff(next_diff_mode)
+    # Sets the diff mode after _current_diff_mode
+    # Note that _current_diff_mode is set by M_diff_X,
+    # which is inovked by the method called by Diff().
+    def Key_diff()
+        i_log.Log(() => $'Key_diff: next_diff_mode: {this._current_diff_mode + 1}')
+        var diffmode = this._current_diff_mode
+        this.Diff(this._current_diff_mode + 1)
     enddef
 
     def Diffoff()
@@ -98,12 +103,20 @@ class Mode
     enddef
 
 
+    # Toggle between off and previous mode.
     def Key_diffoff()
-        # Toggle between off and previous mode.
-        var next_mode: number = this._diff_off_mode
-        i_log.Log(() => printf("Key_diffoff: current_diff_mode %d,  diff_off_mode %d",
-            this._current_diff_mode, this._diff_off_mode))
-        this._diff_off_mode = this._current_diff_mode
+        var next_mode: number = this._restore_diff_mode
+        i_log.Log(() => printf(
+            "Key_diffoff: current_diff_mode %d, restore_diff_mode_when_toggle_on %d",
+            this._current_diff_mode, this._restore_diff_mode))
+        if this._current_diff_mode == 0 && next_mode != 0
+            # restoring a diff mode, clear saved mode
+            this._restore_diff_mode = 0
+        elseif this._current_diff_mode != 0
+            # assert next_mode == 0
+            this._restore_diff_mode = this._current_diff_mode
+            next_mode = 0   # just in case
+        endif
         
         this.Diff(next_mode)
     enddef
@@ -202,6 +215,7 @@ class Mode
         this.Layout(this._current_layout)
         this.Diff(this._current_diff_mode)
         this.Scrollbind(this._current_scrollbind)
+        this._restore_diff_mode = 0
 
         # Don't use windows.Remain(), we're setting position of everything
         var winid = win_getid()
