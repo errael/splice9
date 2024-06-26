@@ -18,6 +18,9 @@ import autoload './util/ui.vim' as i_ui
 type Buffer = i_bufferlib.Buffer
 const buffers = i_bufferlib.buffers
 
+# indexed by bnr
+var last_buf_pos: dict<list<number>>
+
 #
 # Could use "is" instead of "==" when comparing buffers,
 # but there's use of list->index(curbuf) as well, so why bother.
@@ -182,15 +185,49 @@ class Mode
     enddef
 
 
+    def RestorePosition(winnr: number)
+        var bnr = winbufnr(winnr)
+        if bnr > 0
+            var pos: list<number> = last_buf_pos->get(bnr, null_list)
+            if pos != null
+                setcursorcharpos(pos[1 :])
+            endif
+        endif
+    enddef
+
     def Activate()
         #i_log.Log(printf("Activate: this._diffs: id: %s, %s", this.id, this._diffs))
         this.Layout(this._current_layout)
         this.Diff(this._current_diff_mode)
         this.Scrollbind(this._current_scrollbind)
+
+        # Don't use windows.Remain() since we're changing position
+        var winid = win_getid()
+
+        var result: i_bufferlib.Buffer = i_bufferlib.buffers.result
+        windows.Focus(result.Winnr())
+        i_search.HighlightConflict()
+
+        # restore the cursor positions
+        var bnr: number
+        for winnr in range(2, 2 + this._number_of_windows - 1)
+            windows.Focus(winnr)
+            this.RestorePosition(winnr)
+        endfor
+
+        win_gotoid(winid)
+
         i_log.Log(() => $"CURRENT_MODE: {this.id}")
     enddef
 
     def Deactivate()
+        for winnr in range(2, 2 + this._number_of_windows - 1)
+            var bnr = winbufnr(winnr)
+            if bnr > 0
+                last_buf_pos[bnr] = getcursorcharpos(winnr)
+            endif
+        endfor
+        i_log.Log(() => printf("Deactivate: saved_buffer_positions: %s", last_buf_pos))
     enddef
 
 

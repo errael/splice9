@@ -105,11 +105,29 @@ const local_ops: dict<func> = {
     ['Splice' .. local_commands[1]]: () => call(local_commands[1], [])
 }
 
+################################################################
+#
+# Auto Commands, autocmd
+#
+
 #
 # Track last window position.
 # Use it to go back to the prev window before executing a command.
+
+augroup hud
+    autocmd!
+    autocmd WinLeave * SaveWinPos()
+augroup END
+
 # [ winid, [ pos... ] ]
 var last_win = null_list
+
+# only save positions for our magic merge windows
+def SaveWinPos()
+    var bnr = bufnr()
+    last_win = bnr >= 1 && bnr <= 4
+                ? [ win_getid(), getcurpos() ] : null_list
+enddef
 
 def ClearWinPos()
     last_win = null_list
@@ -125,18 +143,6 @@ def RestoreWinPos()
         last_win = null_list
     endif
 enddef
-
-# only save positions for our magic merge windows
-def SaveWinPos()
-    var bnr = bufnr()
-    last_win = bnr >= 1 && bnr <= 4
-                ? [ win_getid(), getcurpos() ] : null_list
-enddef
-
-augroup hud
-    autocmd!
-    autocmd WinLeave * SaveWinPos()
-augroup END
 
 
 def ExecuteCommand(cmd: string, id: number)

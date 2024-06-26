@@ -183,10 +183,7 @@ def SpliceInit9()
     i_log.Log('starting splice')
 
     i_result.Init()
-
-    var result: i_bufferlib.Buffer = i_bufferlib.buffers.result
-    windows.Focus(result.Winnr())
-    i_search.HighlightConflict()
+    i_search.Init()
 enddef
 
 
