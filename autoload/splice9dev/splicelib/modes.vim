@@ -7,16 +7,17 @@ import autoload './result.vim' as i_result
 import autoload './settings.vim' as i_settings
 import autoload './hud.vim' as i_hud
 import autoload './util/windows.vim'
-import autoload './util/bufferlib.vim' as i_bufferlib
+import autoload './util/bufferlib.vim' as i_buflib
 import autoload Rlib('util/vim_extra.vim') as i_extra
 import autoload Rlib('util/log.vim') as i_log
 import autoload Rlib('util/with.vim') as i_with
+import autoload Rlib('util/strings.vim') as i_strings
 import autoload './util/keys.vim' as i_keys
 import autoload './util/search.vim' as i_search
 import autoload './util/ui.vim' as i_ui
 
-type Buffer = i_bufferlib.Buffer
-const buffers = i_bufferlib.buffers
+type Buffer = i_buflib.Buffer
+const buffers = i_buflib.buffers
 
 # indexed by bnr
 var last_buf_pos: dict<list<number>>
@@ -80,14 +81,15 @@ class Mode
                 var curbuffer = buffers.Current()
 
                 i_log.Log(() => printf("    WNR %d, BNR %d", winnr, curbuffer.bufnr), 'diffopts')
-                :diffoff
+                # Note the "!" removes hidden buffers from the list of diff'd.
+                :diffoff!
                 i_settings.Set_cur_window_wrap()
 
                 #for buffer in buffers.all
                 #    buffer.Open()
                 #    i_log.Log(() => printf("    WNR %d, BNR %d", winnr, buffer.bufnr), 'diffopts')
                 #    :diffoff
-                #    i_init.Init_cur_window_wrap()
+                #    i_settings.Set_cur_window_wrap()
                 #endfor
 
                 curbuffer.Open()
@@ -201,11 +203,10 @@ class Mode
         this.Diff(this._current_diff_mode)
         this.Scrollbind(this._current_scrollbind)
 
-        # Don't use windows.Remain() since we're changing position
+        # Don't use windows.Remain(), we're setting position of everything
         var winid = win_getid()
 
-        var result: i_bufferlib.Buffer = i_bufferlib.buffers.result
-        windows.Focus(result.Winnr())
+        windows.Focus(i_buflib.buffers.result.Winnr())
         i_search.HighlightConflict()
 
         # restore the cursor positions
@@ -868,13 +869,20 @@ class CompareMode extends Mode
     def Key_use()
         var active = [this._current_buffer_first, this._current_buffer_second]
 
+        # TODO: alert "result" with "one" or "two"
         if active->index(buffers.result) < 0
+                || active->index(buffers.one) < 0 && active->index(buffers.two) < 0
+            # Center the lines.
+            var s = i_strings.Pad(['"Result" required', 'with either "One" or "Two".',
+                '(look at "Layout")'], "c")
+
+            i_ui.SplicePopupMessage(s, 'Use Hunk')
             return
         endif
 
-        if active->index(buffers.one) < 0 && active->index(buffers.two) < 0
-            return
-        endif
+        #if active->index(buffers.one) < 0 && active->index(buffers.two) < 0
+        #    return
+        #endif
 
         var current_diff = this._current_diff_mode
         i_with.With(windows.Remain(), (_) => {
@@ -1054,7 +1062,7 @@ class PathMode extends Mode
 
 
     def Key_use()
-        if buffers.Current() == i_bufferlib.nullBuffer
+        if buffers.Current() == i_buflib.nullBuffer
             var bname = buffers.hud.bufnr == bufnr() ? 'Splice_HUD' : bufname()
             # TODO: test
             i_ui.SplicePopupKey('ENOTFILE', bname, 'UseHunk')

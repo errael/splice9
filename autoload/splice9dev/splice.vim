@@ -23,7 +23,6 @@ import autoload './splicelib/hud.vim'
 import autoload './splicelib/result.vim' as i_result
 import autoload './splicelib/settings.vim'
 import autoload './splicelib/util/windows.vim'
-import autoload './splicelib/util/bufferlib.vim' as i_bufferlib
 
 export const numberedConflictPattern = true
 
