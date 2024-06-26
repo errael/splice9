@@ -16,49 +16,57 @@
 ==============================================================================
 CONTENTS                                            *Splice* *Splice-contents*
 
-    1. Version Control Integration ............... |SpliceVCS|
-        1.1 Mercurial ............................ |SpliceVCS_hg|
-        1.2 Git .................................. |SpliceVCS_git|
-        1.3 Bazaar ............................... |SpliceVCS_bzr|
-    2. Basic Usage ............................... |SpliceUsage|
-        2.1 Files ................................ |SpliceUsage_files|
-        2.2 Modes ................................ |SpliceUsage_modes|
-    3. Key Bindings .............................. |SpliceKeys|
-        3.1 Mode Selection Keys .................. |SpliceKeys_mode|
-        3.2 File Selection Keys .................. |SpliceKeys_file|
-        3.3 Other Keys ........................... |SpliceKeys_other|
-    4. Modes ..................................... |SpliceModes|
-        4.1 Grid ................................. |SpliceModes_grid|
-        4.2 Loupe ................................ |SpliceModes_loupe|
-        4.3 Compare .............................. |SpliceModes_compare|
-        4.4 Path ................................. |SpliceModes_path|
-    5. Configuration ............................. |SpliceConfig|
-        5.1 debug ................................ |SpliceConfig_debug|
-        5.2 disable .............................. |SpliceConfig_disable|
-        5.3 initial_diff_grid .................... |SpliceConfig_id_grid|
-        5.4 initial_diff_loupe ................... |SpliceConfig_id_loupe|
-        5.5 initial_diff_compare ................. |SpliceConfig_id_compare|
-        5.6 initial_diff_path .................... |SpliceConfig_id_path|
-        5.7 initial_layout_grid .................. |SpliceConfig_il_grid|
-        5.8 initial_layout_loupe ................. |SpliceConfig_il_loupe|
-        5.9 initial_layout_compare ............... |SpliceConfig_il_compare|
-        5.10 initial_layout_path ................. |SpliceConfig_il_path|
-        5.11 initial_scrollbind_grid ............. |SpliceConfig_is_grid|
-        5.12 initial_scrollbind_loupe ............ |SpliceConfig_is_loupe|
-        5.13 initial_scrollbind_compare .......... |SpliceConfig_is_compare|
-        5.14 initial_scrollbind_path ............. |SpliceConfig_is_path|
-        5.15 initial_mode ........................ |SpliceConfig_im|
-        5.16 wrap ................................ |SpliceConfig_wrap|
-        5.17 prefix .............................. |SpliceConfig_prefix|
-        5.18 leader .............................. |SpliceConfig_leader|
-        5.19 bind_use_alt ........................ |SpliceConfig_alt|
-        5.20 bind_<command> ...................... |SpliceConfig_command|
-        5.21 hl_<highlight> ...................... |SpliceConfig_highlights|
-    6. License ................................... |SpliceLicense|
-    7. Bugs ...................................... |SpliceBugs|
-    8. Contributing .............................. |SpliceContributing|
-    9. Changelog ................................. |SpliceChangelog|
-   10. Credits ................................... |SpliceCredits|
+    1. Version Control Integration .............. |SpliceVCS|
+        1.1 Mercurial ........................... |SpliceVCS_hg|
+        1.2 Git ................................. |SpliceVCS_git|
+        1.3 Bazaar .............................. |SpliceVCS_bzr|
+    2. Basic Usage .............................. |SpliceUsage|
+        2.1 Files ............................... |SpliceUsage_files|
+        2.2 Modes ............................... |SpliceUsage_modes|
+        2.3 HUD ................................. |SpliceUsage_hud|
+    3. Key Bindings ............................. |SpliceKeys|
+        3.1 Mode Selection Keys ................. |SpliceKeys_mode|
+        3.2 File Selection Keys ................. |SpliceKeys_file|
+        3.3 Other Keys .......................... |SpliceKeys_other|
+    4. Modes .................................... |SpliceModes|
+        4.1 Grid ................................ |SpliceModes_grid|
+        4.2 Loupe ............................... |SpliceModes_loupe|
+        4.3 Compare ............................. |SpliceModes_compare|
+        4.4 Path ................................ |SpliceModes_path|
+    5. Configuration ............................ |SpliceConfig|
+        5.1 debug ............................... |SpliceConfig_debug|
+        5.2 disable ............................. |SpliceConfig_disable|
+        5.3 initial_diff_grid ................... |SpliceConfig_id_grid|
+        5.4 initial_diff_loupe .................. |SpliceConfig_id_loupe|
+        5.5 initial_diff_compare ................ |SpliceConfig_id_compare|
+        5.6 initial_diff_path ................... |SpliceConfig_id_path|
+        5.7 initial_layout_grid ................. |SpliceConfig_il_grid|
+        5.8 initial_layout_loupe ................ |SpliceConfig_il_loupe|
+        5.9 initial_layout_compare .............. |SpliceConfig_il_compare|
+        5.10 initial_layout_path ................ |SpliceConfig_il_path|
+        5.11 initial_scrollbind_grid ............ |SpliceConfig_is_grid|
+        5.12 initial_scrollbind_loupe ........... |SpliceConfig_is_loupe|
+        5.13 initial_scrollbind_compare ......... |SpliceConfig_is_compare|
+        5.14 initial_scrollbind_path ............ |SpliceConfig_is_path|
+        5.15 initial_mode ....................... |SpliceConfig_im|
+        5.16 wrap ............................... |SpliceConfig_wrap|
+        5.17 prefix ............................. |SpliceConfig_prefix|
+        5.18 leader ............................. |SpliceConfig_leader|
+        5.19 bind_use_alt ....................... |SpliceConfig_alt|
+        5.20 bind_<command> ..................... |SpliceConfig_command|
+        5.21 hl_<highlight> ..................... |SpliceConfig_highlights|
+    6. HUD ...................................... |SpliceHUD|
+        6.1 Diffs Off ........................... |SpliceHUD_DiffsOff|
+        6.2 Toggle Scrollbind ................... |SpliceHUD_ToggleScrollbind|
+        6.3 Layout and diff ..................... |SpliceHUD_Layout|
+        6.4 Diff Options Dialog ................. |SpliceHUD_DiffOptions|
+        6.5 Splice Command Shortcuts Dialog ..... |SpliceHUD_Shortcuts|
+    7. External Website ......................... |SpliceExternal|
+    8. License .................................. |SpliceLicense|
+    9. Bugs ..................................... |SpliceBugs|
+   10. Contributing ............................. |SpliceContributing|
+   11. Changelog ................................ |SpliceChangelog|
+   12. Credits .................................. |SpliceCredits|
 
 
 ==============================================================================
@@ -204,6 +212,12 @@ Path                                               *SpliceUsage_modes_path*
 
     See |SpliceModes_path| for more information.
 
+------------------------------------------------------------------------------
+2.3 HUD                                                      *SpliceUsage_hud*
+
+The heads up display, HUD, is active. Command names are highlighted when the
+mouse rolls over them and clicking them executes the comand.
+
 
 ==============================================================================
 3. Key Bindings                                                   *SpliceKeys*
@@ -337,6 +351,11 @@ Grid-Specific Key Bindings                          *SpliceModes_grid_keys*
 <prefix>u2                                  *UseHunk2-Grid*
                         Place a hunk from file two into the result file.
 
+<prefix>u0                                  *UseHunk0-Grid*
+                        Place hunks from both file one and file two into the
+                        result file; use '<<<', '===', .>>>' to delineate and
+                        distinguish one and two.
+
 Grid Diffs                                         *SpliceModes_grid_diffs*
 ----------
 
@@ -452,7 +471,7 @@ Path Diffs                                         *SpliceModes_path_diffs*
 
 You can tweak the behavior of Splice9 by setting variables in your |vimrc|
 file; the old Splice global variable names work with Splice9. However that
-method is deprecated and using the g:splice_config dictionary is preferred.
+method is deprecated and using the `g:splice_config` dictionary is preferred.
 For example, in vim9script >
 	g:splice_config = {
         initial_mode: "compare",
@@ -471,7 +490,7 @@ by prefixing the name with "splice_". For example >
     let g:splice_initial_mode = "compare"
 
 *Note: When g:splice_config exists the deprecated global variables are
-       NOT used.
+       ignored and NOT used.
 
 ------------------------------------------------------------------------------
 5.1 g:splice_config.debug                                 *SpliceConfig_debug*
@@ -677,7 +696,7 @@ The possible commands are
     Grid Loupe Compare Path
     Original One Two Result
     Diff DiffOff Scroll Layout Next Previous
-    UseHunk UseHunk1 UseHunk2
+    UseHunk UseHunk0 UseHunk1 UseHunk2
     Quit Cancel
 
 For example: >
@@ -718,69 +737,157 @@ Options: Any valid highlight
 *Note: SpliceConflict link CursorColumn, SpliceCConflict link Todo
 
 ==============================================================================
-6. License                                                     *SpliceLicense*
+6. HUD                                                             *SpliceHUD*
 
-Splice is copyright Steve Losh & contributors, 2011+ and is licensed
-under the MIT/X11 license.
+The heads up display, HUD, is active. Command names are highlighted when the
+mouse rolls over them and clicking them executes the comand.
+
+------------------------------------------------------------------------------
+6.1 Diffs Off                                             *SpliceHUD_DiffsOff*
+
+The `diffs off` button indicates if diff mode is on. In addition, after going
+into a given mode after diffs are turned on, the `diffs off` button becomes a
+toggle for turning diff on/off.
+
+    - D:*diffs off
+
+------------------------------------------------------------------------------
+6.2 Toggle Scrollbind                             *SpliceHUD_ToggleScrollbind*
+
+The `toggle scrollbind` button indicates if scrollbind is on. ScrollBind is on
+automatically when diffs are on, otherwise it can be toggled. 
+
+    - s:*toggle scrollbind
+
+------------------------------------------------------------------------------
+6.3 Layout and diff                                         *SpliceHUD_Layout*
+
+When diffs are on/enabled, the Layout section highlights which files/windows
+are participating in the diff.
+
+------------------------------------------------------------------------------
+6.4 Diff Options Dialog                                *SpliceHUD_DiffOptions*
+
+The `Diff Options` button brings up a modal dialog to change diff and wrap
+options. The dialog must the . Click on the boolean options line to toggle
+their state. Click on a radio button option to select it and turn off any
+other option in the group. Entering `CTRL-C` dismisses the dialog and no
+actions are taken. `x` or `ESC` or clicking at the the bottom of the dialog
+dismisses the dialog and applies the changes.
+
+Some of vim's |'diffopt'| options may be changed; refer to the vim help for
+information about these optins. The supported boolean options are:
+
+    - filler
+    - iblank
+    - icase
+    - iwhite
+    - iwhiteall
+    - followwrap
+    - internal
+    - indent-heuristic
+
+The splice wrap option may be changed.
+
+    - wrap
+
+If none of the `wrap-all-*` buttons are enabled then the wrap of the open
+windows is set accordingly.
+
+A set `wrap-all-*` radio button is applied to the open windows. Use
+`wrap-all-no-change` to prevent the wrap of the open windows from change when
+the dialog is dismissed.
+
+    - wrap-all-on
+    - wrap-all-off
+    - wrap-all-no-change
+
+------------------------------------------------------------------------------
+6.5 Splice Command Shortcuts Dialog                      *SpliceHUD_Shortcuts*
+
+Click on `Splice Commands:` to bring up a non-modal dialog with a list of
+splice commands and their current shortcuts. Note that a command might have
+more than one shortcut.
 
 ==============================================================================
-7. Bugs                                                           *SpliceBugs*
+7. External Website                                           *SpliceExternal*
+
+https://github.com/errael/splice9 https://github.com/errael/splice9#splice9
+https://github.com/errael/splice9/wiki
+
+==============================================================================
+8. License                                                     *SpliceLicense*
+
+Splice9 is copyright Steve Losh, Ernie Rael & contributors, 2011+ and is
+licensed under the MIT/X11 license.
+
+==============================================================================
+9. Bugs                                                           *SpliceBugs*
 
 Please report any bugs you may find on the GitHub issue tracker:
 
-    http://github.com/sjl/splice.vim/issues
+    http://github.com/errael/splice9/issues
 
 ==============================================================================
-8. Contributing                                           *SpliceContributing*
+10. Contributing                                          *SpliceContributing*
 
 Think you can make Splice better?  Awesome.  New contributors are always
 welcome.
 
-Email a patch to steve@stevelosh.com or send a pull request.
+Email a patch to errael@raelity.com or send a pull request.
 
-    Mercurial: https://hg.stevelosh.com/splice.vim
-    GitHub:    https://github.com/sjl/splice.vim
+    GitHub:    https://github.com/errael/splice9
 
 ==============================================================================
-9. Changelog                                                 *SpliceChangelog*
+11. Changelog                                                *SpliceChangelog*
+
+11.1 Splice9
+
+v1.0.0
+    * "UseBoth" command to select both "One" and "Two" hunks.
+    * "Diff Options" HUD button to bring up dialog to configure vim's
+      `diffopt` and splice9's `wrap` option and visible windows wrap.
+    * A few addtional error popups for some things that were quietly ignored.
+      v0.9
+    * Pure vim9 release of splice, no python required.
+    * Plug in compatible with splice.vim and its configuration.
+    * New configuration style avaiable through `g:splice_config` dictionary.
+    * HUD is hot; command names are clickable buttons.
+    * "D: diffs off" extended to toggle off/on button.
+    * All highlights are configurable.
+    * Additional HUD status indicators without increasing HUD size.
+    * Update vim help. Github Readme and wiki.
+
+11.2 Splice
+
+This is the splice.vim changelog
 
 v1.1.0
-    * Initial Python 3 support.
-v1.0.1
-    * Fix the splice_config.prefix setting to actually take effect as documented.
+    * Initial Python 3 support. v1.0.1
+    * Fix the splice_config.prefix setting to actually take effect as
+      documented.
     * Fix the grid view showing the wrong buffers sometimes.
     * Set the filetype in each buffer.
-    * Fix showing files 2 and result in compare mode.
-v1.0.0
+    * Fix showing files 2 and result in compare mode. v1.0.0
     * Rename to Splice.
     * Change the default prefix to '-' instead of <localleader>.
-    * Various bugfixes.
-v0.2.0
-    * Add threesome_leader as a config option.
-v0.1.1
-    * Fix a bug when the user doesn't use :set hidden.
-v0.1.0
-    * Preliminary "it probably won't eat your data" release!
-v0.0.8
-    * A bunch of cleanup.
-v0.0.7
-    * Add use hunk functionality.
-v0.0.6
+    * Various bugfixes. v0.2.0
+    * Add threesome_leader as a config option. v0.1.1
+    * Fix a bug when the user doesn't use :set hidden. v0.1.0
+    * Preliminary "it probably won't eat your data" release! v0.0.8
+    * A bunch of cleanup. v0.0.7
+    * Add use hunk functionality. v0.0.6
     * Add the HUD.
-    * Configurable wrapping.
-v0.0.5
-    * Configurable scrollbinding.
-v0.0.4
-    * Basic configuration settings.
-v0.0.3
-    * Multiple layout support.
-v0.0.2
+    * Configurable wrapping. v0.0.5
+    * Configurable scrollbinding. v0.0.4
+    * Basic configuration settings. v0.0.3
+    * Multiple layout support. v0.0.2
     * There's still not much working, but at least there's some help now!
-v0.0.1
+      v0.0.1
     * Oh god nothing works please don't use this for real work yet.
 
 ==============================================================================
-10. Credits                                                    *SpliceCredits*
+12. Credits                                                    *SpliceCredits*
 
 Splice was originally written by Steve Losh after he got fed up with the lack
 of a powerful, intuitive, beautiful three-way merge program on OS X.
@@ -789,6 +896,10 @@ A lot of the inspiration for the layout of the code came from vim-orgmode.
 
 The UI is a combination of ideas from Conflict2Diff.vim, Fugitive.vim, and
 Adobe Lightroom.
+
+Splice9 was ported from vim9script/Python by Ernie Rael as a way to learn
+vim9script and get more comfortable with merging. Splice9 is extended with a
+clickable HUD and popup dialogs and better error checking and reporting.
 
 ==============================================================================
 
