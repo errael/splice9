@@ -5,11 +5,9 @@ const Rlib = rlib.Rlib
 
 import autoload './ui.vim' as i_ui
 import autoload '../../splice.vim'
+import autoload './bufferlib.vim' as i_buflib
 import autoload Rlib('util/with.vim') as i_with
 import autoload Rlib('util/log.vim') as i_log
-
-# TODO: props don't work interacting with diff coloration
-const use_props = false
 
 #
 # export def HighlightConflict()
@@ -19,11 +17,132 @@ const use_props = false
 const pri_hl_conflict = 100
 const pri_hl_cur_conflict = 110
 
-const CONFLICT_MARKER_MARK = '======='
-
 # NOTE: the numeric conflict ID is a capture group.
 export const CONFLICT_PATTERN = splice.numberedConflictPattern
     ? '\m^=======* :\(\d\+\):$' : '\m^=======*$'
+
+#
+# Auto Commands, autocmd
+#
+
+var didInit: bool
+export def Init()
+    if didInit
+        return
+    endif
+    didInit = true
+    augroup search
+        autocmd!
+        autocmd CursorMoved * CursorMoved()
+    augroup END
+enddef
+
+def CursorMoved()
+    if i_buflib.buffers.result.Winnr() == winnr()
+        CurrentConflictHighlight()
+    endif
+enddef
+
+
+def IsOnConflict(): bool
+    var marker = matchlist(getline(getcurpos()[1]), CONFLICT_PATTERN)
+    return !marker->empty()
+enddef
+
+const id_cur_conflict = 999
+var has_conflict_highlight: bool
+
+def ClearConflictHighlight()
+    try
+        matchdelete(id_cur_conflict)
+    catch /E957:\|E803:/
+        #echom 'winnr():' winnr() 'delete():' v
+    endtry
+enddef
+
+def CurrentConflictHighlight()
+    var lino: number = getcurpos()[1]
+    var s = getline(lino)
+    # Get out if there's no chance.
+    if s[0] != '='
+        if has_conflict_highlight
+            ClearConflictHighlight()
+        endif
+        return
+    endif
+    var marker = matchlist(s, CONFLICT_PATTERN)
+    if marker->empty()
+        return
+    endif
+
+    ClearConflictHighlight()
+    matchaddpos(splice.hl_cur_conflict, [lino], pri_hl_cur_conflict, id_cur_conflict)
+    has_conflict_highlight = true
+
+enddef
+
+#
+# Highlight all the conflicts in this buffer
+#
+export def HighlightConflict()
+    matchadd(splice.hl_conflict, CONFLICT_PATTERN, pri_hl_conflict)
+enddef
+
+
+export def MoveToConflict(forw: bool = true)
+    var flags = forw ? '' : 'b'
+
+    # the next/prev conflict
+    var lino = search(CONFLICT_PATTERN, flags)
+    if lino == 0
+        i_ui.SplicePopupKey('ENOCONFLICT')
+    endif
+enddef
+
+finish
+
+################################################################
+################################################################
+################################################################
+
+# Following of historical interest up for deletion
+
+# TODO: props don't work interacting with diff coloration
+const use_props = false
+
+const CONFLICT_MARKER_MARK = '======='
+
+
+        #autocmd ModeChanged * ModeChanged()
+        #autocmd BufWinEnter * BufWinEnter()
+        #autocmd WinNew * WinNew()
+        #autocmd WinEnter * WinEnter()
+
+def ModeChanged()
+    if i_buflib.buffers.hud.Winnr() == winnr()
+        # Prevent (quit) select mode in HUD.
+        if match(v:event.new_mode, '[sS]') >= 0
+            i_log.Log(() => printf("ModeChanged to SELECT: %s", v:event.new_mode))
+            execute ":normal \<ESC>"
+        endif
+    endif
+enddef
+
+def WinEnter()
+    i_log.Log(() => printf("WinEnter: win %d bufnr %d", winnr(), bufnr()))
+enddef
+
+def WinNew()
+    i_log.Log(() => printf("WinNew: win %d bufnr %d", winnr(), bufnr()))
+enddef
+
+def BufWinEnter()
+    if i_buflib.buffers.result.bufnr == bufnr()
+        i_log.Log(() => printf("BufWinEnter: win %d bufnr %d", winnr(), bufnr()))
+        # This doesn't work. DO IT AT THE END OF mode.Activate()
+        # HighlightConflict()
+    endif
+enddef
 
 # make them global properties
 def AddConflictProps()
@@ -40,9 +159,6 @@ def AddConflictProps()
     'prop_conflict'->prop_type_add(prop_conflict)
     'prop_cur_conflict'->prop_type_add(prop_cur_conflict)
 enddef
-
-# add the props when this file is loaded
-AddConflictProps()
 
 # TODO: if the cursor moves off of the cur_conflict line
 #       turn off the current conflict. In addition maybe want some other
@@ -63,12 +179,65 @@ var id_prop: number
 var id_conflict_match: list<list<number>>
 var id_cur_conflict_match: list<list<number>>
 
+def Dump(tag: string)
+    if true
+        return
+    endif
+    i_log.Log(tag)
+    if use_props
+        i_log.Log(printf("    id_conflict_prop: %s", id_conflict_match))
+        i_log.Log(printf("    id_cur_conflict_prop: %s", id_cur_conflict_match))
+    else
+        i_log.Log(printf("    id_conflict_match: %s", id_conflict_match))
+        i_log.Log(printf("    id_cur_conflict_match: %s", id_cur_conflict_match))
+    endif
+enddef
+
+export def MoveToConflictOld(forw: bool = true)
+    Dump(printf('ENTER: MoveToConflict(forw: %s)', forw))
+    var flags = forw ? '' : 'b'
+
+    ###
+    ### could just do HighlightConflict only once after spliceinit
+    ###
+
+    # HighlightConflict()
+
+    # the next/prev conflict
+    var lino = search(CONFLICT_PATTERN, flags)
+    if lino == 0
+        i_ui.SplicePopupKey('ENOCONFLICT')
+    endif
+
+    return
+
+
+    # #log.Log('cur_conf ids before:' .. string(id_cur_conflict))
+    # if use_props
+    #     id_cur_conflict_prop->DeleteHighlights()
+    #     id_cur_conflict_prop = []
+    #     var col = col([lino, '$'])
+    #     id_prop += 1
+    #     prop_add(lino, 1, { type: 'prop_cur_conflict', length: col, id: id_prop })
+    #     id_cur_conflict_prop->add(id_prop)
+    # else
+    #     # This line looses id_conflict_match
+    #     id_cur_conflict_match->DeleteHighlights()
+
+    #     id_cur_conflict_match = []
+    #     var t = matchaddpos(splice.hl_cur_conflict, [ lino ], pri_hl_cur_conflict)
+    #     id_cur_conflict_match->add([winnr(), t])
+    # endif
+    # Dump(printf('EXIT: MoveToConflict()'))
+    # #log.Log('cur_conf ids after:' .. string(id_cur_conflict))
+enddef
 
 #
 # Highlight all the conflicts in this buffer
 #
-export def HighlightConflict()
+export def HighlightConflictOld()
     #log.Log('conf ids before:' .. string(id_conflict))
+    Dump('ENTER: HighlightConflict')
     if use_props
         id_conflict_prop->DeleteHighlights()
         id_conflict_prop = []
@@ -85,45 +254,13 @@ export def HighlightConflict()
         id_conflict_match->add([winnr(), 
             matchadd(splice.hl_conflict, CONFLICT_PATTERN, pri_hl_conflict)])
     endif
+    Dump('EXIT: HighlightConflict')
     #log.Log('conf ids after:' .. string(id_conflict))
-enddef
-
-export def MoveToConflict(forw: bool = true)
-    var flags = forw ? '' : 'b'
-
-    ###
-    ### could just do HighlightConflict only once after spliceinit
-    ###
-    HighlightConflict()
-
-    # the next/prev conflict
-    var lino = search(CONFLICT_PATTERN, flags)
-    if lino == 0
-        i_ui.SplicePopupKey('ENOCONFLICT')
-        return
-    endif
-
-    #log.Log('cur_conf ids before:' .. string(id_cur_conflict))
-    if use_props
-        id_cur_conflict_prop->DeleteHighlights()
-        id_cur_conflict_prop = []
-        var col = col([lino, '$'])
-        id_prop += 1
-        prop_add(lino, 1, { type: 'prop_cur_conflict', length: col, id: id_prop })
-        id_cur_conflict_prop->add(id_prop)
-    else
-        # This line looses id_conflict_match
-        #id_cur_conflict_match->DeleteHighlights()
-
-        id_cur_conflict_match = []
-        var t = matchaddpos(splice.hl_cur_conflict, [ lino ], pri_hl_cur_conflict)
-        id_cur_conflict_match->add([winnr(), t])
-    endif
-    #log.Log('cur_conf ids after:' .. string(id_cur_conflict))
 enddef
 
 # Remove all of the highlights
 def DeleteHighlights(ids: list<any>)
+    Dump(printf('ENTER: DeleteHighlights(ids: %s)', ids))
     #echom ids
     var n_delete: number
     if use_props
@@ -136,12 +273,17 @@ def DeleteHighlights(ids: list<any>)
         #     return false
         #     })
     else
-        clearmatches()
+        #clearmatches()
 
-        #ids->foreach((_, v) => {
-        #    matchdelete(v[1], v[0])
-        #    n_delete += 1
-        #})
+        # After changing "mode", this gets an invalid winnr or ID
+        ids->foreach((_, v) => {
+            try
+                matchdelete(v[1], v[0])
+            catch /E957:\|E803:/
+                #echom 'winnr():' winnr() 'delete():' v
+            endtry
+            n_delete += 1
+        })
 
         # ids->filter((_, v) => {
         #     matchdelete(v)
@@ -149,6 +291,7 @@ def DeleteHighlights(ids: list<any>)
         #     })
     endif
     #echo 'DeleteHighlights:' n_delete
+    Dump(printf('EXIT: DeleteHighlights()'))
 enddef
 
 # return something suitable for setting text properties

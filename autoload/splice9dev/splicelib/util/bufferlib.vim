@@ -58,8 +58,8 @@ class BufferList
     var result:     Buffer = Buffer.new(4, 'Result')
 
     #this.hud = Buffer.new(5, 'HUD')
-    var hud: Buffer
-    var all: list<Buffer>
+    var hud:        Buffer
+    var all:        list<Buffer>
 
     def new()
         this.hud = nullBuffer
