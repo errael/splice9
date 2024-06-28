@@ -53,6 +53,7 @@ const id_cur_conflict = 999
 var has_conflict_highlight: bool
 
 def ClearConflictHighlight()
+    has_conflict_highlight = false
     try
         matchdelete(id_cur_conflict)
     catch /E957:\|E803:/
@@ -63,19 +64,22 @@ enddef
 def CurrentConflictHighlight()
     var lino: number = getcurpos()[1]
     var s = getline(lino)
-    # Get out if there's no chance.
+    # Get out fastest if there's no chance.
     if s[0] != '='
         if has_conflict_highlight
             ClearConflictHighlight()
         endif
         return
     endif
+
+    if has_conflict_highlight
+        ClearConflictHighlight()
+    endif
     var marker = matchlist(s, CONFLICT_PATTERN)
     if marker->empty()
         return
     endif
 
-    ClearConflictHighlight()
     matchaddpos(splice.hl_cur_conflict, [lino], pri_hl_cur_conflict, id_cur_conflict)
     has_conflict_highlight = true
 

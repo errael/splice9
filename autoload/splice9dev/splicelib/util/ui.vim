@@ -130,8 +130,10 @@ export def PopupError(msg: list<string>, other: list<any> = [])
         padding: [1, 2, 1, 2],
         highlight: splice.hl_alert_popup,
         close: 'click',
-        mousemoved: 'any', moved: 'any',
-        mapping: false, filter: FilterCloseAnyKey
+        moved: 'any',
+        mousemoved: 'any',
+        mapping: false,
+        filter: FilterCloseAnyKey
         }
     if len(other) > 0
         options.title = ' ' .. other[0] .. ' '
