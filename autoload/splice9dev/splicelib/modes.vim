@@ -19,6 +19,25 @@ import autoload './util/ui.vim' as i_ui
 type Buffer = i_buflib.Buffer
 const buffers = i_buflib.buffers
 
+# augroup modes
+#     autocmd!
+# augroup END
+
+def NoChangePopup(title: string)
+    i_ui.SplicePopupMessage(['No change'], title)
+enddef
+
+def ResultChange(cmd: string, title: string)
+    var bnr = buffers.result.bufnr
+    var tick: number = getbufvar(bnr, 'changedtick')
+    execute cmd
+    i_log.Log(() => printf('tick %d ==> %d', tick, getbufvar(bnr, 'changedtick')))
+    if tick == getbufvar(bnr, 'changedtick')
+        NoChangePopup(title)
+    endif
+enddef
+
+
 # indexed by bnr
 var last_buf_pos: dict<list<number>>
 
@@ -89,13 +108,6 @@ class Mode
                 # Note the "!" removes hidden buffers from the list of diff'd.
                 :diffoff!
                 i_settings.Set_cur_window_wrap()
-
-                #for buffer in buffers.all
-                #    buffer.Open()
-                #    i_log.Log(() => printf("    WNR %d, BNR %d", winnr, buffer.bufnr), 'diffopts')
-                #    :diffoff
-                #    i_settings.Set_cur_window_wrap()
-                #endfor
 
                 curbuffer.Open()
             endfor
@@ -180,18 +192,22 @@ class Mode
     # The default implementation of the UseHunk commands ring the bell
     def Key_use()
         i_extra.Bell()
+        NoChangePopup('Use Hunk')
     enddef
 
     def Key_use0()
         i_extra.Bell()
+        NoChangePopup('Use Hunk 0')
     enddef
 
     def Key_use1()
         i_extra.Bell()
+        NoChangePopup('Use Hunk 1')
     enddef
 
     def Key_use2()
         i_extra.Bell()
+        NoChangePopup('Use Hunk 2')
     enddef
 
 
@@ -528,9 +544,11 @@ class GridMode extends Mode
 
         var curbuf = buffers.Current()
         if curbuf == buffers.result
-            :diffget
+            ResultChange(':diffget', 'Use Hunk 1')
         elseif [buffers.one, buffers.two]->index(curbuf) >= 0
-            :diffput
+            ResultChange(':diffput', 'Use Hunk 1')
+        else
+            NoChangePopup('Use Hunk 1')
         endif
 
         this.Diff(current_diff)
@@ -549,9 +567,11 @@ class GridMode extends Mode
 
         var curbuf = buffers.Current()
         if curbuf == buffers.result
-            :diffget
+            ResultChange(':diffget', 'Use Hunk 2')
         elseif [buffers.one, buffers.two]->index(curbuf) >= 0
-            :diffput
+            ResultChange(':diffput', 'Use Hunk 2')
+        else
+            NoChangePopup('Use Hunk 2')
         endif
 
         this.Diff(current_diff)
@@ -905,9 +925,11 @@ class CompareMode extends Mode
 
         var curbuf = buffers.Current()
         if curbuf == buffers.result
-            :diffget
+            ResultChange(':diffget', 'Use Hunk')
         elseif [buffers.one, buffers.two]->index(curbuf) >= 0
-            :diffput
+            ResultChange(':diffput', 'Use Hunk')
+        else
+            NoChangePopup('Use Hunk')
         endif
 
         this.Diff(current_diff)
@@ -1079,7 +1101,7 @@ class PathMode extends Mode
         if buffers.Current() == i_buflib.nullBuffer
             var bname = buffers.hud.bufnr == bufnr() ? 'Splice_HUD' : bufname()
             # TODO: test
-            i_ui.SplicePopupKey('ENOTFILE', bname, 'UseHunk')
+            i_ui.SplicePopupKey('ENOTFILE', bname, 'Use Hunk')
             return
         endif
 
@@ -1090,9 +1112,11 @@ class PathMode extends Mode
 
         var curbuf = buffers.Current()
         if curbuf == buffers.result
-            :diffget
+            ResultChange(':diffget', 'Use Hunk')
         elseif [buffers.one, buffers.two]->index(curbuf) >= 0
-            :diffput
+            ResultChange(':diffput', 'Use Hunk')
+        else
+            NoChangePopup('Use Hunk')
         endif
 
         this.Diff(current_diff)

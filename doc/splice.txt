@@ -216,7 +216,10 @@ Path                                               *SpliceUsage_modes_path*
 2.3 HUD                                                      *SpliceUsage_hud*
 
 The heads up display, HUD, is active. Command names are highlighted when the
-mouse rolls over them and clicking them executes the comand.
+mouse rolls over them and clicking them executes the comand. There are state
+indicators and some popup dialogs that may be invoked.
+
+See |SpliceHUD| for more information.
 
 
 ==============================================================================
@@ -740,40 +743,41 @@ Options: Any valid highlight
 6. HUD                                                             *SpliceHUD*
 
 The heads up display, HUD, is active. Command names are highlighted when the
-mouse rolls over them and clicking them executes the comand.
+mouse rolls over them and clicking them executes the comand. There are state
+indicators and some popup dialogs that may be invoked.
 
 ------------------------------------------------------------------------------
 6.1 Diffs Off                                             *SpliceHUD_DiffsOff*
 
-The `diffs off` button indicates if diff mode is on. In addition, after going
-into a given mode after diffs are turned on, the `diffs off` button becomes a
-toggle for turning diff on/off.
+With a '*', the `diffs off` button indicates diff mode is on. In addition, in
+given mode when diffs are turned on, the `diffs off` button becomes a toggle
+for turning diff on/off.
 
     - D:*diffs off
 
 ------------------------------------------------------------------------------
 6.2 Toggle Scrollbind                             *SpliceHUD_ToggleScrollbind*
 
-The `toggle scrollbind` button indicates if scrollbind is on. ScrollBind is on
-automatically when diffs are on, otherwise it can be toggled. 
+With a '*', the the `toggle scrollbind` button indicates scrollbind is on.
+ScrollBind is on automatically when diffs are on, otherwise it can be toggled. 
 
     - s:*toggle scrollbind
 
 ------------------------------------------------------------------------------
 6.3 Layout and diff                                         *SpliceHUD_Layout*
 
-When diffs are on/enabled, the Layout section highlights which files/windows
-are participating in the diff.
+When diffs are on/enabled, the Layout section highlights the files/windows
+participating in the diff.
 
 ------------------------------------------------------------------------------
 6.4 Diff Options Dialog                                *SpliceHUD_DiffOptions*
 
 The `Diff Options` button brings up a modal dialog to change diff and wrap
-options. The dialog must the . Click on the boolean options line to toggle
-their state. Click on a radio button option to select it and turn off any
-other option in the group. Entering `CTRL-C` dismisses the dialog and no
+settings. The dialog must the . Click on a boolean option line to toggle
+its state. Click on a radio button option to select it and turn off any
+other options in the group. Entering `CTRL-C` closes the dialog and no
 actions are taken. `x` or `ESC` or clicking at the the bottom of the dialog
-dismisses the dialog and applies the changes.
+closes the dialog and applies the changes.
 
 Some of vim's |'diffopt'| options may be changed; refer to the vim help for
 information about these optins. The supported boolean options are:
@@ -787,16 +791,15 @@ information about these optins. The supported boolean options are:
     - internal
     - indent-heuristic
 
-The splice wrap option may be changed.
+The splice `wrap` option may be changed. When the dialog is closed, the
+option is immediately applied to the open windows, unless a `wrap-all-*`
+button is enabled.
 
     - wrap
 
-If none of the `wrap-all-*` buttons are enabled then the wrap of the open
-windows is set accordingly.
-
-A set `wrap-all-*` radio button is applied to the open windows. Use
-`wrap-all-no-change` to prevent the wrap of the open windows from change when
-the dialog is dismissed.
+A `wrap-all-*` radio button is applied to the open windows when the dialog is
+closed; it overrides the splice `wrap` setting. Use `wrap-all-no-change` to
+prevent the wrap of the open windows from changing to the `wrap` setting.
 
     - wrap-all-on
     - wrap-all-off
@@ -812,8 +815,11 @@ more than one shortcut.
 ==============================================================================
 7. External Website                                           *SpliceExternal*
 
-https://github.com/errael/splice9 https://github.com/errael/splice9#splice9
-https://github.com/errael/splice9/wiki
+The splice9 github pages have a variety of information, see
+
+    The site    https://github.com/errael/splice9
+    README      https://github.com/errael/splice9#splice9
+    WIKI        https://github.com/errael/splice9/wiki
 
 ==============================================================================
 8. License                                                     *SpliceLicense*
