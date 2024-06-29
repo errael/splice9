@@ -1,4 +1,8 @@
 
+TODO:   In diff mode, clicking in "One" changes cursor in "Result". scrollbind?
+
+TODO:   Visit Focus(#) in favor of Focus(buffers.<window_name>)
+
 TODO:   Don't change 'diff' if not toggled.
 
 TODO:   No shortcuts for diff options.

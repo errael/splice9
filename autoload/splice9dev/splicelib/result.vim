@@ -44,8 +44,6 @@ class ConflictLocal extends Conflict
     enddef
 endclass
 
-# When "splice.numberedConflictPattern" is true,
-# use the conflict number, e.g. "===== :3:" is "3 -1", index into "conflicts"
 var conflicts: list<ConflictLocal> = []
 
 #
@@ -53,10 +51,6 @@ var conflicts: list<ConflictLocal> = []
 # text Cursor must be on a conflict marker in the result buffer.
 #
 export def RestoreOriginalConflictText()
-    if !splice.numberedConflictPattern
-        return
-    endif
-
     var bnr: number = bufnr()
     if i_buflib.buffers.result.bufnr != bnr
         i_ui.SplicePopupMessage(["\"Result\" file not focused"], 'Use Both')
@@ -93,11 +87,10 @@ def GetConflictText(n: number): list<string>
     s->add(CONFLICT_MARKER_END)
     return s
 enddef
-### 
-### export def GetConflict(n: number): Conflict
-###     return conflicts[n - 1]
-### enddef
 
+# Scan the merge file, save the conflict data; replace conflict data
+# conflict marker that references the conflict.
+# For example "===== :3:" is index 2 (3 - 1) into the "conflicts" list.
 def Process_result()
     i_log.Log('Process_result()', '', true, ':ls')
     windows.Close_all()
@@ -114,8 +107,7 @@ def Process_result()
         if in_conflict
             var magic = false
             if line =~ CONFLICT_MARKER_MARK_PATTERN
-                lines->add(line .. (splice.numberedConflictPattern
-                    ? ' :' .. conflicts->len() .. ':' : ''))
+                lines->add(line .. ' :' .. conflicts->len() .. ':')
                 cur_hunk = conflicts[-1].right
                 magic = true
             endif

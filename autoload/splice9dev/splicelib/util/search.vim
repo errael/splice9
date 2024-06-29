@@ -12,14 +12,15 @@ import autoload Rlib('util/log.vim') as i_log
 #
 # export def HighlightConflict()
 # export def MoveToConflict(forw: bool = true)
+# export def MoveToFirstConflict()
 #
 
 const pri_hl_conflict = 100
 const pri_hl_cur_conflict = 110
 
-# NOTE: the numeric conflict ID is a capture group.
-export const CONFLICT_PATTERN = splice.numberedConflictPattern
-    ? '\m^=======* :\(\d\+\):$' : '\m^=======*$'
+# The conflict index is in a capture group.
+export const CONFLICT_PATTERN = '\m^=======* :\(\d\+\):$'
+const FIRST_CONFLICT_PATTERN = '\m^=======* :1:$'
 
 #
 # Auto Commands, autocmd
@@ -34,6 +35,7 @@ export def Init()
     augroup search
         autocmd!
         autocmd CursorMoved * CursorMoved()
+        autocmd BufEnter * BufEnter()
     augroup END
 enddef
 
@@ -43,17 +45,22 @@ def CursorMoved()
     endif
 enddef
 
-
-def IsOnConflict(): bool
-    var marker = matchlist(getline(getcurpos()[1]), CONFLICT_PATTERN)
-    return !marker->empty()
+# Clear any current conflict highlight when changing windows
+def BufEnter()
+    #i_log.Log(printf("BUF WIN ENTER wnr %d, bnr %d", winnr(), bufnr()))
+    ClearConflictHighlight()
+    # and re-check
+    CursorMoved()
 enddef
 
+#def IsOnConflict(): bool
+#    return match(s, CONFLICT_PATTERN) >= 0
+#enddef
+
 const id_cur_conflict = 999
-var has_conflict_highlight: bool
 
 def ClearConflictHighlight()
-    has_conflict_highlight = false
+    #i_log.Log(printf('CLEAR CONFLICT HIGHLIGHT w-%d b-%d', winnr(), bufnr()))
     try
         matchdelete(id_cur_conflict)
     catch /E957:\|E803:/
@@ -64,31 +71,24 @@ enddef
 def CurrentConflictHighlight()
     var lino: number = getcurpos()[1]
     var s = getline(lino)
+    ClearConflictHighlight()    # could use flag to try and avoid, too messy
     # Get out fastest if there's no chance.
     if s[0] != '='
-        if has_conflict_highlight
-            ClearConflictHighlight()
-        endif
         return
     endif
 
-    if has_conflict_highlight
-        ClearConflictHighlight()
-    endif
-    var marker = matchlist(s, CONFLICT_PATTERN)
-    if marker->empty()
+    if match(s, CONFLICT_PATTERN) < 0
         return
     endif
 
     matchaddpos(splice.hl_cur_conflict, [lino], pri_hl_cur_conflict, id_cur_conflict)
-    has_conflict_highlight = true
 
 enddef
 
 #
 # Highlight all the conflicts in this buffer
 #
-export def HighlightConflict()
+export def HighlightAllConflicts()
     matchadd(splice.hl_conflict, CONFLICT_PATTERN, pri_hl_conflict)
 enddef
 
@@ -103,7 +103,13 @@ export def MoveToConflict(forw: bool = true)
     endif
 enddef
 
+export def MoveToFirstConflict()
+    search(FIRST_CONFLICT_PATTERN, '')
+enddef
+
+
 finish
+
 
 ################################################################
 ################################################################

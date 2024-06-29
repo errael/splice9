@@ -86,7 +86,7 @@ class BufferList
 
     def Remain(): i_with.WithEE
         # TODO: use KeepWindowEE instead? buffer vs window shouldn't matter here
-        return i_with.KeepBufferEE.new()
+        return i_with.KeepBufferPosEE.new()
     enddef
 
 endclass
