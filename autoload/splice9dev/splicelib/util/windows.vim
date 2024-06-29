@@ -29,6 +29,6 @@ export def Close_all()
 enddef
 
 export def Remain(): i_with.WithEE
-    return i_with.KeepWindowEE.new()
+    return i_with.KeepWindowPosEE.new()
 enddef
 

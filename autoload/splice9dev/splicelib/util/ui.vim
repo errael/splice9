@@ -65,7 +65,7 @@ enddef
 def PopupMessageCommon(msg: list<string>, extras: dict<any> = {}): number
 
     var options: dict<any> = {
-        minwidth: 20,
+        minwidth: 10,
         tabpage: -1,
         zindex: 300,
         border: [],
@@ -123,7 +123,7 @@ enddef
 export def PopupError(msg: list<string>, other: list<any> = [])
 
     var options = {
-        minwidth: 20,
+        minwidth: 10,
         tabpage: -1,
         zindex: 300,
         border: [],

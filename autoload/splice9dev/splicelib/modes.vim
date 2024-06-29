@@ -37,9 +37,60 @@ def ResultChange(cmd: string, title: string)
     endif
 enddef
 
+def FileNotInLayoutPopup(fn: string)
+    var s = i_strings.Pad([ printf('"%s" not available', fn), 'in this layout' ], 'c')
+    i_ui.SplicePopupMessage(s, 'File Selection')
+enddef
 
-# indexed by bnr
-var last_buf_pos: dict<list<number>>
+class Position
+    var charpos: list<number>
+    var wininfo: dict<any>
+endclass
+
+# indexed by bnr.
+var last_buf_pos: dict<Position>
+var last_focused_bufnr: number
+
+#def GetPosition(winnr: number = 0): Position
+#    var bnr = winbufnr(winnr)
+#    var pos = last_buf_pos->get(bnr, null_object)
+#    #i_log.Log(() => printf("GetPosition: wnr %d, bnr %d", winnr, bnr))
+#    return pos
+#enddef
+
+# Restore the window's buffer to the saved position; or current window if 0.
+# Center the positioned line in the window.
+# Since the saved position is found by bufnr, multiple windows with same
+# buffer could get weird.
+#
+# TODO: 1 second highlight of cursor lines After layout change
+#
+def RestorePosition(winnr: number = 0)
+    if winnr != 0
+        windows.Focus(winnr)
+    endif
+    var bnr = winbufnr(0)
+    if bnr > 0
+        var pos: Position = last_buf_pos->get(bnr, null_object)
+        i_log.Log(() => printf("RestorePosition: : wnr %d/%d, bnr %d/%d %s", winnr, winnr(), bnr, bufnr(), pos))
+        if pos != null
+            setcursorcharpos(pos.charpos[1 :])
+            execute("normal z.")
+        endif
+    #else
+    #    i_log.Log(() => printf("RestorePosition: NO POSITION: wnr %d, bnr %d", winnr, bnr))
+    endif
+enddef
+
+# Save, indexed by bufnr, position in specified window.
+def SavePosition(winnr: number)
+    var infos = win_getid(winnr)->getwininfo()
+    if infos->empty()
+        return
+    endif
+    var wininfo = infos[0]
+    last_buf_pos[wininfo.bufnr] = Position.new(getcursorcharpos(winnr), wininfo)
+enddef
 
 #
 # Could use "is" instead of "==" when comparing buffers,
@@ -64,11 +115,6 @@ class Mode
     var _current_layout: number
     var _current_scrollbind: bool
 
-    var _current_buffer: Buffer
-    var _current_buffer_first: Buffer
-    var _current_buffer_second: Buffer
-    var _current_mid_buffer: Buffer
-
     def new()
     enddef
 
@@ -88,9 +134,8 @@ class Mode
         endif
     enddef
 
-    # Sets the diff mode after _current_diff_mode
-    # Note that _current_diff_mode is set by M_diff_X,
-    # which is inovked by the method called by Diff().
+    # Select the next diff mode.
+    # which is inovked by Diff() above.
     def Key_diff()
         i_log.Log(() => $'Key_diff: next_diff_mode: {this._current_diff_mode + 1}')
         var diffmode = this._current_diff_mode
@@ -159,15 +204,35 @@ class Mode
 
 
     def Layout(layoutnr: number)
+        #i_log.Log(() => printf("Layout ENTER wnr %d, bnr %d", winnr(), bufnr()))
+        this.SavePositions()
+        #i_log.Log(() => printf("Layout ENTER %s", GetPosition()))
         this._layouts[layoutnr]()
 
         this.Diff(this._current_diff_mode)
         this.Redraw_hud()
+
+        var wnr_result = bufwinnr(i_buflib.buffers.result.bufnr)
+
+        if wnr_result > 0
+            windows.Focus(i_buflib.buffers.result.Winnr())
+            i_search.HighlightAllConflicts()
+        endif
+
+        this.RestorePositions()
+
+        var bufs: list<number> = win_findbuf(last_focused_bufnr)
+        if !bufs->empty()
+            win_gotoid(bufs[0])
+        else
+            # Focus the result window, if there is one
+            if wnr_result > 0
+                windows.Focus(i_buflib.buffers.result.Winnr())
+            endif
+        endif
     enddef
 
-    # TODO: NOTE that _current_layout is not saved here,
-    #       it is saved at the target.
-    #       Why not save it here, or in Layout above, instead of the several places M_layout_#?
+    # NOTE that _current_layout is save at M_layout_#
     def Key_layout(diffmode: number = -1) # diffmode not used
         var next_layout = (this._current_layout + 1) % len(this._layouts)
         i_log.Log(() => printf("Key_layout: id: %s, next %d, this.layouts %s",
@@ -188,6 +253,15 @@ class Mode
     def Key_result()
     enddef
 
+
+    # if any diff is on return true; otherwise alert and return false.
+    def VerifyDiff(title: string): bool
+        if this._current_diff_mode == 0
+            i_ui.SplicePopupMessage(['No active diff'], title)
+            return false
+        endif
+        return true
+    enddef
 
     # The default implementation of the UseHunk commands ring the bell
     def Key_use()
@@ -216,62 +290,43 @@ class Mode
     enddef
 
 
-    def RestorePosition(winnr: number)
-        var bnr = winbufnr(winnr)
-        if bnr > 0
-            var pos: list<number> = last_buf_pos->get(bnr, null_list)
-            if pos != null
-                setcursorcharpos(pos[1 :])
-            endif
-        endif
-    enddef
-
     def Activate()
         #i_log.Log(printf("Activate: this._diffs: id: %s, %s", this.id, this._diffs))
         this.Layout(this._current_layout)
-        this.Diff(this._current_diff_mode)
+
         this.Scrollbind(this._current_scrollbind)
         this._restore_diff_mode = 0
-
-        # Don't use windows.Remain(), we're setting position of everything
-        var winid = win_getid()
-
-        windows.Focus(i_buflib.buffers.result.Winnr())
-        i_search.HighlightConflict()
-
-        # restore the cursor positions
-        var bnr: number
-        for winnr in range(2, 2 + this._number_of_windows - 1)
-            windows.Focus(winnr)
-            this.RestorePosition(winnr)
-        endfor
-
-        win_gotoid(winid)
 
         i_log.Log(() => $"CURRENT_MODE: {this.id}")
     enddef
 
-    def Deactivate()
+    def RestorePositions()
         for winnr in range(2, 2 + this._number_of_windows - 1)
-            var bnr = winbufnr(winnr)
-            if bnr > 0
-                last_buf_pos[bnr] = getcursorcharpos(winnr)
-            endif
+            RestorePosition(winnr)
         endfor
+    enddef
+
+    def Deactivate()
+        this.SavePositions()
         i_log.Log(() => printf("Deactivate: saved_buffer_positions: %s", last_buf_pos))
+    enddef
+
+    def SavePositions()
+        last_focused_bufnr = bufnr()
+        for winnr in range(2, 2 + this._number_of_windows - 1)
+            SavePosition(winnr)
+        endfor
     enddef
 
 
     def Key_next()
         this.Goto_result()
         i_search.MoveToConflict(true)
-        #vim.command(r'exe "silent! normal! /\\v^\\=\\=\\=\\=\\=\\=\\=*$\<cr>"')
     enddef
 
     def Key_prev()
         this.Goto_result()
         i_search.MoveToConflict(false)
-        #vim.command(r'exe "silent! normal! ?\\v^\\=\\=\\=\\=\\=\\=\\=*$\<cr>"')
     enddef
 
 
@@ -457,10 +512,8 @@ class GridMode extends Mode
     def Key_original()
         if this._current_layout == 0
             windows.Focus(2)
-        elseif this._current_layout == 1
-            return
-        elseif this._current_layout == 2
-            return
+        else
+            FileNotInLayoutPopup('Original')
         endif
     enddef
 
@@ -526,12 +579,18 @@ class GridMode extends Mode
 
     # both side of conflict
     def Key_use0()
+        if !this.VerifyDiff('Use Both')
+            return
+        endif
         # Following checks that in Result on conflict
         i_result.RestoreOriginalConflictText()
         # TODO: this.Diff(current_diff) or some other setup/fixup?
     enddef
 
     def Key_use1()
+        if !this.VerifyDiff('Use Hunk 1')
+            return
+        endif
         var current_diff = this._current_diff_mode
 
         if this._current_layout == 0
@@ -555,6 +614,9 @@ class GridMode extends Mode
     enddef
 
     def Key_use2()
+        if !this.VerifyDiff('Use Hunk 2')
+            return
+        endif
         var current_diff = this._current_diff_mode
 
         if this._current_layout == 0
@@ -617,6 +679,8 @@ endclass
 
 
 class LoupeMode extends Mode
+    var _current_buffer: Buffer
+
     def new()
         this.id = 'loup'
         this._current_layout = i_settings.Setting('initial_layout_loupe')
@@ -697,6 +761,9 @@ endclass
 
 
 class CompareMode extends Mode
+    var _current_buffer_first: Buffer
+    var _current_buffer_second: Buffer
+
     def new()
         this.id = 'comp'
         this._current_layout = i_settings.Setting('initial_layout_compare')
@@ -901,6 +968,9 @@ class CompareMode extends Mode
 
 
     def Key_use()
+        if !this.VerifyDiff('Use Hunk')
+            return
+        endif
         var active = [this._current_buffer_first, this._current_buffer_second]
 
         # TODO: alert "result" with "one" or "two"
@@ -952,6 +1022,8 @@ endclass
 
 
 class PathMode extends Mode
+    var _current_mid_buffer: Buffer
+
     def new()
         this.id = 'path'
         this._current_layout = i_settings.Setting('initial_layout_path')
@@ -1098,6 +1170,9 @@ class PathMode extends Mode
 
 
     def Key_use()
+        if !this.VerifyDiff('Use Hunk')
+            return
+        endif
         if buffers.Current() == i_buflib.nullBuffer
             var bname = buffers.hud.bufnr == bufnr() ? 'Splice_HUD' : bufname()
             # TODO: test
@@ -1158,6 +1233,7 @@ export def ActivateInitialMode(initial_mode: string)
     endif
     current_mode = modes[initial_mode]
     current_mode.Activate()
+    i_search.MoveToFirstConflict()
 enddef
 
 # TODO: Directly access variables after makeing more stuff read-only

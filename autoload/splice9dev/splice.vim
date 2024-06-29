@@ -24,8 +24,6 @@ import autoload './splicelib/result.vim' as i_result
 import autoload './splicelib/settings.vim'
 import autoload './splicelib/util/windows.vim'
 
-export const numberedConflictPattern = true
-
 def InitHighlights()
     export const hl_label       = settings.Setting('hl_label')
     export const hl_sep         = settings.Setting('hl_sep')
