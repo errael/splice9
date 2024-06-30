@@ -53,14 +53,14 @@ var conflicts: list<ConflictLocal> = []
 export def RestoreOriginalConflictText()
     var bnr: number = bufnr()
     if i_buflib.buffers.result.bufnr != bnr
-        i_ui.SplicePopupMessage(["\"Result\" file not focused"], 'Use Both')
+        i_ui.SplicePopupAlert(["\"Result\" file not focused"], 'Use Both')
         return
     endif
 
     var lino: number = getcurpos()[1]
     var marker = matchlist(getline(lino), i_search.CONFLICT_PATTERN)
     if marker->empty()
-        i_ui.SplicePopupMessage(["Cursor not on Conflict line"], 'Use Both')
+        i_ui.SplicePopupAlert(["Cursor not on Conflict line"], 'Use Both')
         return
     endif
 

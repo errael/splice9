@@ -18,11 +18,13 @@ const Rlib = rlib.Rlib
 # import keys.vim, without "as", causes keys() usage to get an error
 import autoload './splicelib/util/keys.vim' as i_keys
 import autoload Rlib('util/log.vim') as i_log
+import autoload Rlib('util/ui.vim') as i_rui
 import autoload './splicelib/util/search.vim' as i_search
 import autoload './splicelib/hud.vim'
 import autoload './splicelib/result.vim' as i_result
 import autoload './splicelib/settings.vim'
 import autoload './splicelib/util/windows.vim'
+import autoload './splicelib/util/ui.vim' as i_ui
 
 def InitHighlights()
     export const hl_label       = settings.Setting('hl_label')
@@ -175,6 +177,8 @@ def SpliceInit9()
     # startup_error_msgs should already be empty
     startup_error_msgs = settings.InitSettings()
     InitHighlights()
+    # Can't do this in InitHighlights, see 
+    i_ui.ConfigureUiHighlights()
     i_keys.InitializeBindings()
     ReportStartupIssues()
     i_log.Log('starting splice')

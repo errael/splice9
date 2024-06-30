@@ -1,4 +1,11 @@
 
+TODO:   Doc show example of adding additional mappings.
+
+TODO:   Options for cursorline highlight
+        Enable, hl_cursorline.
+        ? click on "Layout:" to just do highlight.
+        But clicking on mode does the same thing, redoes the layout, but fast.
+
 TODO:   In diff mode, clicking in "One" changes cursor in "Result". scrollbind?
 
 TODO:   Visit Focus(#) in favor of Focus(buffers.<window_name>)
