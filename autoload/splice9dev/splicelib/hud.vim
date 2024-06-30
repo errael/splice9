@@ -19,11 +19,13 @@ export const hud_name = '__Splice_HUD__'
 import autoload Rlib('util/log.vim') as i_log
 import autoload Rlib('util/with.vim') as i_with
 import autoload Rlib('util/strings.vim') as i_strings
+import autoload Rlib('util/property_sheet.vim') as i_sheet
+import autoload Rlib('util/ui.vim') as i_rui
 import autoload './util/windows.vim'
 import autoload '../splice.vim'
 import autoload './modes.vim' as i_modes
-import autoload './popups.vim' as i_popups
 import autoload './settings.vim' as i_settings
+import autoload './util/keys.vim' as i_keys
 
 import autoload "../../../plugin/splice.vim" as i_plugin
 
@@ -807,12 +809,12 @@ enddef
 #
 
 export def DisplayCommandShortcutPopup()
-    var text = i_popups.CreateCurrentMappings(command_display_names)
+    var text = i_keys.CreateCurrentMappings(command_display_names)
     var extras: dict<any> = { tweak_options: {} }
     extras.tweak_options.title = ' Shortcuts (Splice9 '
                                     .. i_plugin.splice9_string_version .. ') '
     extras.header_line = 1
-    i_popups.DisplayTextPopup(text, extras)
+    i_rui.PopupMessage(text, extras)
 enddef
 
 ################################################################
@@ -861,7 +863,7 @@ def AddWrapRadio()
                     #algorithm: myers minimal patience histogram
         diffopts->extend(radio_btn_group_wrap_opts)
         lockvar diffopts
-        i_popups.AddRadioBtnGroup(radio_btn_group_wrap_opts)
+        i_sheet.AddRadioBtnGroup(radio_btn_group_wrap_opts)
     endif
 enddef
 
@@ -904,7 +906,7 @@ def DiffOptionsPopup()
         close_click_idx: 3,
     }
     extras.tweak_options.title = ' Diff Options '
-    winid_props = i_popups.DisplayPropertyPopup(diffopts, diffopt_state, extras)
+    winid_props = i_sheet.DisplayPropertyPopup(diffopts, diffopt_state, extras)
     popup_setoptions(winid_props, { callback: DiffOptsDialogClosing })
 enddef
 
@@ -915,7 +917,7 @@ def DiffOptsDialogClosing(winid: number, result: any): void
     endif
     winid_props = 0
 
-    var state = i_popups.GetPropertyState(winid)
+    var state = i_sheet.GetPropertyState(winid)
 
     i_log.Log(() => printf("DiffOptsDialogClosing: result: %s, state=%s", result, state))
 
@@ -924,7 +926,7 @@ def DiffOptsDialogClosing(winid: number, result: any): void
         #       since a PropertyDialog does prop_close with a dict.
         i_log.Log(() => 'DiffOptsDialogClosing: CTRL-C abort')
     else
-        # var result = type(result) == v:t_dict ? result : i_popups.DummyPropertyDialogResult()
+        # var result = type(result) == v:t_dict ? result : i_sheet.DummyPropertyDialogResult()
         # result.idx >= 0 ? diff_options_append_msgs[result.idx] : "NONE"
         # var key = result.key
 
@@ -967,7 +969,7 @@ def DiffOptsDialogClosing(winid: number, result: any): void
         })
     endif
 
-    i_popups.PropertyDialogClose(winid)
+    i_sheet.PropertyDialogClose(winid)
 enddef
 
 ################################################################

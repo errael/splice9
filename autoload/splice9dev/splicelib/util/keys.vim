@@ -10,6 +10,7 @@ import autoload Rlib('util/log.vim') as i_log
 import autoload Rlib('util/stack.vim') as i_stack
 import autoload Rlib('util/vim_extra.vim') as i_extra
 import autoload Rlib('util/map_mode_filters.vim') as i_mm_filter
+import autoload Rlib('util/strings.vim') as i_strings
 import autoload '../modes.vim' as i_modes
 import autoload '../settings.vim' as i_settings
 
@@ -249,6 +250,63 @@ export def DeactivateGridBindings()
     Bind('UseHunk')
     return
 enddef
+
+
+# for displaying mappings in a popup
+export def CreateCurrentMappings(command_display_names: dict<string>): list<string>
+    # create a separate list for each column
+    var act_keys: list<string>
+    var defaults: list<string>
+    var mappings: list<string>
+    var act_names: list<string>
+    def AddBlanks(blank_mapping = true)
+        defaults->add('')
+        act_names->add('')
+        act_keys->add('')
+        if blank_mapping
+            mappings->add('')
+        endif
+    enddef
+
+    # ['Grid', ['<M-x>', '<M-g>'], 'g']
+    defaults->add('default')
+    act_names->add('command')
+    act_keys->add('id')
+    mappings->add('shortcut')
+    #AddBlanks()
+    for mappings_item in MappingsList()->AddSeparators(() => [])
+        if !! mappings_item
+            var [ act_key, mings, dflt ] = mappings_item
+            var first_ming = true
+            for ming in mings
+                mappings->add(ming)
+                if first_ming
+                    act_keys->add(act_key)
+                    defaults->add(dflt)
+                    act_names->add("'" .. command_display_names[act_key] .. "'")
+                else
+                    AddBlanks(false)
+                endif
+                first_ming = false
+            endfor
+        else
+            AddBlanks()
+        endif
+    endfor
+    defaults->i_strings.Pad('r')
+    act_names->i_strings.Pad('l')
+    act_keys->i_strings.Pad('r')
+    mappings->i_strings.Pad('l')
+    var ret: list<string>
+    for i in range(len(mappings))
+        ret->add(printf("%s %s %s   %s",
+            defaults[i], act_names[i], act_keys[i], mappings[i]))
+    endfor
+    return ret
+enddef
+
+
+
 
 finish
 

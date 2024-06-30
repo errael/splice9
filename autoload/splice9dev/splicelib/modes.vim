@@ -12,6 +12,7 @@ import autoload Rlib('util/vim_extra.vim') as i_extra
 import autoload Rlib('util/log.vim') as i_log
 import autoload Rlib('util/with.vim') as i_with
 import autoload Rlib('util/strings.vim') as i_strings
+import autoload Rlib('util/ui.vim') as i_rui
 import autoload './util/keys.vim' as i_keys
 import autoload './util/search.vim' as i_search
 import autoload './util/ui.vim' as i_ui
@@ -19,12 +20,15 @@ import autoload './util/ui.vim' as i_ui
 type Buffer = i_buflib.Buffer
 const buffers = i_buflib.buffers
 
+const MAX_WINDOWS = 5
+var id_cursor_lines_timer: number = -1
+
 # augroup modes
 #     autocmd!
 # augroup END
 
 def NoChangePopup(title: string)
-    i_ui.SplicePopupMessage(['No change'], title)
+    i_ui.SplicePopupAlert(['No change'], title)
 enddef
 
 def ResultChange(cmd: string, title: string)
@@ -38,8 +42,8 @@ def ResultChange(cmd: string, title: string)
 enddef
 
 def FileNotInLayoutPopup(fn: string)
-    var s = i_strings.Pad([ printf('"%s" not available', fn), 'in this layout' ], 'c')
-    i_ui.SplicePopupMessage(s, 'File Selection')
+    var s = [ printf('"%s" not available', fn), 'in this layout' ]
+    i_ui.SplicePopupAlert(s, 'File Selection')
 enddef
 
 class Position
@@ -72,7 +76,7 @@ def RestorePosition(winnr: number = 0)
     var bnr = winbufnr(0)
     if bnr > 0
         var pos: Position = last_buf_pos->get(bnr, null_object)
-        i_log.Log(() => printf("RestorePosition: : wnr %d/%d, bnr %d/%d %s", winnr, winnr(), bnr, bufnr(), pos))
+        #i_log.Log(() => printf("RestorePosition: : wnr %d/%d, bnr %d/%d %s", winnr, winnr(), bnr, bufnr(), pos))
         if pos != null
             setcursorcharpos(pos.charpos[1 :])
             execute("normal z.")
@@ -230,6 +234,7 @@ class Mode
                 windows.Focus(i_buflib.buffers.result.Winnr())
             endif
         endif
+        this.HighlightCursorLines()
     enddef
 
     # NOTE that _current_layout is save at M_layout_#
@@ -238,6 +243,29 @@ class Mode
         i_log.Log(() => printf("Key_layout: id: %s, next %d, this.layouts %s",
             this.id, next_layout, this._layouts), 'layout')
         this.Layout(next_layout)
+    enddef
+
+    #
+    # Rember match is tied to the widnow
+    #
+    def HighlightCursorLines()
+        if id_cursor_lines_timer >= 0
+            timer_stop(id_cursor_lines_timer)
+            this.FinishCursorLineTimer(id_cursor_lines_timer)
+        endif
+        for wnr in range(2, 2 + this._number_of_windows - 1)
+            var lino: number = getcurpos(wnr)[1]
+            matchaddpos('Pmenu', [lino], i_search.pri_hl_cursors,
+                i_search.id_cursors, {window: wnr})
+        endfor
+        id_cursor_lines_timer = timer_start(1000, this.FinishCursorLineTimer)
+    enddef
+
+    def FinishCursorLineTimer(id: number)
+        id_cursor_lines_timer = -1
+        for wnr in range(2, 2 + this._number_of_windows - 1)
+            i_search.ClearHighlight(i_search.id_cursors, wnr)
+        endfor
     enddef
 
 
@@ -257,7 +285,7 @@ class Mode
     # if any diff is on return true; otherwise alert and return false.
     def VerifyDiff(title: string): bool
         if this._current_diff_mode == 0
-            i_ui.SplicePopupMessage(['No active diff'], title)
+            i_ui.SplicePopupAlert(['No active diff'], title)
             return false
         endif
         return true
@@ -308,7 +336,7 @@ class Mode
 
     def Deactivate()
         this.SavePositions()
-        i_log.Log(() => printf("Deactivate: saved_buffer_positions: %s", last_buf_pos))
+        #i_log.Log(() => printf("Deactivate: saved_buffer_positions: %s", last_buf_pos))
     enddef
 
     def SavePositions()
@@ -977,10 +1005,9 @@ class CompareMode extends Mode
         if active->index(buffers.result) < 0
                 || active->index(buffers.one) < 0 && active->index(buffers.two) < 0
             # Center the lines.
-            var s = i_strings.Pad(['"Result" required', 'with either "One" or "Two".',
-                '(look at "Layout")'], "c")
+            var s = ['"Result" required', 'with either "One" or "Two".', '(look at "Layout")']
 
-            i_ui.SplicePopupMessage(s, 'Use Hunk')
+            i_ui.SplicePopupAlert(s, 'Use Hunk')
             return
         endif
 
@@ -1175,8 +1202,9 @@ class PathMode extends Mode
         endif
         if buffers.Current() == i_buflib.nullBuffer
             var bname = buffers.hud.bufnr == bufnr() ? 'Splice_HUD' : bufname()
-            # TODO: test
-            i_ui.SplicePopupKey('ENOTFILE', bname, 'Use Hunk')
+            # TODO: does this ever happen
+            var s = [printf("Current buffer, \"%s\"", bname), "doesn't support \"Use Hunk\""]
+            i_ui.SplicePopupAlert(s, 'Command Issue')
             return
         endif
 
@@ -1232,8 +1260,13 @@ export def ActivateInitialMode(initial_mode: string)
         i_keys.DeactivateGridBindings()
     endif
     current_mode = modes[initial_mode]
+    var wins = win_findbuf(buffers.result.bufnr)
+    if !wins->empty()
+        win_gotoid(wins[0])
+        i_search.MoveToFirstConflict()
+        SavePosition(win_id2win(wins[0]))
+    endif
     current_mode.Activate()
-    i_search.MoveToFirstConflict()
 enddef
 
 # TODO: Directly access variables after makeing more stuff read-only
