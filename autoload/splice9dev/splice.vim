@@ -15,112 +15,40 @@ const Rlib = rlib.Rlib
 # License:     MIT X11
 # ============================================================================
 
-# import keys.vim, without "as", causes keys() usage to get an error
 import autoload './splicelib/util/keys.vim' as i_keys
 import autoload Rlib('util/log.vim') as i_log
-import autoload Rlib('util/ui.vim') as i_rui
+import autoload Rlib('util/ui.vim') as i_ui
 import autoload './splicelib/util/search.vim' as i_search
 import autoload './splicelib/hud.vim'
 import autoload './splicelib/result.vim' as i_result
 import autoload './splicelib/settings.vim'
 import autoload './splicelib/util/windows.vim'
-import autoload './splicelib/util/ui.vim' as i_ui
 
-def InitHighlights()
-    export const hl_label       = settings.Setting('hl_label')
-    export const hl_sep         = settings.Setting('hl_sep')
-    export const hl_command     = settings.Setting('hl_command')
-    export const hl_rollover    = settings.Setting('hl_rollover')
-    export const hl_active      = settings.Setting('hl_active')
-    export const hl_diff        = settings.Setting('hl_diff')
-    export const hl_alert_popup = settings.Setting('hl_alert_popup')
-    export const hl_popup       = settings.Setting('hl_popup')
-    export const hl_heading     = settings.Setting('hl_heading')
-    export const hl_conflict    = settings.Setting('hl_conflict')
-    export const hl_cur_conflict = settings.Setting('hl_cur_conflict')
+export const hl_label       = settings.Setting('hl_label')
+export const hl_sep         = settings.Setting('hl_sep')
+export const hl_command     = settings.Setting('hl_command')
+export const hl_rollover    = settings.Setting('hl_rollover')
+export const hl_active      = settings.Setting('hl_active')
+export const hl_diff        = settings.Setting('hl_diff')
+export const hl_alert_popup = settings.Setting('hl_alert_popup')
+export const hl_popup       = settings.Setting('hl_popup')
+export const hl_heading     = settings.Setting('hl_heading')
+export const hl_conflict    = settings.Setting('hl_conflict')
+export const hl_cur_conflict = settings.Setting('hl_cur_conflict')
+
+# NOTE: the Splice* highlights are defined in settings.vim
+
+def ConfigureUiHighlights()
+    i_ui.ConfigureUiHighlights({
+        heading: hl_heading,
+        popup: hl_popup,
+        alert_popup: hl_alert_popup,
+    })
 enddef
 
-highlight SpliceCommand term=bold cterm=bold gui=bold
-highlight SpliceLabel term=underline ctermfg=6 guifg=DarkCyan
-highlight SpliceUnderline term=underline cterm=underline gui=underline
-
-highlight link SpliceConflict CursorColumn
-highlight link SpliceCConflict Todo
-
-# Some startup peculiarities
-#       - The function "SpliceBoot" is caled only to load this file
-#         and trigger script (not function) execution for initialization.
-#       - during the initial script execution fatal errors may be found
-#         and "finish" executed. Errors are recorded in a list, and 
-#         the finish prevents most of this file from being executed.
-#       - SpliceBoot gets control after the initial script execution,
-#         typically from SpliceInit. If there are startup errors,
-#         a popup is displayed with instructions to exit.
-#         Otherwise the initialization code is executed.
-#
-# NOTE: if startup_error_msgs is not empty, there has been a fatal error
-
+# If there is a string added to this list during initial startup
+# then splice9 will abort with these strings in popup.
 var startup_error_msgs: list<string>
-
-# Logging initialization. Get, check and use the config info directly.
-# TODO: loggin configuration validation.
-
-var fname = settings.GetFromOrig('log_file')
-i_log.SetExcludeCategories(settings.GetFromOrig('logging_exclude_categories'))
-if settings.GetFromOrig('log_enable')
-    i_log.LogInit(fname)
-endif
-
-# First define functions that are used during boot.
-
-export def RecordBootFailure(msgs: list<string>)
-    # There no insert list at beginning so fiddle about
-    var t = msgs->copy()
-    t->extend(startup_error_msgs)
-    startup_error_msgs = t
-enddef
-
-def SpliceDidNotLoad()
-    var winid = popup_dialog(startup_error_msgs, {
-        filter: 'popup_filter_yesno',
-        callback: (_, v: number) => {
-            if v == 0 | return | endif
-            cq
-            }
-        })
-enddef
-
-def SpliceBootError()
-    command! -nargs=0 SpliceInit SpliceDidNotLoad()
-    var instrs =<< trim END
-
-        Since the merge can not be completed, the merge
-        should be aborted so it can be completed later.
-
-        NOTE: the vim command ":cq" aborts the merge.
-
-        Quit now and abort the merge: Yes/No
-
-    END
-    startup_error_msgs->extend(instrs)
-    for msg in startup_error_msgs
-        i_log.Log(msg, 'error')
-    endfor
-    SpliceDidNotLoad()
-enddef
-
-var Main: func
-
-export def SpliceBoot()
-    i_log.Log('SpliceBoot')
-    if startup_error_msgs->empty()
-        Main()
-        return
-    endif
-
-    # A FATAL ERROR
-    SpliceBootError()
-enddef
 
 #
 # Examine stuff looking for problems.
@@ -129,14 +57,11 @@ enddef
 # These are typically not fatal errors.
 # 
 
-# NOTE: reuse startup_error_msgs
-
-def FilterFalse(winid: number, key: string): bool
-    return false
-enddef
-
-def UserConfigError(msg: list<string>)
-
+# This is only used to report recoverable issues, typically configuration.
+def ReportConfigIssues(issues: list<string>)
+    if issues->empty()
+        return
+    endif
     var contents =<< trim END
         Problem with vimrc Splice configuration
 
@@ -144,49 +69,50 @@ def UserConfigError(msg: list<string>)
         continue with merge, or abort merge and retry later.
     END
 
-    contents->extend(msg)
+    contents->extend(issues)
     contents->extend([ '', '(Click on popup to dismiss. Drag border.)' ])
 
-    var winid = popup_create(contents, {
-        minwidth: 20,
-        tabpage: -1,
-        zindex: 300,
-        drag: 1,
-        border: [],
-        padding: [1, 2, 1, 2],
-        close: 'click',
-        #mousemoved: 'any', moved: 'any',
-        mapping: false, filter: FilterFalse
-        })
-
-    var bufnr = winbufnr(winid)
+    i_ui.PopupAlert(contents, ' Splice Configuration ', {center: false, modal: false})
 enddef
 
-def ReportStartupIssues()
-    if startup_error_msgs != []
-        # TODO: timer_start, 200ms?
-        #       avoids vim width issue (I think that was it)
-        UserConfigError(startup_error_msgs)
-        startup_error_msgs = null_list
+import './splice_boot.vim'
+
+# This is the entry point for startup, logging/settings have been initialized.
+#
+var boot_complete: bool
+export def SpliceInit9(settings_issues: list<string>)
+    if boot_complete
+        return
     endif
-enddef
+    boot_complete = true
 
-def SpliceInit9()
-    i_log.Log('SpliceInit')
-    set guioptions+=l
-    # startup_error_msgs should already be empty
-    startup_error_msgs = settings.InitSettings()
-    InitHighlights()
-    # Can't do this in InitHighlights, see 
-    i_ui.ConfigureUiHighlights()
-    i_keys.InitializeBindings()
-    ReportStartupIssues()
-    i_log.Log('starting splice')
+    try
+        i_log.Log('SpliceInit')
+        set guioptions+=l
+
+        ConfigureUiHighlights()
+        i_keys.InitializeBindings()
+    catch
+        var failures: list<string>
+        failures->extend(startup_error_msgs)
+        failures->add(v:exception)
+        splice_boot.SpliceBootError(failures, v:throwpoint)
+        return
+    endtry
+
+    if ! startup_error_msgs->empty()
+        splice_boot.SpliceBootError(startup_error_msgs)
+        return
+    endif
+    startup_error_msgs = null_list
+
+    # non-fatal, we have a go for lift-off
+    ReportConfigIssues(settings_issues)
 
     i_result.Init()
     i_search.Init()
+
+    i_log.Log('Splice started.')
 enddef
 
-
-Main = SpliceInit9
 

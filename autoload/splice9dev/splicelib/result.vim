@@ -9,9 +9,9 @@ import autoload './settings.vim' as i_settings
 
 import autoload Rlib('util/log.vim') as i_log
 import autoload Rlib('util/stack.vim') as i_stack
+import autoload Rlib('./util/ui.vim') as i_ui
 import autoload './util/windows.vim'
 import autoload './util/bufferlib.vim' as i_buflib
-import autoload './util/ui.vim' as i_ui
 import autoload './util/search.vim' as i_search
 
 const CONFLICT_MARKER_START = '<<<<<<<'
@@ -53,14 +53,14 @@ var conflicts: list<ConflictLocal> = []
 export def RestoreOriginalConflictText()
     var bnr: number = bufnr()
     if i_buflib.buffers.result.bufnr != bnr
-        i_ui.SplicePopupAlert(["\"Result\" file not focused"], 'Use Both')
+        i_ui.PopupAlert(["\"Result\" file not focused"], 'Use Both')
         return
     endif
 
     var lino: number = getcurpos()[1]
     var marker = matchlist(getline(lino), i_search.CONFLICT_PATTERN)
     if marker->empty()
-        i_ui.SplicePopupAlert(["Cursor not on Conflict line"], 'Use Both')
+        i_ui.PopupAlert(["Cursor not on Conflict line"], 'Use Both')
         return
     endif
 

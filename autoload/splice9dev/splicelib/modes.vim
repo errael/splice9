@@ -12,10 +12,9 @@ import autoload Rlib('util/vim_extra.vim') as i_extra
 import autoload Rlib('util/log.vim') as i_log
 import autoload Rlib('util/with.vim') as i_with
 import autoload Rlib('util/strings.vim') as i_strings
-import autoload Rlib('util/ui.vim') as i_rui
+import autoload Rlib('util/ui.vim') as i_ui
 import autoload './util/keys.vim' as i_keys
 import autoload './util/search.vim' as i_search
-import autoload './util/ui.vim' as i_ui
 
 type Buffer = i_buflib.Buffer
 const buffers = i_buflib.buffers
@@ -28,22 +27,32 @@ var id_cursor_lines_timer: number = -1
 # augroup END
 
 def NoChangePopup(title: string)
-    i_ui.SplicePopupAlert(['No change'], title)
+    i_ui.PopupAlert(['No change'], title)
 enddef
 
 def ResultChange(cmd: string, title: string)
     var bnr = buffers.result.bufnr
     var tick: number = getbufvar(bnr, 'changedtick')
-    execute cmd
+    var is_error = false
+    try
+        execute cmd
+    catch
+        is_error = true
+        i_log.Log(() => printf('ResultChange %s', v:exception))
+    endtry
     i_log.Log(() => printf('tick %d ==> %d', tick, getbufvar(bnr, 'changedtick')))
-    if tick == getbufvar(bnr, 'changedtick')
-        NoChangePopup(title)
+    if tick == getbufvar(bnr, 'changedtick') || is_error
+        if is_error
+            i_ui.PopupAlert(['No change', v:exception], title)
+        else
+            NoChangePopup(title)
+        endif
     endif
 enddef
 
 def FileNotInLayoutPopup(fn: string)
     var s = [ printf('"%s" not available', fn), 'in this layout' ]
-    i_ui.SplicePopupAlert(s, 'File Selection')
+    i_ui.PopupAlert(s, 'File Selection')
 enddef
 
 class Position
@@ -285,7 +294,7 @@ class Mode
     # if any diff is on return true; otherwise alert and return false.
     def VerifyDiff(title: string): bool
         if this._current_diff_mode == 0
-            i_ui.SplicePopupAlert(['No active diff'], title)
+            i_ui.PopupAlert(['No active diff'], title)
             return false
         endif
         return true
@@ -1007,7 +1016,7 @@ class CompareMode extends Mode
             # Center the lines.
             var s = ['"Result" required', 'with either "One" or "Two".', '(look at "Layout")']
 
-            i_ui.SplicePopupAlert(s, 'Use Hunk')
+            i_ui.PopupAlert(s, 'Use Hunk')
             return
         endif
 
@@ -1204,7 +1213,7 @@ class PathMode extends Mode
             var bname = buffers.hud.bufnr == bufnr() ? 'Splice_HUD' : bufname()
             # TODO: does this ever happen
             var s = [printf("Current buffer, \"%s\"", bname), "doesn't support \"Use Hunk\""]
-            i_ui.SplicePopupAlert(s, 'Command Issue')
+            i_ui.PopupAlert(s, 'Command Issue')
             return
         endif
 

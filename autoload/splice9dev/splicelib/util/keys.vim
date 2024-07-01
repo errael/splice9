@@ -14,6 +14,12 @@ import autoload Rlib('util/strings.vim') as i_strings
 import autoload '../modes.vim' as i_modes
 import autoload '../settings.vim' as i_settings
 
+#
+# "GetBindingKeys()" IS THE ONLY FUNCTION REFERENCED DURING BOOT
+#
+# There are only a few variables declared, no other code executed during boot.
+#
+
 # return list of shortcut/keybinding names
 export def GetBindingKeys(): list<string>
     var l = actions_info->keys()
@@ -219,7 +225,7 @@ def AddHunkIfNeeded(d: dict<list<string>>, hunk: string): void
 enddef
 
 export def InitializeBindings()
-    i_log.Log(i_stack.Func())
+    i_log.Log(() => i_stack.CallerFuncName())
 
     # setup the mappings
     for k in actions_info->keys()
@@ -234,7 +240,7 @@ export def InitializeBindings()
 enddef
 
 export def ActivateGridBindings()
-    i_log.Log(i_stack.Func())
+    i_log.Log(() => i_stack.CallerFuncName())
     UnBind('UseHunk')
     Bind('UseHunk1')
     Bind('UseHunk2')
@@ -243,7 +249,7 @@ export def ActivateGridBindings()
 enddef
 
 export def DeactivateGridBindings()
-    i_log.Log(i_stack.Func())
+    i_log.Log(() => i_stack.CallerFuncName())
     UnBind('UseHunk1')
     UnBind('UseHunk2')
     UnBind('UseHunk0')

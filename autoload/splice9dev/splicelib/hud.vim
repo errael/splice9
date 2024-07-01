@@ -20,7 +20,7 @@ import autoload Rlib('util/log.vim') as i_log
 import autoload Rlib('util/with.vim') as i_with
 import autoload Rlib('util/strings.vim') as i_strings
 import autoload Rlib('util/property_sheet.vim') as i_sheet
-import autoload Rlib('util/ui.vim') as i_rui
+import autoload Rlib('util/ui.vim') as i_ui
 import autoload './util/windows.vim'
 import autoload '../splice.vim'
 import autoload './modes.vim' as i_modes
@@ -814,7 +814,7 @@ export def DisplayCommandShortcutPopup()
     extras.tweak_options.title = ' Shortcuts (Splice9 '
                                     .. i_plugin.splice9_string_version .. ') '
     extras.header_line = 1
-    i_rui.PopupMessage(text, extras)
+    i_ui.PopupMessage(text, extras)
 enddef
 
 ################################################################
