@@ -39,7 +39,7 @@ endif
 vim9script
 
 # NOTE: The following is grabbed by shell to label the release zip
-export const splice9_string_version = "1.0.0-beta2-dev"
+export const splice9_string_version = "1.0.0-beta3-dev"
 
 # TODO: SHOULD THERE BE A SPLICE COMMAND IF VERSION PREVENTS RUNNING?
 
@@ -49,12 +49,12 @@ var ReleaseFlag = false
 
 if ReleaseFlag
     # For release
-    import autoload '../autoload/splice9/splice.vim'
-    command! -nargs=0 Splice9Init call splice.SpliceBoot()
+    import autoload '../autoload/splice9/splice_boot.vim'
+    command! -nargs=0 Splice9Init call splice_boot.SpliceBoot()
 else
     # For development
-    import autoload '../autoload/splice9dev/splice.vim'
-    command! -nargs=0 Splice9DevInit call splice.SpliceBoot()
+    import autoload '../autoload/splice9dev/splice_boot.vim'
+    command! -nargs=0 Splice9DevInit call splice_boot.SpliceBoot()
 endif
 
 
@@ -63,8 +63,8 @@ endif
 #       splice9/autoload/splice9_0_9_RC2
 # and modify splice9/plugin/splice.vim (this file) as follows
 #       var tag = "0.9-RC2"->substitute('[-\.]', '_', 'g')
-#       import autoload '../autoload/splice9_' .. tag .. '/splice.vim'
-#       command! -nargs=0 Splice9VersionInit call splice.SpliceBoot()
+#       import autoload '../autoload/splice9_' .. tag .. '/splice_boot.vim'
+#       command! -nargs=0 Splice9VersionInit call splic_boote.SpliceBoot()
 # and do `gvim -c Splice9VersionInit ...`
 
 

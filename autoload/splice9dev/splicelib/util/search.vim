@@ -3,11 +3,12 @@ vim9script
 import '../../rlib.vim'
 const Rlib = rlib.Rlib
 
-import autoload './ui.vim' as i_ui
+#import autoload './ui.vim' as i_ui
 import autoload '../../splice.vim'
 import autoload './bufferlib.vim' as i_buflib
 import autoload Rlib('util/with.vim') as i_with
 import autoload Rlib('util/log.vim') as i_log
+import autoload Rlib('util/ui.vim') as i_ui
 
 #
 # export def HighlightConflict()
@@ -102,7 +103,7 @@ export def MoveToConflict(forw: bool = true)
     # the next/prev conflict
     var lino = search(CONFLICT_PATTERN, flags)
     if lino == 0
-        i_ui.SplicePopupAlert(["No more conflicts"], '')
+        i_ui.PopupAlert(["No more conflicts"], '')
     endif
 enddef
 

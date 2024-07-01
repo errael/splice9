@@ -6,9 +6,26 @@ const Rlib = rlib.Rlib
 import autoload Rlib('util/log.vim') as i_log
 import autoload './util/keys.vim' as i_keys
 
+# The splice defined highlights
+highlight SpliceCommand term=bold cterm=bold gui=bold
+highlight SpliceLabel term=underline ctermfg=6 guifg=DarkCyan
+highlight SpliceUnderline term=underline cterm=underline gui=underline
+
+highlight link SpliceConflict CursorColumn
+highlight link SpliceCConflict Todo
+
+#
+# "InitSettings()" IS THE ONLY FUNCTION EXTERNALLY REFERENCED DURING BOOT
+#
+# There are only a few variables declared, no other code executed during boot.
+#
+
 const use_config = exists('g:splice_config')
 export var config_dict: dict<any> = use_config ? g:splice_config : {}
 
+#
+# USED DURING BOOT
+#
 # Used only during startup, after initialization, Setting(key) is properly used
 # Fetch user settings from g:config_dict[name] if exists or g:splice_name.
 # If not found then return the default.
@@ -126,6 +143,9 @@ def QuoteList(slist: list<any>): string
     return slist->mapnew((_, v) => string(v))->join(", ")
 enddef
 
+#
+# USED DURING BOOT
+#
 # NOTE: "ok_vals_msg" overrides "ok"
 def RecordSettingError(setting: string, default: any, ok: list<any> = [],
         ok_vals_msg: string = null_string)
@@ -139,11 +159,17 @@ def RecordSettingError(setting: string, default: any, ok: list<any> = [],
     settings_errors->extend(msg)
 enddef
 
+#
+# USED DURING BOOT
+#
 def UnknownSetting(setting: string)
     settings_errors->add('')->add(printf(
         "'g:splice_config.%s' is an unkown setting. Misspelling?", setting))
 enddef
 
+#
+# USED DURING BOOT
+#
 # Return true if use setting is ok, otherwise add errormsg to settings_errors.
 # 
 # If a problem, the setting is assigned the default value.
@@ -174,6 +200,9 @@ def CheckOneOfSetting(setting: string, default: any, okfunc: any): bool
     return true
 enddef
 
+#
+# USED DURING BOOT
+#
 # ok is a list of types, 
 def CheckTypeOfSetting(setting: any, default: any, ok: list<number>): bool
     #log.Log('checking: ' .. string(setting) .. " " .. string(ok) .. " " ..  string(GetDefault))
@@ -196,6 +225,9 @@ enddef
 #def ValidString(setting: string, s: any, default: string): bool
 #enddef
 
+#
+# USED DURING BOOT
+#
 def ValidHighlight(setting: string, hl: any, default: string): bool
     if type(hl) == v:t_string && hlexists(hl)
         return true
@@ -282,7 +314,7 @@ export def InitSettings(): list<string>
 
     # settings will eventually have list of all possible settings
     var settings = setting_info->keys()
-i_log.Log(printf("INITIAL CONFIG_DICT: %s, %s", use_config, config_dict))
+    i_log.Log(() => printf("INITIAL CONFIG_DICT: %s, %s", use_config, config_dict))
     for setting in settings
         var info = setting_info->get(setting)
         # Copy from old location to new.
@@ -308,7 +340,7 @@ i_log.Log(printf("INITIAL CONFIG_DICT: %s, %s", use_config, config_dict))
         endfor
     endif
     lockvar config_dict
-i_log.Log(printf("CONFIG_DICT: %s", config_dict))
+    i_log.Log(() => printf("CONFIG_DICT: %s", config_dict))
     # Scan config_dict for any unknown settings
     settings->extend(binding_keys)
     for setting in config_dict->keys()
@@ -319,6 +351,8 @@ i_log.Log(printf("CONFIG_DICT: %s", config_dict))
 
     return settings_errors
 enddef
+
+finish
 
 
 def TestSettings()
