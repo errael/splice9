@@ -125,6 +125,14 @@ def GetMapping(key: string): string
     return mapping
 enddef
 
+# key is a splice command name
+def BindKeyMapping(key: string, mapping: string)
+    var t = "<ScriptCmd>i_modes.ModesDispatch('Splice" .. key .. "')<CR>"
+    i_log.Log(() => printf("Bind-Map: '%s' -> '%s'", mapping, t))
+    execute 'nnoremap' mapping t
+enddef
+
+# key is a splice command name
 # If global setting, use that.
 # Otherwise bind-map as usual
 def Bind(key: string)
@@ -133,9 +141,7 @@ def Bind(key: string)
         i_log.Log(() => "Bind-Map: SKIP '" .. key .. "'")
         return
     endif
-    var t = "<ScriptCmd>i_modes.ModesDispatch('Splice" .. key .. "')<CR>"
-    i_log.Log(() => printf("Bind-Map: '%s' -> '%s'", mapping, t))
-    execute 'nnoremap' mapping t
+    BindKeyMapping(key, mapping)
 enddef
 
 def UnBind(key: string)
@@ -165,7 +171,7 @@ enddef
 var FilterSpliceMap: func
 def GetFilterSpliceMap(): func
     if FilterSpliceMap == null
-        i_log.Log('***** CREATE FILTER SPLICE MAP *****')
+        i_log.Log('GetFilterSpliceMap: create')
         FilterSpliceMap = i_mm_filter.MapModeFilterExpr(
             'n', "m['rhs'] =~ '^<ScriptCmd>i_modes\.ModesDis'")
         lockvar FilterSpliceMap
@@ -230,6 +236,11 @@ export def InitializeBindings()
     # setup the mappings
     for k in actions_info->keys()
         Bind(k)
+    endfor
+
+    # there might be extra mappings
+    for [k, m] in i_settings.Setting('bind_extra')
+        BindKeyMapping(k, m)
     endfor
 
     #Bind('UseHunk1')

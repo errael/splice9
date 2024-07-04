@@ -8,8 +8,8 @@ import './rlib.vim'
 const Rlib = rlib.Rlib
 import autoload Rlib('util/log.vim') as i_log
 
-import autoload './splicelib/settings.vim'
-import autoload './splice.vim'
+import autoload './splicelib/settings.vim' as i_settings
+import autoload './splice.vim' as i_splice
 
 #
 # This file initializes log.vim and settings.vim.
@@ -22,10 +22,11 @@ import autoload './splice.vim'
 # With logging and settings, invoke "splice.SpliceInit9" to complete initialization.
 
 def InitLogging()
-    var fname = settings.GetFromOrig('log_file')
-    i_log.SetExcludeCategories(settings.GetFromOrig('logging_exclude_categories'))
-    if settings.GetFromOrig('log_enable')
-        i_log.LogInit(fname)
+    if i_settings.GetFromOrig('log_enable')
+        i_log.LogInit(i_settings.GetFromOrig('log_file'),
+                      i_settings.GetFromOrig('log_exclude_categories'),
+                      i_settings.GetFromOrig('log_add_exclude_categories'),
+                      i_settings.GetFromOrig('log_remove_exclude_categories'))
     endif
 enddef
 
@@ -40,11 +41,12 @@ export def SpliceBoot()
     var settings_errors: list<string>
     try
         InitLogging()
-        i_log.Log('SpliceBoot')
+        i_log.Log(printf("SpliceBoot. Logging exclude: %s", i_log.GetExcludeCategories()))
+        # i_splice.SpliceInit9(i_settings.InitSettings()) fails: #15137
         # The key point is to initialize settings before initializing splice.
-        settings_errors = settings.InitSettings()
+        settings_errors = i_settings.InitSettings()
         # This is the first entry/invocation of splice.vim
-        splice.SpliceInit9(settings_errors)
+        i_splice.SpliceInit9(settings_errors)
     catch
         failures->add(v:exception)
         AddStack(v:throwpoint)

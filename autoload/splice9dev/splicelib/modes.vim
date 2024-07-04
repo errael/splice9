@@ -207,6 +207,7 @@ class Mode
 
             if enabled
                 :syncbind
+                this.HighlightCursorLines()
             endif
         })
     enddef
@@ -246,7 +247,7 @@ class Mode
         this.HighlightCursorLines()
     enddef
 
-    # NOTE that _current_layout is save at M_layout_#
+    # NOTE that _current_layout is save in M_layout_#()
     def Key_layout(diffmode: number = -1) # diffmode not used
         var next_layout = (this._current_layout + 1) % len(this._layouts)
         i_log.Log(() => printf("Key_layout: id: %s, next %d, this.layouts %s",
@@ -262,12 +263,16 @@ class Mode
             timer_stop(id_cursor_lines_timer)
             this.FinishCursorLineTimer(id_cursor_lines_timer)
         endif
+        var timeout = i_settings.Setting('highlight_cursor_timer')
+        if timeout <= 0
+            return
+        endif
         for wnr in range(2, 2 + this._number_of_windows - 1)
             var lino: number = getcurpos(wnr)[1]
             matchaddpos('Pmenu', [lino], i_search.pri_hl_cursors,
                 i_search.id_cursors, {window: wnr})
         endfor
-        id_cursor_lines_timer = timer_start(1000, this.FinishCursorLineTimer)
+        id_cursor_lines_timer = timer_start(timeout, this.FinishCursorLineTimer)
     enddef
 
     def FinishCursorLineTimer(id: number)
@@ -1281,8 +1286,8 @@ enddef
 # TODO: Directly access variables after makeing more stuff read-only
 export def GetStatusDiffScrollbind(): list<bool>
     # Report the splice settings; but user might manually override,
-    # not worth handling that now; at your own risk. Could scan the windows...
-    # Note: in diff mode, vim turns on scrollbiund
+    # not worth handling that now; at your own risk; could scan the windows...
+    # Note: in diff mode, vim turns on scrollbind.
     return [ current_mode.IsDiffsOn(), current_mode.IsScrollbindOn() ]
 enddef
 

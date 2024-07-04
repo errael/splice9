@@ -1,9 +1,9 @@
 
-TODO:   Doc show example of adding additional mappings.
+TODO:   enum for settings keys?
 
-TODO:   Options for cursorline highlight
-        Enable, hl_cursorline.
-        ? click on "Layout:" to just do highlight.
+TODO:   Doc show example of adding additional mappings. bind_extra: [[]...]
+
+TODO:   ? click on "Layout:" to just do highlight.
         But clicking on mode does the same thing, redoes the layout, but fast.
 
 TODO:   In diff mode, clicking in "One" changes cursor in "Result". scrollbind?
@@ -28,6 +28,10 @@ TODO:   Higlight interactions with vim's diff mode.
         for conflict display across all windows. Other uses?
 
 
+
+TODO:   In config "logging_exclude_categories: [3]" gets exception in spice_boot.
+        But the error message does say "init logging expected list<string>
+        got list<number>. So that's workable for now.
 
 TODO:   When searching for conflicts look only between <<<<,>>>>.
         Build a structure for conflict {start,end,marker}.
@@ -73,6 +77,7 @@ TODO:   doc logging
 DONE:   boolsetting bug, BUT: see comment with defaults in splice.vim
     === boolsetting bug, see comment with defaults in splice.vim
 
+TODO:   Options for cursorline highlight, Enable, hl_cursorline.
 
 =============================
 ======= Documentation =======

@@ -54,7 +54,10 @@ CONTENTS                                            *Splice* *Splice-contents*
         5.18 leader ............................. |SpliceConfig_leader|
         5.19 bind_use_alt ....................... |SpliceConfig_alt|
         5.20 bind_<command> ..................... |SpliceConfig_command|
-        5.21 hl_<highlight> ..................... |SpliceConfig_highlights|
+        5.21 bind_extra ......................... |SpliceConfig_bind_extra|
+        5.22 hl_<highlight> ..................... |SpliceConfig_highlights|
+        5.23 highlight_cursor_timer ............. |SpliceConfig_cursor_timer|
+        5.24 log_<config>........................ |SpliceConfig_logging|
     6. HUD ...................................... |SpliceHUD|
         6.1 Diffs Off ........................... |SpliceHUD_DiffsOff|
         6.2 Toggle Scrollbind ................... |SpliceHUD_ToggleScrollbind|
@@ -475,14 +478,14 @@ Path Diffs                                         *SpliceModes_path_diffs*
 You can tweak the behavior of Splice9 by setting variables in your |vimrc|
 file; the old Splice global variable names work with Splice9. However that
 method is deprecated and using the `g:splice_config` dictionary is preferred.
-For example, in vim9script >
+For example, using a splice configuration dictionary, in vim9script >
 	g:splice_config = {
         initial_mode: "compare",
         initial_layout_grid: 2,
         initial_layout_compare: 1,
     }
 
-Or in a legacy script >
+Or, using separate splice configuration statements, in a legacy script >
 	let g:splice_config = {}
     let g:splice_config.initial_mode = "compare"
     let g:splice_config.initial_layout_grid = 2
@@ -491,6 +494,7 @@ Or in a legacy script >
 The deprecated global variable name is derived from the g:splice_config name
 by prefixing the name with "splice_". For example >
     let g:splice_initial_mode = "compare"
+<sets the `initial_mode` configuration variable to `"compare"`.
 
 *Note: When g:splice_config exists the deprecated global variables are
        ignored and NOT used.
@@ -682,7 +686,6 @@ Default: None
 Set this to 1 or true to use the Alt key instead of a prefix.
 
 For example: >
-
     let g:splice_config.bin_use_alt = 1
 
 Means hold down the Alt key and press the command character(s).
@@ -695,27 +698,42 @@ Default: false
 
 Any command can have it's mapping explicitly set.
 
-The possible commands are
-    Grid Loupe Compare Path
-    Original One Two Result
-    Diff DiffOff Scroll Layout Next Previous
-    UseHunk UseHunk0 UseHunk1 UseHunk2
-    Quit Cancel
+The possible commands are >
+    Grid 'g'        Loupe 'l'       Compare 'c'     Path 'p'
+    Diff 'd'        DiffOff 'D'     Next 'n'        Previous 'N'
+    Layout ' '      Scroll 's'
+    UseHunk 'u'     UseHunk0 'u0'   UseHunk1 'u1'   UseHunk2 'u2'
+    Original 'o'    Result 'r'      One '1'         Two '2'
+    Quit 'q'        Cancel 'CC'
 
-For example: >
-    let g:splice_config.bind_Grid = '<F7>'
-
-Press function key F7 for grid mode.
+For example, with the option >
+    g:splice_config.bind_Grid = '<F7>'
+<press function key F7 for grid mode.
 
 Options: Any valid key mapping string
-Default: ""
+Default: The default characters are shown in quotes above.
 
 ------------------------------------------------------------------------------
-5.21 g:splice_config.hl_<highlight>                  *SpliceConfig_highlights*
+5.21 g:splice_config.bind_extra                      *SpliceConfig_bind_extra*
+
+In addtion to the normal key bindings, addtional bindings can be specified.
+See |SpliceConfig_command| for the list of commands.
+
+For example, with the option >
+    bind_extra: [ ['Grid', '<F12>'], ['Grid', '<F7>'] ]
+<pressing F7 or F12 goes to `grid` mode. The normal `grid` mode mapping is
+also in effect; so the shortucts display shows three mappings for `grid` mode.
+
+Options: list of lists, like: [ [ 'command_name', 'key_mapping' ], ... ]
+Default: an empty list
+
+
+------------------------------------------------------------------------------
+5.22 g:splice_config.hl_<highlight>                  *SpliceConfig_highlights*
 
 Splice9 uses several highlights. They can be configured. Most are in the HUD.
-The highlights, their defaults and description are >
 
+          config name       default            description >
         hl_label         'SpliceLabel'      3 region labels                HUD
         hl_sep           'SpliceLabel'      region separators              HUD
         hl_command       'SpliceCommand'    clickable commands             HUD
@@ -730,14 +748,47 @@ The highlights, their defaults and description are >
 
 For example: >
     let g:splice_config.hl_label = 'WildMenu'
-<Displays the HUD region labels with yellow marker or whatever WildMenu is
-defined as.
+<displays the HUD region labels with yellow marker or as WildMenu is defined.
 
 Options: Any valid highlight
 
 *Note: Bring up the shortcut popup by clicking on "Splice Commands:" at the
        top of the screen.
 *Note: SpliceConflict link CursorColumn, SpliceCConflict link Todo
+
+
+------------------------------------------------------------------------------
+5.23 g:splice_config.highlight_cursor_timer        *SpliceConfig_cursor_timer*
+
+In some situations, when the windows are changed around, the cursor line in
+each window is highlighted for a duration of time. The duration is specified
+in milli-seconds.
+
+For example, with the option >
+    g:splice_config.highlight_cursor_timer = 2000
+<the duration of the cursor line highlight is 2 seconds.
+
+Options: number in milli-seconds
+Default: 1000 - for a 1 second duration
+
+------------------------------------------------------------------------------
+5.24 g:splice_config.log_<config>                       *SpliceConfig_logging*
+
+|Splice| logging has options. They specify whether logging is enabled, the log
+file path and name, which logging categories are excluded.
+
+          config name                 default >
+        log_enable                  false
+        log_file                    $HOME/SPLICE_LOG
+        log_exclude_categories      ['focus', 'result', 'setting', 'diffopts']
+        log_add_exclude_categories    []
+        log_remove_exclude_categories []
+
+For example, with the option >
+    g:splice_config.log_remove_exclude_categories = [ 'result' ]
+<the `result` category is output into the log file.
+
+Options: Any string; has no effect if not a known category
 
 ==============================================================================
 6. HUD                                                             *SpliceHUD*
