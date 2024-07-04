@@ -19,22 +19,20 @@ import autoload './splicelib/util/keys.vim' as i_keys
 import autoload Rlib('util/log.vim') as i_log
 import autoload Rlib('util/ui.vim') as i_ui
 import autoload './splicelib/util/search.vim' as i_search
-import autoload './splicelib/hud.vim'
 import autoload './splicelib/result.vim' as i_result
-import autoload './splicelib/settings.vim'
-import autoload './splicelib/util/windows.vim'
+import autoload './splicelib/settings.vim' as i_settings
 
-export const hl_label       = settings.Setting('hl_label')
-export const hl_sep         = settings.Setting('hl_sep')
-export const hl_command     = settings.Setting('hl_command')
-export const hl_rollover    = settings.Setting('hl_rollover')
-export const hl_active      = settings.Setting('hl_active')
-export const hl_diff        = settings.Setting('hl_diff')
-export const hl_alert_popup = settings.Setting('hl_alert_popup')
-export const hl_popup       = settings.Setting('hl_popup')
-export const hl_heading     = settings.Setting('hl_heading')
-export const hl_conflict    = settings.Setting('hl_conflict')
-export const hl_cur_conflict = settings.Setting('hl_cur_conflict')
+export const hl_label       = i_settings.Setting('hl_label')
+export const hl_sep         = i_settings.Setting('hl_sep')
+export const hl_command     = i_settings.Setting('hl_command')
+export const hl_rollover    = i_settings.Setting('hl_rollover')
+export const hl_active      = i_settings.Setting('hl_active')
+export const hl_diff        = i_settings.Setting('hl_diff')
+export const hl_alert_popup = i_settings.Setting('hl_alert_popup')
+export const hl_popup       = i_settings.Setting('hl_popup')
+export const hl_heading     = i_settings.Setting('hl_heading')
+export const hl_conflict    = i_settings.Setting('hl_conflict')
+export const hl_cur_conflict = i_settings.Setting('hl_cur_conflict')
 
 # NOTE: the Splice* highlights are defined in settings.vim
 
@@ -46,16 +44,8 @@ def ConfigureUiHighlights()
     })
 enddef
 
-# If there is a string added to this list during initial startup
-# then splice9 will abort with these strings in popup.
+# If non empty during startup, splice9 aborts with these strings in popup.
 var startup_error_msgs: list<string>
-
-#
-# Examine stuff looking for problems.
-# This is invoked just before SpliceInit
-#
-# These are typically not fatal errors.
-# 
 
 # This is only used to report recoverable issues, typically configuration.
 def ReportConfigIssues(issues: list<string>)
@@ -114,5 +104,4 @@ export def SpliceInit9(settings_issues: list<string>)
 
     i_log.Log('Splice started.')
 enddef
-
 

@@ -35,13 +35,14 @@ export def GetFromOrig(setting: string, check_default = true): any
     #echoc printf("GetFromOrig: %s rc: %s, default: %s/%s", setting,
     #    use_config ? config_dict->get(setting, dflt) : g:->get('splice_' .. setting, dflt),
     #    default, setting_info[setting][1])
-    return use_config
+    var ret = use_config
         ? config_dict->get(setting, dflt) : g:->get('splice_' .. setting, dflt)
+    return deepcopy(ret)
 enddef
 
-#export def GetDefault(name: string): any
-#    return setting_info[name][1]
-#enddef
+export def GetDefault(name: string): any
+    return deepcopy(setting_info[name][1])
+enddef
 
 export def Setting(key: string): any
     i_log.Log(() => $"Setting: key: {key}", 'setting')
@@ -115,7 +116,7 @@ export def ChangeSetting(key: string, value: any)
 
     unlockvar config_dict
     config_dict[key] = value
-    lockvar config_dict
+    lockvar! config_dict
 enddef
 
 var settings_errors: list<string>
@@ -153,9 +154,10 @@ def RecordSettingError(setting: string, default: any, ok: list<any> = [],
     var msg = BadVarMsg('g:splice_config.' .. setting, TS(val),
         ok_vals_msg ?? "one of " .. QuoteList(ok))
     if default != null
-        msg->add("    Using: '" .. default .. "'")
+        msg->add(printf("    Using: '%s'", default))
         config_dict[setting] = default
     endif
+    i_log.Log(() => 'RecordSettingError: ' .. msg->join(';'))
     settings_errors->extend(msg)
 enddef
 
@@ -163,8 +165,9 @@ enddef
 # USED DURING BOOT
 #
 def UnknownSetting(setting: string)
-    settings_errors->add('')->add(printf(
-        "'g:splice_config.%s' is an unkown setting. Misspelling?", setting))
+    var msg = printf("'g:splice_config.%s' is an unkown setting. Misspelling?", setting)
+    i_log.Log(() => 'UnknownSetting: ' .. msg)
+    settings_errors->add('')->add(msg)
 enddef
 
 #
@@ -204,7 +207,7 @@ enddef
 # USED DURING BOOT
 #
 # ok is a list of types, 
-def CheckTypeOfSetting(setting: any, default: any, ok: list<number>): bool
+def CheckTypeOfSetting(setting: string, default: any, ok: list<number>): bool
     #log.Log('checking: ' .. string(setting) .. " " .. string(ok) .. " " ..  string(GetDefault))
     var val = config_dict->get(setting, null)
     # TODO: could map 'ok' list to list of types
@@ -219,6 +222,41 @@ enddef
 
 # TODO: this should not be used
 def ValidAny(setting: string, val: any, default: any): bool
+    return true
+enddef
+
+def ValidNumber(setting: string, val: any, default: any): bool
+    if type(val) == v:t_number
+        return true
+    endif
+    RecordSettingError(setting, default, v:none, 'a number')
+    return false
+enddef
+
+def ValidStringList(setting: string, val: any, default: any): bool
+    i_log.Log(() => printf("ValidStringList: %s %s - %s - %s", setting, typename(val), val, default))
+    if type(val) != v:t_list || !val->empty() && typename(val) != "list<string>"
+        RecordSettingError(setting, default, v:none, 'list<string> got ' .. typename(val))
+    endif
+    return true
+enddef
+
+# Verify the stuff in "bind_extra", add errors as needed,
+# report discarded keys as unknown commands.
+def ValidExtraBindings(setting: string, val: any, default: any): bool
+    var binding_keys = i_keys.GetBindingKeys()
+    for l in val
+        if l->len() != 2
+            RecordSettingError(setting, default, v:none,
+                printf("item of length 2, got %s", l))
+            return false
+        endif
+        if binding_keys->index(l[0]) < 0
+            RecordSettingError(setting, default, v:none,
+                printf("a splice command, got %s", l[0]))
+            return false
+        endif
+    endfor
     return true
 enddef
 
@@ -274,18 +312,28 @@ var setting_info = {
     hl_conflict:                [ ValidHlRef, 'SpliceConflict' ],
     hl_cur_conflict:            [ ValidHlRef, 'SpliceCConflict' ],
 
+    # random
+    highlight_cursor_timer:      [ ValidNumber, 1000 ],
+
+    # Shortcut support
+    prefix:                     [ ValidAny, null ],
+    leader:                     [ ValidAny, null ],
+
+    # List of extra user bindings/mappings: [ [mapping], [mapping], ... ]
+    # Each mapping is like ['Grid', '<F12>'], just 'Grid', not 'bind_Grid'
+    bind_extra:                 [ ValidExtraBindings, [ ] ],
+
     # logging validation/init is handled before settings initialization
     log_enable:                 [ [ 0, 1, false, true ], false ],
     log_file:                   [ ValidAny, $HOME .. '/SPLICE_LOG' ],
-    logging_exclude_categories: [ ValidAny, [ 'focus', 'result', 'setting',
-                                            'diffopts'] ],
-
-    prefix:                     [ ValidAny, null ],
-    leader:                     [ ValidAny, null ],
+    log_exclude_categories: [ ValidStringList, [ 'focus', 'result',
+                                            'setting', 'diffopts'] ],
+    log_remove_exclude_categories:  [ ValidStringList, [ ] ],
+    log_add_exclude_categories:     [ ValidStringList, [ ] ],
 }
 # Make the default splice_wrap the vimrc wrap setting
 setting_info.wrap[1] = &wrap ? 'wrap' : 'nowrap'
-lockvar setting_info
+lockvar! setting_info
 
 var did_settings_init = false
 # Insure that all settings are in config_dict.
@@ -339,7 +387,8 @@ export def InitSettings(): list<string>
             endif
         endfor
     endif
-    lockvar config_dict
+    # Setup the extra bindings
+    lockvar! config_dict
     i_log.Log(() => printf("CONFIG_DICT: %s", config_dict))
     # Scan config_dict for any unknown settings
     settings->extend(binding_keys)
