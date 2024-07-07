@@ -52,11 +52,11 @@ CONTENTS                                            *Splice* *Splice-contents*
         5.16 wrap ............................... |SpliceConfig_wrap|
         5.17 prefix ............................. |SpliceConfig_prefix|
         5.18 leader ............................. |SpliceConfig_leader|
-        5.19 bind_use_alt ....................... |SpliceConfig_alt|
-        5.20 bind_<command> ..................... |SpliceConfig_command|
+        5.19 bind_use_alt ....................... |SpliceConfig_bind_alt|
+        5.20 bind_<command> ..................... |SpliceConfig_bind_command|
         5.21 bind_extra ......................... |SpliceConfig_bind_extra|
         5.22 hl_<highlight> ..................... |SpliceConfig_highlights|
-        5.23 highlight_cursor_timer ............. |SpliceConfig_cursor_timer|
+        5.23 flash_cursor_timer ................. |SpliceConfig_cursor_timer|
         5.24 log_<config>........................ |SpliceConfig_logging|
     6. HUD ...................................... |SpliceHUD|
         6.1 Diffs Off ........................... |SpliceHUD_DiffsOff|
@@ -235,10 +235,10 @@ is '-' (minus/hyphen).
 See the |SpliceConfig_prefix| setting if you'd like to change this prefix to
 something else.
 
-To use the Alt, aka Meta, key instead of a prefix see |SpliceConfig_alt|.
+To use the Alt, aka Meta, key instead of a prefix see |SpliceConfig_bind_alt|.
 
 Each command's key mapping can be individually specified. These mappings do
-not use the prefix or the Alt key, see |SpliceConfig_command|.
+not use the prefix or the Alt key, see |SpliceConfig_bind_command|.
 
 All keybindings are used across (almost) all modes.
 
@@ -681,7 +681,7 @@ Options: Any valid key mapping string
 Default: None
 
 ------------------------------------------------------------------------------
-5.19 g:splice_config.bind_use_alt                           *SpliceConfig_alt*
+5.19 g:splice_config.bind_use_alt                      *SpliceConfig_bind_alt*
 
 Set this to 1 or true to use the Alt key instead of a prefix.
 
@@ -694,7 +694,7 @@ Options: 1 or true
 Default: false
 
 ------------------------------------------------------------------------------
-5.20 g:splice_config.bind_<command>                     *SpliceConfig_command*
+5.20 g:splice_config.bind_<command>                *SpliceConfig_bind_command*
 
 Any command can have it's mapping explicitly set.
 
@@ -717,7 +717,7 @@ Default: The default characters are shown in quotes above.
 5.21 g:splice_config.bind_extra                      *SpliceConfig_bind_extra*
 
 In addtion to the normal key bindings, addtional bindings can be specified.
-See |SpliceConfig_command| for the list of commands.
+See |SpliceConfig_bind_command| for the list of commands.
 
 For example, with the option >
     bind_extra: [ ['Grid', '<F12>'], ['Grid', '<F7>'] ]
@@ -733,18 +733,20 @@ Default: an empty list
 
 Splice9 uses several highlights. They can be configured. Most are in the HUD.
 
-          config name       default            description >
-        hl_label         'SpliceLabel'      3 region labels                HUD
-        hl_sep           'SpliceLabel'      region separators              HUD
-        hl_command       'SpliceCommand'    clickable commands             HUD
-        hl_rollover      'Pmenu'            mouse over commands            HUD
-        hl_active        'Keyword'          active mode              Modes-HUD
-        hl_diff          'DiffChange'       participates in diff    Layout-HUD
-        hl_alert_popup   'Pmenu'            problem popup                  
-        hl_popup         'ColorColumn'      info popup, like for shortcuts
-        hl_heading       'SpliceUnderline'  popup heading, like for shortcuts
-        hl_conflict      'SpliceConflict'   conflict marker
-        hl_cur_conflict  'SpliceCConflict'  current conflict marker
+          config name      default            description >
+        hl_label        'SpliceLabel'       3 region labels                HUD
+        hl_sep          'SpliceLabel'       region separators              HUD
+        hl_command      'SpliceCommand'     clickable commands             HUD
+        hl_rollover     'Pmenu'             mouse over commands            HUD
+        hl_active       'Keyword'           active mode              Modes-HUD
+        hl_diff         'DiffChange'        participates in diff    Layout-HUD
+        hl_alert_popup  'Pmenu'             problem popup                  
+        hl_popup        'ColorColumn'       info popup, like for shortcuts
+        hl_heading      'SpliceUnderline'   popup heading, like for shortcuts
+        hl_conflict     'SpliceConflict'    conflict marker
+        hl_cur_conflict 'SpliceCurConflict' current conflict marker
+        hl_cursor_line  'SpliceUnderline'   all (diff) windows cursor line
+        hl_flash_cursor 'Pmenu'             all windows flash cursor line
 
 For example: >
     let g:splice_config.hl_label = 'WildMenu'
@@ -758,14 +760,14 @@ Options: Any valid highlight
 
 
 ------------------------------------------------------------------------------
-5.23 g:splice_config.highlight_cursor_timer        *SpliceConfig_cursor_timer*
+5.23 g:splice_config.flash_cursor_timer            *SpliceConfig_cursor_timer*
 
 In some situations, when the windows are changed around, the cursor line in
 each window is highlighted for a duration of time. The duration is specified
 in milli-seconds.
 
 For example, with the option >
-    g:splice_config.highlight_cursor_timer = 2000
+    g:splice_config.flash_cursor_timer = 2000
 <the duration of the cursor line highlight is 2 seconds.
 
 Options: number in milli-seconds

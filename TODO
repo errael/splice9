@@ -1,4 +1,7 @@
 
+TODO:   Let highlight settings be dynamic, have popup window to configure.
+        Same for other settings?
+
 TODO:   enum for settings keys?
 
 TODO:   Doc show example of adding additional mappings. bind_extra: [[]...]

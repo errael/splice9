@@ -691,7 +691,7 @@ enddef
 var hudbnr: number = -1
 
 export def UpdateHudStatus()
-    var status = i_modes.GetStatusDiffScrollbind()
+    var status = i_modes.GetStatus_Diff_Scrollbind()
     var diffs = i_modes.GetDiffLabels()
     var bnr = hudbnr
     #var bnr = _bnr ?? bufnr(hud_name)

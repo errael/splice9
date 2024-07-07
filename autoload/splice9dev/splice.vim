@@ -22,17 +22,19 @@ import autoload './splicelib/util/search.vim' as i_search
 import autoload './splicelib/result.vim' as i_result
 import autoload './splicelib/settings.vim' as i_settings
 
-export const hl_label       = i_settings.Setting('hl_label')
-export const hl_sep         = i_settings.Setting('hl_sep')
-export const hl_command     = i_settings.Setting('hl_command')
-export const hl_rollover    = i_settings.Setting('hl_rollover')
-export const hl_active      = i_settings.Setting('hl_active')
-export const hl_diff        = i_settings.Setting('hl_diff')
-export const hl_alert_popup = i_settings.Setting('hl_alert_popup')
-export const hl_popup       = i_settings.Setting('hl_popup')
-export const hl_heading     = i_settings.Setting('hl_heading')
-export const hl_conflict    = i_settings.Setting('hl_conflict')
+export const hl_label        = i_settings.Setting('hl_label')
+export const hl_sep          = i_settings.Setting('hl_sep')
+export const hl_command      = i_settings.Setting('hl_command')
+export const hl_rollover     = i_settings.Setting('hl_rollover')
+export const hl_active       = i_settings.Setting('hl_active')
+export const hl_diff         = i_settings.Setting('hl_diff')
+export const hl_alert_popup  = i_settings.Setting('hl_alert_popup')
+export const hl_popup        = i_settings.Setting('hl_popup')
+export const hl_heading      = i_settings.Setting('hl_heading')
+export const hl_conflict     = i_settings.Setting('hl_conflict')
 export const hl_cur_conflict = i_settings.Setting('hl_cur_conflict')
+export const hl_cursor_line  = i_settings.Setting('hl_cursor_line')
+export const hl_flash_cursor = i_settings.Setting('hl_flash_cursor')
 
 # NOTE: the Splice* highlights are defined in settings.vim
 
