@@ -15,6 +15,7 @@ import autoload Rlib('util/strings.vim') as i_strings
 import autoload Rlib('util/ui.vim') as i_ui
 import autoload './util/keys.vim' as i_keys
 import autoload './util/search.vim' as i_search
+import autoload '../splice.vim' as i_splice
 
 type Buffer = i_buflib.Buffer
 const buffers = i_buflib.buffers
@@ -117,7 +118,7 @@ class Mode
     var _lay_first: string
     var _lay_second: string
 
-    var _number_of_windows: number
+    var number_of_windows: number
 
     # funcs to do the layout and the diffs: 0 to n-1
     var _layouts: list<func(): void>
@@ -135,16 +136,21 @@ class Mode
     # The method invoked to change the diff mode sets _current_diff_mode
     def Diff(diffmode: number)
         i_log.Log(() => $'Diff: mode {this.id} diff {diffmode}')
+        var newMode = diffmode % len(this._diffs)
         i_with.With(buffers.Remain(), (_) => {
             i_with.With(windows.Remain(), (_) => {
-                this._diffs[diffmode % len(this._diffs)]()
+                this._diffs[newMode]()
             })
         })
 
-        # Reset the scrollbind to whatever it was before we diffed.
-        if ! diffmode
+        this._current_diff_mode = newMode
+
+        # If Diff off reset the scrollbind to whatever it was before we diffed
+        # and let search know going out of diff.
+        if ! newMode
             this.Scrollbind(this._current_scrollbind)
         endif
+        i_search.NotifyDiffModeOff(!newMode)
     enddef
 
     # Select the next diff mode.
@@ -156,9 +162,9 @@ class Mode
     enddef
 
     def Diffoff()
-        i_log.Log(() => printf("=== Diffoff %s, nWind %d", this.id, this._number_of_windows - 1))
+        i_log.Log(() => printf("=== Diffoff %s, nWind %d", this.id, this.number_of_windows - 1))
         i_with.With(windows.Remain(), (_) => {
-            for winnr in range(2, 2 + this._number_of_windows - 1)
+            for winnr in range(2, 2 + this.number_of_windows - 1)
                 windows.Focus(winnr)
                 var curbuffer = buffers.Current()
 
@@ -200,20 +206,23 @@ class Mode
         i_with.With(windows.Remain(), (_) => {
             this._current_scrollbind = enabled
 
-            for winnr in range(2, 2 + this._number_of_windows - 1)
+            for winnr in range(2, 2 + this.number_of_windows - 1)
                 windows.Focus(winnr)
                 &scrollbind = enabled
             endfor
 
             if enabled
                 :syncbind
-                this.HighlightCursorLines()
             endif
         })
     enddef
 
     def Key_scrollbind()
         this.Scrollbind(! this._current_scrollbind)
+        if !this._current_diff_mode && this._current_scrollbind
+            # scroll bind was just manually turned on
+            this.FlashHighlightCursorLines()
+        endif
     enddef
 
 
@@ -244,7 +253,7 @@ class Mode
                 windows.Focus(i_buflib.buffers.result.Winnr())
             endif
         endif
-        this.HighlightCursorLines()
+        this.FlashHighlightCursorLines()
     enddef
 
     # NOTE that _current_layout is save in M_layout_#()
@@ -258,27 +267,27 @@ class Mode
     #
     # Rember match is tied to the widnow
     #
-    def HighlightCursorLines()
+    def FlashHighlightCursorLines()
         if id_cursor_lines_timer >= 0
             timer_stop(id_cursor_lines_timer)
             this.FinishCursorLineTimer(id_cursor_lines_timer)
         endif
-        var timeout = i_settings.Setting('highlight_cursor_timer')
+        var timeout = i_settings.Setting('flash_cursor_timer')
         if timeout <= 0
             return
         endif
-        for wnr in range(2, 2 + this._number_of_windows - 1)
+        for wnr in range(2, 2 + this.number_of_windows - 1)
             var lino: number = getcurpos(wnr)[1]
-            matchaddpos('Pmenu', [lino], i_search.pri_hl_cursors,
-                i_search.id_cursors, {window: wnr})
+            matchaddpos(i_splice.hl_flash_cursor, [lino], i_search.pri_hl_flash_cursor,
+                i_search.id_flash_cursors, {window: wnr})
         endfor
         id_cursor_lines_timer = timer_start(timeout, this.FinishCursorLineTimer)
     enddef
 
     def FinishCursorLineTimer(id: number)
         id_cursor_lines_timer = -1
-        for wnr in range(2, 2 + this._number_of_windows - 1)
-            i_search.ClearHighlight(i_search.id_cursors, wnr)
+        for wnr in range(2, 2 + this.number_of_windows - 1)
+            i_search.ClearHighlight(i_search.id_flash_cursors, wnr)
         endfor
     enddef
 
@@ -304,6 +313,21 @@ class Mode
         endif
         return true
     enddef
+
+    # Currently diff on is required for Key_use*,
+    # may relax that restriction to include scrollbind
+    # and can highlight active line in all windows.
+    #
+    # Related, handling relative cursor in windows
+
+    ### # if any diff is on return true; otherwise alert and return false.
+    ### def VerifyDiff(title: string): bool
+    ###     if this._current_diff_mode == 0 && !this._current_scrollbind
+    ###         i_ui.PopupAlert(['No active diff', 'or scrollbind.'], title)
+    ###         return false
+    ###     endif
+    ###     return true
+    ### enddef
 
     # The default implementation of the UseHunk commands ring the bell
     def Key_use()
@@ -343,7 +367,7 @@ class Mode
     enddef
 
     def RestorePositions()
-        for winnr in range(2, 2 + this._number_of_windows - 1)
+        for winnr in range(2, 2 + this.number_of_windows - 1)
             RestorePosition(winnr)
         endfor
     enddef
@@ -355,7 +379,7 @@ class Mode
 
     def SavePositions()
         last_focused_bufnr = bufnr()
-        for winnr in range(2, 2 + this._number_of_windows - 1)
+        for winnr in range(2, 2 + this.number_of_windows - 1)
             SavePosition(winnr)
         endfor
     enddef
@@ -419,7 +443,7 @@ class Mode
     def GetDiffLabels(): list<string>
         var rc: list<string>
         i_with.With(windows.Remain(), (_) => {
-            for i in range(2, this._number_of_windows + 2 - 1)
+            for i in range(2, this.number_of_windows + 2 - 1)
                 windows.Focus(i)
                 if &diff
                     rc->add(buffers.Current().label)
@@ -458,7 +482,7 @@ class GridMode extends Mode
     enddef
 
     def M_layout_0()
-        this._number_of_windows = 4
+        this.number_of_windows = 4
         this._current_layout = 0
 
         # Open the layout
@@ -487,7 +511,7 @@ class GridMode extends Mode
     enddef
 
     def M_layout_1()
-        this._number_of_windows = 3
+        this.number_of_windows = 3
         this._current_layout = 1
 
         # Open the layout
@@ -511,7 +535,7 @@ class GridMode extends Mode
     enddef
 
     def M_layout_2()
-        this._number_of_windows = 3
+        this.number_of_windows = 3
         this._current_layout = 2
 
         # Open the layout
@@ -537,14 +561,14 @@ class GridMode extends Mode
 
     def M_diff_0()
         this.Diffoff()
-        this._current_diff_mode = 0
+        #this._current_diff_mode = 0
     enddef
 
     def M_diff_1()
         this.Diffoff()
-        this._current_diff_mode = 1
+        #this._current_diff_mode = 1
 
-        for i in range(2, this._number_of_windows + 2 - 1)
+        for i in range(2, this.number_of_windows + 2 - 1)
             windows.Focus(i)
             :diffthis
         endfor
@@ -739,12 +763,12 @@ class LoupeMode extends Mode
 
     def M_diff_0()
         this.Diffoff()
-        this._current_diff_mode = 0
+        #this._current_diff_mode = 0
     enddef
 
 
     def M_layout_0()
-        this._number_of_windows = 1
+        this.number_of_windows = 1
         this._current_layout = 0
 
         # Open the layout
@@ -823,12 +847,12 @@ class CompareMode extends Mode
 
     def M_diff_0()
         this.Diffoff()
-        this._current_diff_mode = 0
+        #this._current_diff_mode = 0
     enddef
 
     def M_diff_1()
         this.Diffoff()
-        this._current_diff_mode = 1
+        #this._current_diff_mode = 1
 
         windows.Focus(2)
         :diffthis
@@ -839,7 +863,7 @@ class CompareMode extends Mode
 
 
     def M_layout_0()
-        this._number_of_windows = 2
+        this.number_of_windows = 2
         this._current_layout = 0
 
         # Open the layout
@@ -859,7 +883,7 @@ class CompareMode extends Mode
     enddef
 
     def M_layout_1()
-        this._number_of_windows = 2
+        this.number_of_windows = 2
         this._current_layout = 1
 
         # Open the layout
@@ -1083,12 +1107,12 @@ class PathMode extends Mode
 
     def M_diff_0()
         this.Diffoff()
-        this._current_diff_mode = 0
+        #this._current_diff_mode = 0
     enddef
 
     def M_diff_1()
         this.Diffoff()
-        this._current_diff_mode = 1
+        #this._current_diff_mode = 1
 
         windows.Focus(2)
         :diffthis
@@ -1099,7 +1123,7 @@ class PathMode extends Mode
 
     def M_diff_2()
         this.Diffoff()
-        this._current_diff_mode = 2
+        #this._current_diff_mode = 2
 
         windows.Focus(2)
         :diffthis
@@ -1110,7 +1134,7 @@ class PathMode extends Mode
 
     def M_diff_3()
         this.Diffoff()
-        this._current_diff_mode = 3
+        #this._current_diff_mode = 3
 
         windows.Focus(3)
         :diffthis
@@ -1121,7 +1145,7 @@ class PathMode extends Mode
 
     def M_diff_4()
         this.Diffoff()
-        this._current_diff_mode = 4
+        #this._current_diff_mode = 4
 
         windows.Focus(2)
         :diffthis
@@ -1135,7 +1159,7 @@ class PathMode extends Mode
 
 
     def M_layout_0()
-        this._number_of_windows = 3
+        this.number_of_windows = 3
         this._current_layout = 0
 
         # Open the layout
@@ -1159,7 +1183,7 @@ class PathMode extends Mode
     enddef
 
     def M_layout_1()
-        this._number_of_windows = 3
+        this.number_of_windows = 3
         this._current_layout = 1
 
         # Open the layout
@@ -1268,6 +1292,10 @@ lockvar 1 modes
 
 var current_mode: Mode
 
+export def GetNumberOfWindows(): number
+    return current_mode.number_of_windows
+enddef
+
 export def ActivateInitialMode(initial_mode: string)
     i_log.Log(() => $"INIT: inital mode: '{initial_mode}'")
     if initial_mode != 'grid'
@@ -1284,7 +1312,7 @@ export def ActivateInitialMode(initial_mode: string)
 enddef
 
 # TODO: Directly access variables after makeing more stuff read-only
-export def GetStatusDiffScrollbind(): list<bool>
+export def GetStatus_Diff_Scrollbind(): list<bool>
     # Report the splice settings; but user might manually override,
     # not worth handling that now; at your own risk; could scan the windows...
     # Note: in diff mode, vim turns on scrollbind.

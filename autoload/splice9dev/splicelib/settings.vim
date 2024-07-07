@@ -12,7 +12,7 @@ highlight SpliceLabel term=underline ctermfg=6 guifg=DarkCyan
 highlight SpliceUnderline term=underline cterm=underline gui=underline
 
 highlight link SpliceConflict CursorColumn
-highlight link SpliceCConflict Todo
+highlight link SpliceCurConflict Todo
 
 #
 # "InitSettings()" IS THE ONLY FUNCTION EXTERNALLY REFERENCED DURING BOOT
@@ -310,10 +310,12 @@ var setting_info = {
     hl_popup:                   [ ValidHlRef, 'ColorColumn' ],
     hl_heading:                 [ ValidHlRef, 'SpliceUnderline' ],
     hl_conflict:                [ ValidHlRef, 'SpliceConflict' ],
-    hl_cur_conflict:            [ ValidHlRef, 'SpliceCConflict' ],
+    hl_cur_conflict:            [ ValidHlRef, 'SpliceCurConflict' ],
+    hl_cursor_line:             [ ValidHlRef, 'SpliceUnderline' ],
+    hl_flash_cursor:            [ ValidHlRef, 'Pmenu' ],
 
     # random
-    highlight_cursor_timer:      [ ValidNumber, 1000 ],
+    flash_cursor_timer:         [ ValidNumber, 1000 ],
 
     # Shortcut support
     prefix:                     [ ValidAny, null ],
@@ -326,7 +328,7 @@ var setting_info = {
     # logging validation/init is handled before settings initialization
     log_enable:                 [ [ 0, 1, false, true ], false ],
     log_file:                   [ ValidAny, $HOME .. '/SPLICE_LOG' ],
-    log_exclude_categories: [ ValidStringList, [ 'focus', 'result',
+    log_exclude_categories:     [ ValidStringList, [ 'focus', 'result',
                                             'setting', 'diffopts'] ],
     log_remove_exclude_categories:  [ ValidStringList, [ ] ],
     log_add_exclude_categories:     [ ValidStringList, [ ] ],
