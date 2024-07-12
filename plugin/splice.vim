@@ -39,7 +39,7 @@ endif
 vim9script
 
 # NOTE: The following is grabbed by shell to label the release zip
-export const splice9_string_version = "1.0.0-beta3-dev"
+export const splice9_string_version = "1.0.0-RC1-dev"
 
 # TODO: SHOULD THERE BE A SPLICE COMMAND IF VERSION PREVENTS RUNNING?
 
