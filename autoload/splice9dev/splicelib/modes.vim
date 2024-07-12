@@ -561,12 +561,10 @@ class GridMode extends Mode
 
     def M_diff_0()
         this.Diffoff()
-        #this._current_diff_mode = 0
     enddef
 
     def M_diff_1()
         this.Diffoff()
-        #this._current_diff_mode = 1
 
         for i in range(2, this.number_of_windows + 2 - 1)
             windows.Focus(i)
@@ -763,7 +761,6 @@ class LoupeMode extends Mode
 
     def M_diff_0()
         this.Diffoff()
-        #this._current_diff_mode = 0
     enddef
 
 
@@ -847,12 +844,10 @@ class CompareMode extends Mode
 
     def M_diff_0()
         this.Diffoff()
-        #this._current_diff_mode = 0
     enddef
 
     def M_diff_1()
         this.Diffoff()
-        #this._current_diff_mode = 1
 
         windows.Focus(2)
         :diffthis
@@ -1107,12 +1102,10 @@ class PathMode extends Mode
 
     def M_diff_0()
         this.Diffoff()
-        #this._current_diff_mode = 0
     enddef
 
     def M_diff_1()
         this.Diffoff()
-        #this._current_diff_mode = 1
 
         windows.Focus(2)
         :diffthis
@@ -1123,7 +1116,6 @@ class PathMode extends Mode
 
     def M_diff_2()
         this.Diffoff()
-        #this._current_diff_mode = 2
 
         windows.Focus(2)
         :diffthis
@@ -1134,7 +1126,6 @@ class PathMode extends Mode
 
     def M_diff_3()
         this.Diffoff()
-        #this._current_diff_mode = 3
 
         windows.Focus(3)
         :diffthis
@@ -1145,7 +1136,6 @@ class PathMode extends Mode
 
     def M_diff_4()
         this.Diffoff()
-        #this._current_diff_mode = 4
 
         windows.Focus(2)
         :diffthis
