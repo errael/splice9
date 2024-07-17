@@ -251,9 +251,10 @@ def ValidExtraBindings(setting: string, val: any, default: any): bool
                 printf("item of length 2, got %s", l))
             return false
         endif
-        if binding_keys->index(l[0]) < 0
+        var splice_cmd = l[1]
+        if binding_keys->index(splice_cmd) < 0
             RecordSettingError(setting, default, v:none,
-                printf("a splice command, got %s", l[0]))
+                printf("a splice command, got %s", splice_cmd))
             return false
         endif
     endfor
