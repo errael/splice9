@@ -125,9 +125,8 @@ def GetMapping(key: string): string
     return mapping
 enddef
 
-# key is a splice command name
-def BindKeyMapping(key: string, mapping: string)
-    var t = "<ScriptCmd>i_modes.ModesDispatch('Splice" .. key .. "')<CR>"
+def BindKeyMapping(splice_cmd: string, mapping: string)
+    var t = "<ScriptCmd>i_modes.ModesDispatch('Splice" .. splice_cmd .. "')<CR>"
     i_log.Log(() => printf("Bind-Map: '%s' -> '%s'", mapping, t))
     execute 'nnoremap' mapping t
 enddef
@@ -239,8 +238,8 @@ export def InitializeBindings()
     endfor
 
     # there might be extra mappings
-    for [k, m] in i_settings.Setting('bind_extra')
-        BindKeyMapping(k, m)
+    for [mapping, splice_cmd] in i_settings.Setting('bind_extra')
+        BindKeyMapping(splice_cmd, mapping)
     endfor
 
     #Bind('UseHunk1')

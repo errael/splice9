@@ -1,4 +1,41 @@
 
+TODO:   original splice issues, https://github.com/sjl/splice.vim
+
+        Ability to quickly switch both panels in 'compare' mode
+                https://github.com/sjl/splice.vim/issues/32
+            Commented: Maybe user defined shortcuts? Like `bind_user`.
+
+        can't open submodule dir
+                https://github.com/sjl/splice.vim/issues/25
+            fugitive interactions?
+
+        Problem when file path contains dot
+                https://github.com/sjl/splice.vim/issues/26
+            python traceback
+
+        Splice inserts carriage returns (^M) to every line in the final
+        version when merging text file
+                https://github.com/sjl/splice.vim/issues/24
+            Commented: How to reproduce?
+
+        Splice fails to load if any input file is missing
+                https://github.com/sjl/splice.vim/issues/23
+            Commented: What should happen? Difftool mode?
+
+        Splice closes immediatly on Windows
+                https://github.com/sjl/splice.vim/issues/20
+            Commented: still an issue?
+
+        Bug in changing files to compare
+                https://github.com/sjl/splice.vim/issues/10
+            Commented:
+            Hi @dwijnand , @Profpatsch, @vlmarek
+            Think that this issue and #16 and #32 all the same thing?
+
+        The rest of them are very old, assume they're dealt with.
+
+TODO:   Convert help to html. Use jVi tools?
+
 TODO:   Let highlight settings be dynamic, have popup window to configure.
         Same for other settings?
 

@@ -720,11 +720,11 @@ In addtion to the normal key bindings, addtional bindings can be specified.
 See |SpliceConfig_bind_command| for the list of commands.
 
 For example, with the option >
-    bind_extra: [ ['Grid', '<F12>'], ['Grid', '<F7>'] ]
+    bind_extra: [ ['<F12>', 'Grid'], ['<F7>', 'Grid'] ]
 <pressing F7 or F12 goes to `grid` mode. The normal `grid` mode mapping is
 also in effect; so the shortucts display shows three mappings for `grid` mode.
 
-Options: list of lists, like: [ [ 'command_name', 'key_mapping' ], ... ]
+Options: list of lists, like: [ [ 'map_keys', 'command_name' ], ... ]
 Default: an empty list
 
 
