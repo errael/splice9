@@ -98,11 +98,11 @@ export def SpliceInit9(settings_issues: list<string>)
     endif
     startup_error_msgs = null_list
 
-    # non-fatal, we have a go for lift-off
-    ReportConfigIssues(settings_issues)
-
     i_result.Init()
     i_search.Init()
+
+    # non-fatal, we have a go for lift-off
+    ReportConfigIssues(settings_issues)
 
     i_log.Log('Splice started.')
 enddef

@@ -40,6 +40,7 @@ export def GetFromOrig(setting: string, check_default = true): any
     return deepcopy(ret)
 enddef
 
+# Doesn't seem to be used
 export def GetDefault(name: string): any
     return deepcopy(setting_info[name][1])
 enddef
@@ -157,8 +158,34 @@ def RecordSettingError(setting: string, default: any, ok: list<any> = [],
         msg->add(printf("    Using: '%s'", default))
         config_dict[setting] = default
     endif
+    SetSettingsError(msg)
+enddef
+
+def SetSettingsError(msg: list<string>)
     i_log.Log(() => 'RecordSettingError: ' .. msg->join(';'))
     settings_errors->extend(msg)
+enddef
+
+#
+# USED DURING BOOT
+#
+#
+# Splice9's default highlights may not exist. Only check if not in user config
+#
+highlight SpliceMissingHighlight term=reverse ctermbg=11 guibg=Yellow
+def ValidateDefaultHighlight(setting: string)
+    #i_log.Log(() => printf("ValidateDefaultHighlight"))
+    if setting[0 : 2] != 'hl_'
+            || config_dict->has_key(setting) && hlexists(config_dict[setting])
+            || hlexists(setting_info[setting][1])
+        return
+    endif
+    # The default highlight for the setting does not exists
+    var hl = setting_info[setting][1]
+    SetSettingsError(['', $"'g:splice_config.{setting}' default highlight not found: '{hl}'"])
+    unlockvar! setting_info
+    setting_info[setting][1] = 'SpliceMissingHighlight'
+    lockvar! setting_info
 enddef
 
 #
@@ -180,8 +207,7 @@ enddef
 # If the call wan't some additional message massaging, One way
 # is to use the GetDefault() to put in a tag and edit it.
 def CheckOneOfSetting(setting: string, default: any, okfunc: any): bool
-    #log.Log('checking: ' .. string(setting) .. " " .. string(ok) .. " " ..  string(GetDefault))
-    #var msg = []
+    i_log.Log(() => printf("CheckOneOfSetting '%s', default '%s'", setting, default), 'setting')
 
     var val = config_dict->get(setting, null)
     if val != null
@@ -234,7 +260,7 @@ def ValidNumber(setting: string, val: any, default: any): bool
 enddef
 
 def ValidStringList(setting: string, val: any, default: any): bool
-    i_log.Log(() => printf("ValidStringList: %s %s - %s - %s", setting, typename(val), val, default))
+    i_log.Log(() => printf("ValidStringList: %s %s - %s - %s", setting, typename(val), val, default), 'setting')
     if type(val) != v:t_list || !val->empty() && typename(val) != "list<string>"
         RecordSettingError(setting, default, v:none, 'list<string> got ' .. typename(val))
     endif
@@ -278,6 +304,7 @@ const ValidHlRef = ValidHighlight
 
 # { setting-name: [ [ ok_values... ], default_val ]
 # NOTE: 'splice_wrap' default val is computed based on '&wrap'
+# NOTE: key for a hightlight *MUST* begin with "hl_", VaidateDefaultHighlight()
 var setting_info = {
     disable:                    [ [ 0, 1, false, true ], false ],
     debug:                      [ [ 0, 1, false, true ], false ],
@@ -301,11 +328,15 @@ var setting_info = {
 
     wrap:                       [ [ 'wrap', 'nowrap' ], '' ],
 
+    # Highlights
+    # key for a hightlight, and only a highlight,
+    # *MUST* begin with "hl_", see VaidateDefaultHighlight()
     hl_label:                   [ ValidHlRef, 'SpliceLabel' ],
     hl_sep:                     [ ValidHlRef, 'SpliceLabel' ],
     hl_command:                 [ ValidHlRef, 'SpliceCommand' ],
     hl_rollover:                [ ValidHlRef, 'Pmenu' ],
-    hl_active:                  [ ValidHlRef, 'Keyword' ],
+    #hl_active:                  [ ValidHlRef, 'Keyword' ],
+    hl_active:                  [ ValidHlRef, 'LineNr' ],
     hl_diff:                    [ ValidHlRef, 'DiffChange' ],
     hl_alert_popup:             [ ValidHlRef, 'Pmenu' ],
     hl_popup:                   [ ValidHlRef, 'ColorColumn' ],
@@ -375,6 +406,7 @@ export def InitSettings(): list<string>
                 config_dict[setting] = t
             endif
         endif
+        ValidateDefaultHighlight(setting)
         config_dict->extend({[setting]: info[1]}, 'keep')
         # TODO: only need to CheckOneOfSetting if setting not in config
         CheckOneOfSetting(setting, info[1], info[0])
