@@ -1,0 +1,110 @@
+vim9script
+
+import './tests.vim'
+import './test_lib.vim'
+
+const LayoutConvertLeaf = test_lib.LayoutConvertLeaf
+const FullName = test_lib.FullName
+const ShortName = test_lib.ShortName
+
+const LayoutPrettyPrint = test_lib.LayoutPrettyPrint
+const LayoutPrettyList = test_lib.LayoutPrettyList
+const LayoutWithBufferNames = test_lib.LayoutWithBufferNames
+const Convert2ShortLayoutNames = test_lib.Convert2ShortLayoutNames
+
+# This can't be inside the "command"
+var EchomItem = (_, s) => {
+    echom s
+}
+command -nargs=0 DL {
+    LayoutWithBufferNames()
+        #->LayoutPrettyList()
+        ->LayoutPrettyPrint()
+        ->foreach(EchomItem)
+}
+command -nargs=0 DL2 {
+    LayoutWithBufferNames()
+        ->LayoutConvertLeaf((name) => ShortName(name))
+        ->LayoutPrettyPrint()
+        ->foreach(EchomItem)
+}
+command -nargs=0 DL3 {
+    LayoutWithBufferNames()
+        ->LayoutConvertLeaf((name) => ShortName(name))
+        ->LayoutConvertLeaf((name) => FullName(name))
+        ->LayoutPrettyPrint()
+        ->foreach(EchomItem)
+}
+
+#set runtimepath^=$SRC_DIR
+#set runtimepath=$SRC_DIR
+set runtimepath=$SPLICE_RUNTIME_DIR,$VIMRUNTIME
+
+set columns=200
+set ttimeout
+set notimeout
+set so=0
+
+g:splice_config = {
+    log_enable:         true,
+    log_file:           $SPLICE_LOG_DIR .. '/SPLICE_LOG',
+    #log_remove_exclude_categories: ['setting'],
+
+    #bind_use_alt:       true,
+    disable: true,
+
+    # debug: 'foo',
+    # disable: 'foo',
+}
+
+g:xxxsplice_config = {
+    bind_use_alt:       true,
+    #initial_mode:       "path",
+
+    #initial_diff_grid:  1,
+    initial_diff_grid:  0,
+
+    wrap:               'wrap',
+    #wrap:                42,
+
+    #prefix:             "<leader>t",
+    #leader:             ",,",
+
+    #bind_Grid:          '<F7>',
+    bind_UseHunk0:      '<F8>',
+
+    #hl_label:           'WildMenu',
+
+    #hl_popup:           'IncSearch',
+    #hl_heading:         'WildMenu',
+
+    #highlight_cursor_timer: 'foo',     #####################
+    #highlight_cursor_timer: 0,
+
+    log_enable:         true,
+    log_file:           $HOME .. '/play/SPLICE_LOG',
+    #log_exclude_categories: ['foo', 'bar', 'baz'],
+    #log_add_exclude_categories: ['other'],
+    #log_remove_exclude_categories: ['bar'],
+
+    # CREATE SOME CONFIGURATION ERRORS
+    #debug: 'foo',    # settings error
+    #what_is_this: 42,
+    #bind_Random:          '<F7>',
+
+    #unkown_option:      true,
+    #fmd:                true,
+    #initial_diff_path:  'foo',
+
+    bind_extra: [
+        ['<F12>', 'Grid'],
+        ['<F7>',  'Grid'],
+        #['Grid', '<F7>', ''],
+    ]
+    #bind_extra: [           ###########
+    #    ['Grid', '<F12>'],
+    #    ['Grid', '<F7>'],
+    #    #['Grid', '<F7>', ''],
+    #]
+}
+

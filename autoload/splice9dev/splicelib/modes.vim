@@ -132,6 +132,16 @@ class Mode
     def new()
     enddef
 
+    def CollectState(): dict<any>
+        return {
+            id:                 this.id,
+            layout_idx:         this._current_layout,
+            layout_count:       this._layouts->len(),
+            diff_mode_idx:      this._current_diff_mode,
+            diff_mode_count:    this._diffs->len(),
+        }
+    enddef
+
     # "diffmode" of zero is diffmode off.
     # The method invoked to change the diff mode sets _current_diff_mode
     def Diff(diffmode: number)
@@ -1279,6 +1289,24 @@ var modes: dict<Mode> = {
     path:    PathMode.new(),
 }
 lockvar 1 modes
+
+def CollectState(modeName: string): dict<any>
+    var m: Mode = modes->get(modeName, null_object)
+    return m.CollectState()
+enddef
+
+def g:SpliceCollectModeState(): dict<any>
+    var mode_state: dict<any> = {
+        current_mode:   current_mode.id,
+        winnr:          winnr(),
+        bufnr:          bufnr(),
+        grid:   CollectState('grid'),
+        loup:   CollectState('loupe'),
+        comp:   CollectState('compare'),
+        path:   CollectState('path'),
+    }
+    return mode_state
+enddef
 
 var current_mode: Mode
 

@@ -1,0 +1,11 @@
+
+export SRC_DIR=/src/tools/splice9
+export TEST_DIR=$SRC_DIR/testing
+export PLAY_DIR=$TEST_DIR/play
+export GOLD_DIR=$TEST_DIR/golden
+export RESULT_DIR=$TEST_DIR/result
+
+export SPLICE_RUNTIME_DIR=$SRC_DIR
+export SPLICE_LOG_DIR=$TEST_DIR
+
+#export SPLICE_RUNTIME_DIR=$SRC_DIR/build/splice9
