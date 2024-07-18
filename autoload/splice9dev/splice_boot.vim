@@ -49,7 +49,7 @@ export def SpliceBoot()
         i_splice.SpliceInit9(settings_errors)
     catch
         failures->add(v:exception)
-        AddStack(v:throwpoint)
+        AddStack(i_log.throwpoint ?? v:throwpoint)
         SpliceBootError2()
     endtry
 enddef
@@ -93,9 +93,11 @@ def SpliceBootError2()
         Click popup or enter 'y'/'n' to abort the merge.
     END
     failures->extend(instrs)
-    for msg in failures
-        i_log.Log(msg, 'error')
-    endfor
+    if i_log.IsEnabled()
+        for msg in failures
+            i_log.Log(msg, 'error')
+        endfor
+    endif
     SpliceDidNotLoad()
 enddef
 
