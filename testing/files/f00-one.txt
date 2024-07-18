@@ -1,0 +1,15 @@
+one
+two
+thAree
+four
+five
+six
+seAven
+eight
+nine
+ten
+eleven
+twAelve
+thirteen
+fourteen
+fifteen

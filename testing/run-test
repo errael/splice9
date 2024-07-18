@@ -1,0 +1,72 @@
+#!/bin/bash
+
+CMD=${0##*/}
+DIR=${0%/*}
+
+set -e
+
+. $DIR/COMMON
+
+# TODO: option to select which test to run
+# TODO: option to select initialization of splice_config? part of which test?
+# TODO: option for which vimrc?
+
+usage() {
+    echo "$CMD [-r]"
+    echo "    -r run autmated tests"
+    exit 1
+}
+
+declare TEMP
+TEMP=$(getopt -o "r" -n "$CMD" -- "$@")
+if [[ $? -ne 0 ]]; then usage > /dev/stderr; fi
+eval set -- "$TEMP"
+unset TEMP
+
+typeset -i rflag
+
+while true
+do
+  case "$1" in
+    -r) rflag=1;                     shift   ;;
+    -h) usage                                ;;
+    --) shift
+        break
+        ;;
+     *) echo Internal Error "'$1'"; exit 1   ;;
+  esac
+done
+
+declare -a tests=(TestAllLayouts)
+
+export SPLICE_TEST_NAME=TestAllLayouts
+
+rm -rf $PLAY_DIR
+mkdir $PLAY_DIR
+cp $TEST_DIR/files/* $PLAY_DIR
+
+rm -rf $RESULT_DIR
+mkdir $RESULT_DIR
+
+if ((rflag))
+then
+    RUN_TEST="-c RunTheSpliceTest"
+fi
+
+SPLICE_INIT='-c Splice9DevInit'
+
+#-c "set runtimepath^=$SRC_DIR" \
+
+#gvim -f -u $TEST_DIR/vimrc -U NONE \
+#gvim -f -u NONE -U $TEST_DIR/vimrc \
+
+gvim -f -u DEFAULTS -U $TEST_DIR/vimrc \
+    -c "runtime plugin/splice.vim" \
+    $PLAY_DIR/f00-original.txt \
+    $PLAY_DIR/f00-one.txt \
+    $PLAY_DIR/f00-two.txt \
+    $PLAY_DIR/f00-result.txt \
+    $SPLICE_INIT \
+    $RUN_TEST
+
+#splice.args = -f $base $local $other $output -c "set columns=220" -c Splice9Init -c "set ttimeout" -c "set notimeout" -c "set so=0"

@@ -17,9 +17,11 @@ release
 build
 stuff
 
-SAVE
-SAVE-py
+archive
 
+testing/play
+testing/SPLICE_LOG
+testing/result
 
 
 syntax: glob

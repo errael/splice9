@@ -1,0 +1,27 @@
+one
+two
+<<<<<<< working copy
+thAree
+=======
+thBree
+>>>>>>> merge rev
+four
+five
+six
+<<<<<<< working copy
+seAven
+=======
+seBven
+>>>>>>> merge rev
+eight
+nine
+ten
+eleven
+<<<<<<< working copy
+twAelve
+=======
+twBelve
+>>>>>>> merge rev
+thirteen
+fourteen
+fifteen
