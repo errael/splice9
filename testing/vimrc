@@ -24,14 +24,14 @@ command -nargs=0 DL {
 }
 command -nargs=0 DL2 {
     LayoutWithBufferNames()
-        ->LayoutConvertLeaf((name) => ShortName(name))
+        ->LayoutConvertLeaf((name) => FullName(name))
         ->LayoutPrettyPrint()
         ->foreach(EchomItem)
 }
 command -nargs=0 DL3 {
     LayoutWithBufferNames()
-        ->LayoutConvertLeaf((name) => ShortName(name))
         ->LayoutConvertLeaf((name) => FullName(name))
+        ->LayoutConvertLeaf((name) => ShortName(name))
         ->LayoutPrettyPrint()
         ->foreach(EchomItem)
 }
@@ -44,10 +44,11 @@ set columns=200
 set ttimeout
 set notimeout
 set so=0
+&more = false
 
 g:splice_config = {
     log_enable:         true,
-    log_file:           $SPLICE_LOG_DIR .. '/SPLICE_LOG',
+    log_file:           $SPLICE_LOG,
     #log_remove_exclude_categories: ['setting'],
 
     #bind_use_alt:       true,

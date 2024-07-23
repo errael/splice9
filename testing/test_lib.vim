@@ -4,6 +4,8 @@ import autoload 'raelity/config.vim'
 import autoload config.Rlib('util/lists.vim') as i_lists
 import autoload config.Rlib('util/log.vim') as i_log
 
+var golden_dir = $GOLD_DIR ?? '/src/tools/splice9/testing/golden'
+
 # LayoutWithBufferNames(tabnr = tabpagenr()): list<any>
 # LayoutPrettyPrint(layout: list<any>, depth = 0): list<string>
 
@@ -14,14 +16,26 @@ command! -nargs=+ AB RunFuncTest('XCompareLayout', <f-args>)
 command! -nargs=0 A1 echo g:SpliceCollectModeState()
 command! -nargs=0 A2 echo CurModeState()
 
-def Run1(tid: number)
-    feedkeys("\<CR>")
-    timer_start(1000, Run2)
+export def ReportTest(MsgFunc: func(): string)
+    var msg = MsgFunc()
+    echom msg
+    i_log.Log(msg, 'splice_test')
 enddef
 
-def Run2(tid: number)
-    echom '=== RunTheTest ==='
+export def ReportTestError(MsgFunc: func(): string)
+    var msg = MsgFunc()
+    echom msg
+    i_log.Log(msg, 'splice_test_error')
 enddef
+
+#def Run1(tid: number)
+#    feedkeys("\<CR>")
+#    timer_start(1000, Run2)
+#enddef
+#
+#def Run2(tid: number)
+#    echom '=== RunTheTest ==='
+#enddef
 
 ######################################################################
 #
@@ -38,7 +52,7 @@ export def CmdNormal()
             if vim_mode != 'n'
                 i_log.Log(() => printf('CmdNormal: mode: %s, tid: %d', vim_mode, tid), 'splice_test')
                 CmdESC()
-                CmdESC()
+                CmdESC(false)
             endif
         endif
     enddef
@@ -47,18 +61,35 @@ export def CmdNormal()
     timer_start(0, PM)
 enddef
 
-export def CmdESC()
-    feedkeys("\<ESC>", 'x')
+export def CmdESC(wait = true)
+    var fk_mode = ''
+    if wait
+        fk_mode ..= 'x'
+    endif
+    feedkeys("\<ESC>", fk_mode)
 enddef
 
+# TODO: return a class
 export def CurModeState(): dict<any>
     var state: dict<any> = g:SpliceCollectModeState()
-    var curState = state[state.current_mode]
-    curState.bufnr = state.bufnr
-    curState.winnr = state.winnr
-    var full_name = bufname(state.bufnr)
-    curState.name = ShortName(full_name)
-    return curState
+    var active_state = state[state.current_mode]
+    active_state.bufnr = state.bufnr
+    active_state.winnr = state.winnr
+    active_state.name = bufname(state.bufnr)->ShortName()
+
+    # winnr to bufnr
+    var winmap: dict<number>
+    getwininfo()->foreach((_, w) => {
+        winmap[w.winnr] = w.bufnr
+    })
+    var winmap_name: dict<string>
+    winmap->foreach((k, bnr) => {
+        winmap_name[k] = bufname(bnr)->ShortName()
+    })
+
+    active_state.winmap = winmap
+    active_state.winmap_name = winmap_name
+    return active_state
 enddef
 
 var ModeKeys = {
@@ -96,6 +127,8 @@ export def FullName(name: string): string
     return name == 'hud' ? '__Splice_HUD__' : 'play/f00-' .. name .. '.txt'
 enddef
 
+# TODO: Should the current string be returned if not a match?
+
 export def ShortName(name: string): string
     return name == '__Splice_HUD__' ? 'hud'
         : matchlist(name, '\vplay/f00-(.*).txt')[1]
@@ -108,14 +141,124 @@ enddef
 
 ######################################################################
 #
-# "TestAllLayouts"
+# FileSelect
+#
+
+import golden_dir .. '/comp_xform.vim' as i_comp_xform
+const comp_xform_one_two = i_comp_xform.comp_xform_one_two
+
+var FileKeys = {
+    orig:   '-o',
+    one:    '-1',
+    two:    '-2',
+    result: '-r'
+}
+
+def CarefulWinGoto(winnr: number, MsgFunc: func)
+    var winid = win_getid(winnr)
+    var err = winid == 0
+    if ! err
+        win_gotoid(winid) 
+    else
+        ReportTestError(MsgFunc)
+    endif
+enddef
+
+# Get Splice to the given state
+export def SelectAndFocusCompFiles(comp_init: list<any>)
+    var [focus: number, left: string, right: string; rest] = comp_init
+
+    # First get in 'comp' mode, layout 0.
+    CmdLayout('comp', 0)
+
+    # Select windows so that left/right are as indicated, this can be tricky.
+    # If 'orig' or 'result' are present, assume 'orig' is left, 'result' is right.
+    # other_side is the side that's not orig/result. 1 - left, 2 - right
+    var other_side: number
+    var count = 0
+    if left == 'orig'
+        other_side = 2                  # change the right side
+        count += 1                      # count 'orig'
+        feedkeys(FileKeys[left], 'x')   # do '-o' command
+    endif
+    if right == 'result'
+        other_side = 1                  # change the left side
+        count += 1                      # count 'result'
+        feedkeys(FileKeys[right], 'x')  # do '-r' command
+    endif
+    # if only 1 of 'orig'/'result', then need to setup the other side: other_side.
+    if count == 1
+        CarefulWinGoto(other_side + 1,
+            () => printf("SelectAndFocusCompFiles: other_side %d", other_side))
+        feedkeys(FileKeys[comp_init[other_side]], 'x')
+    endif
+    if count == 0
+        # No 'orig' or 'result'; must be left 'one', right 'two'.
+
+        # Bring up 'orig', it's always on the left;
+        # this gives a known starting position for the 'two' and 'one' commands.
+        feedkeys(FileKeys['orig'], 'x')
+        # Select 'two' on the right, then 'one' on the left.
+        CarefulWinGoto(3, () => printf("SelectAndFocusCompFiles: right"))
+        feedkeys(FileKeys['two'], 'x')
+        CarefulWinGoto(2, () => printf("SelectAndFocusCompFiles: left"))
+        feedkeys(FileKeys['one'], 'x')
+    endif
+
+    # use focus, 1/2 - left/right, recall hud is window 1
+    CarefulWinGoto(focus + 1, () => printf("SelectAndFocusCompFiles: wnr %d", focus + 1))
+
+    var state = CurModeState()
+    # ReportTest(() => printf("SelFocCompFile: EXIT: %s", state))
+    # ReportTest(() => printf("SelFocCompFile: EXIT: %s", [focus, left, right]))
+    assert_equal(focus, state.winnr - 1, "comp_init focus")
+    assert_equal(left, state.winmap_name[2], "comp_init left")
+    assert_equal(right, state.winmap_name[3], "comp_init right")
+enddef
+
+# comp_xform has been applied. Now check the results.
+export def CheckCompFileSelect(comp_xform: list<any>)
+    var state: any
+    state = CurModeState()
+    # ReportTest(() => printf("CheckCompSel: ENTER: %s", state))
+
+    #var cmd = comp_xform[3]
+    var [_, in_left: string, in_right: string, cmd: string] = comp_xform
+    # Determine the expectations.
+    # If cmd '-o' or '-r' that's the only change, focus ends up on 'orig' or 'result'
+    var focus: number
+    var left: string
+    var right: string
+    if cmd == '-o'
+        focus = 1
+        left = 'orig'
+        right = in_right
+    elseif cmd == '-r'
+        focus = 2
+        right = 'result'
+        left = in_left
+    else
+        # Not '-o' or '-r', so lookup expected result
+        #var [focus: number, left: string, right: string] = comp_xform_one_two[string(comp_xform)]
+        [focus, left, right] = comp_xform_one_two[string(comp_xform)]
+    endif
+
+    ReportTest(() => printf("CheckCompSel: EXPECT: %s", [focus, left, right]))
+    # layout doesn't matter, the window numbers are the same
+    assert_equal('comp', state.id, "comp_check id")
+    assert_equal(focus, state.winnr - 1, "comp_check focus")
+    assert_equal(left, state.winmap_name[2], "comp_check left")
+    assert_equal(right, state.winmap_name[3], "comp_check right")
+enddef
+
+######################################################################
+#
 # "CompareLayout"
 #
 # "Collect*Layout*" - to create golden files
 #
 
-var golden_dir = $GOLD_DIR ?? '/src/tools/splice9/testing/golden'
-import golden_dir .. '/layouts' as i_layouts
+import golden_dir .. '/layouts.vim' as i_layouts
 
 #
 # Check that current mode/layout is as specified
@@ -154,7 +297,7 @@ export def CollectAllLayouts()
     CollectModeLayouts('comp', data)
     CollectModeLayouts('path', data)
 
-    writefile(data, $RESULT_DIR .. '/layouts')
+    writefile(data, $RESULT_DIR .. '/layouts.vim')
 enddef
 
 #
@@ -195,12 +338,19 @@ enddef
 #
 
 # Return layout for current, or specified, tabpage with leaf buffer names
+
+# TODO: Use short names
+
 export def LayoutWithBufferNames(tabnr = tabpagenr()): list<any>
-    #var layout = winlayout(tabnr)
-    return LayoutConvertLeaf(winlayout(tabnr), ConvertWinidToBufferName)
+    return LayoutConvertLeaf(winlayout(tabnr), ConvertWinidToBufferShortName)
 enddef
 
-export def ConvertWinidToBufferName(winid: number): string
+export def ConvertWinidToBufferShortName(winid: number): string
+    return getwininfo(winid)[0].bufnr->bufname()->ShortName()
+enddef
+
+export def ConvertWinidToBufferFullName(winid: number): string
+    # bufname is FullName
     return getwininfo(winid)[0].bufnr->bufname()
 enddef
 

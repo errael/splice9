@@ -7,28 +7,40 @@ set -e
 
 . $DIR/COMMON
 
+#
+# Useful for checking for test errors
+# 
+# grep -E 'NEW_LOG|SPLICE_TEST_ERROR|SPLICE_TEST' /src/tools/splice9/testing/SPLICE_LOG 
+#
+
 # TODO: option to select which test to run
 # TODO: option to select initialization of splice_config? part of which test?
 # TODO: option for which vimrc?
 
 usage() {
-    echo "$CMD [-r]"
-    echo "    -r run autmated tests"
+    echo "$CMD [-r] [--wait] [-1]"
+    echo "    -r        run autmated tests"
+    echo "    --wait    don't exit splice after running each test"
+    echo "    -1        only run 1 test"
     exit 1
 }
 
 declare TEMP
-TEMP=$(getopt -o "r" -n "$CMD" -- "$@")
+TEMP=$(getopt -o "r1" --long 'wait' -n "$CMD" -- "$@")
 if [[ $? -ne 0 ]]; then usage > /dev/stderr; fi
 eval set -- "$TEMP"
 unset TEMP
 
 typeset -i rflag
+typeset -i wait_flag
+typeset -i one_test_flag
 
 while true
 do
   case "$1" in
     -r) rflag=1;                     shift   ;;
+    -1) one_test_flag=1;             shift   ;;
+    --wait) wait_flag=1;             shift   ;;
     -h) usage                                ;;
     --) shift
         break
@@ -37,36 +49,92 @@ do
   esac
 done
 
-declare -a tests=(TestAllLayouts)
+declare -a tests=(TestAllLayouts TestAllCompFileSelect)
 
-export SPLICE_TEST_NAME=TestAllLayouts
+export SPLICE_TEST_NAME=
+#SPLICE_TEST_NAME=TestAllCompFileSelect
 
-rm -rf $PLAY_DIR
-mkdir $PLAY_DIR
-cp $TEST_DIR/files/* $PLAY_DIR
+# If the following is not empty, test exits splice exits after running.
+export SPLICE_QUIT_AFTER_TEST=yes
 
-rm -rf $RESULT_DIR
-mkdir $RESULT_DIR
-
-if ((rflag))
+if ((wait_flag))
 then
-    RUN_TEST="-c RunTheSpliceTest"
+    SPLICE_QUIT_AFTER_TEST=
 fi
 
-SPLICE_INIT='-c Splice9DevInit'
+Main() {
+    > $SPLICE_LOG
 
-#-c "set runtimepath^=$SRC_DIR" \
+    if ((!rflag))
+    then
+        RunSplice
+        return
+    fi
 
-#gvim -f -u $TEST_DIR/vimrc -U NONE \
-#gvim -f -u NONE -U $TEST_DIR/vimrc \
+    # Run one of more tests
 
-gvim -f -u DEFAULTS -U $TEST_DIR/vimrc \
-    -c "runtime plugin/splice.vim" \
-    $PLAY_DIR/f00-original.txt \
-    $PLAY_DIR/f00-one.txt \
-    $PLAY_DIR/f00-two.txt \
-    $PLAY_DIR/f00-result.txt \
-    $SPLICE_INIT \
-    $RUN_TEST
+    local test
+    for test in ${tests[@]}
+    do
+        #echo TEST: $test
 
-#splice.args = -f $base $local $other $output -c "set columns=220" -c Splice9Init -c "set ttimeout" -c "set notimeout" -c "set so=0"
+        SPLICE_TEST_NAME=$test
+
+        RunSplice
+        if ((one_test_flag))
+        then
+            break
+        fi
+    done
+
+    cp -f --backup=numbered $SPLICE_LOG $SPLICE_LOG
+
+    CheckFailure
+}
+
+CheckFailure() {
+    if grep -q SPLICE_TEST_ERROR $SPLICE_LOG
+    then
+        echo '=================='
+        echo '=====  FAIL  ====='
+        echo '=================='
+        return 1
+    fi
+    return 0
+}
+
+RunSplice() {
+    # Start splice with fresh files
+    rm -rf $PLAY_DIR
+    mkdir $PLAY_DIR
+    cp $TEST_DIR/files/* $PLAY_DIR
+
+    rm -rf $RESULT_DIR
+    mkdir $RESULT_DIR
+
+    if ((rflag))
+    then
+        RUN_TEST="-c RunTheSpliceTest"
+    fi
+    SPLICE_INIT='-c Splice9DevInit'
+
+    # Don't abort if running splice returns an error code.
+    set +e
+
+    #gvim -f -u $TEST_DIR/vimrc -U NONE \
+    #gvim -f -u NONE -U $TEST_DIR/vimrc \
+    #/junk/test_install/vim/bin/gvim -f -u DEFAULTS -U $TEST_DIR/vimrc \
+    #/junk/test_install/vim/bin/vim -u DEFAULTS -U NONE \
+    gvim -f -u DEFAULTS -U NONE \
+        -c "source $TEST_DIR/vimrc" \
+        -c "runtime plugin/splice.vim" \
+        $PLAY_DIR/f00-orig.txt \
+        $PLAY_DIR/f00-one.txt \
+        $PLAY_DIR/f00-two.txt \
+        $PLAY_DIR/f00-result.txt \
+        $SPLICE_INIT \
+        $RUN_TEST
+    set -e
+}
+
+Main
