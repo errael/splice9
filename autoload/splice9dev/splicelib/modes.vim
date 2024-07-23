@@ -1295,6 +1295,7 @@ def CollectState(modeName: string): dict<any>
     return m.CollectState()
 enddef
 
+# Used by tests. Note that no splice state is changed.
 def g:SpliceCollectModeState(): dict<any>
     var mode_state: dict<any> = {
         current_mode:   current_mode.id,
