@@ -1,5 +1,19 @@
 vim9script
 
+# Set the environment variables; may not be in environment depending on startup.
+for line in readfile('COMMON')
+    # handle: "export a=b"; the '=' is optional; comment if first non-blank is "#"
+    var words = line->split('\v[[:space:]\=]+')
+    if words->empty() || words[0][0] == '#'
+        continue
+    endif
+    if words->len() < 3 || words[0] != 'export'
+        echom printf('TEST ENVIRONMENT INITIALIZATION PROBLEM: %s', words)
+        continue
+    endif
+    setenv(words[1], expand(words[2]))
+endfor
+
 import './tests.vim'
 import './test_lib.vim'
 

@@ -1289,23 +1289,31 @@ var modes: dict<Mode> = {
     path:    PathMode.new(),
 }
 lockvar 1 modes
+const abbrev2mode_name = {
+    grid:    'grid',
+    loup:    'loupe',
+    comp:    'compare',
+    path:    'path',
+}
 
 def CollectState(modeName: string): dict<any>
-    var m: Mode = modes->get(modeName, null_object)
+    #var m: Mode = modes->get(modeName, null_object)
+    var m: Mode = modes->get(abbrev2mode_name[modeName], null_object)
     return m.CollectState()
 enddef
 
 # Used by tests. Note that no splice state is changed.
-def g:SpliceCollectModeState(): dict<any>
-    var mode_state: dict<any> = {
-        current_mode:   current_mode.id,
-        winnr:          winnr(),
-        bufnr:          bufnr(),
-        grid:   CollectState('grid'),
-        loup:   CollectState('loupe'),
-        comp:   CollectState('compare'),
-        path:   CollectState('path'),
-    }
+def g:SpliceCollectModeState(get_all = false): dict<any>
+    var mode_state: dict<any> = CollectState(current_mode.id)
+    if get_all
+        mode_state.grid = CollectState('grid')
+        mode_state.loup = CollectState('loup')
+        mode_state.comp = CollectState('comp')
+        mode_state.path = CollectState('path')
+    endif
+    mode_state.winnr = winnr()
+    mode_state.bufnr = bufnr()
+
     return mode_state
 enddef
 

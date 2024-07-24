@@ -9,12 +9,14 @@ var golden_dir = $GOLD_DIR ?? '/src/tools/splice9/testing/golden'
 # LayoutWithBufferNames(tabnr = tabpagenr()): list<any>
 # LayoutPrettyPrint(layout: list<any>, depth = 0): list<string>
 
-command! -nargs=* AA RunFuncTest('XCmdLayout', <f-args>)
-command! -nargs=+ AB RunFuncTest('XCompareLayout', <f-args>)
-#command! -nargs=* AA {
+# command! -nargs=* AA {
 #    var args = eval('[ <f-args> ]')
+#    ...
+# }
+
 command! -nargs=0 A1 echo g:SpliceCollectModeState()
 command! -nargs=0 A2 echo CurModeState()
+command! -nargs=0 A3 echo CurModeState(true)
 
 export def ReportTest(MsgFunc: func(): string)
     var msg = MsgFunc()
@@ -70,12 +72,12 @@ export def CmdESC(wait = true)
 enddef
 
 # TODO: return a class
-export def CurModeState(): dict<any>
-    var state: dict<any> = g:SpliceCollectModeState()
-    var active_state = state[state.current_mode]
-    active_state.bufnr = state.bufnr
-    active_state.winnr = state.winnr
-    active_state.name = bufname(state.bufnr)->ShortName()
+export def CurModeState(get_all = false): dict<any>
+    var state: dict<any> = g:SpliceCollectModeState(get_all)
+
+    state.name = bufname(state.bufnr)->ShortName()
+
+    # Record the winnr to stuff information since things easily change.
 
     # winnr to bufnr
     var winmap: dict<number>
@@ -87,9 +89,9 @@ export def CurModeState(): dict<any>
         winmap_name[k] = bufname(bnr)->ShortName()
     })
 
-    active_state.winmap = winmap
-    active_state.winmap_name = winmap_name
-    return active_state
+    state.winmap = winmap
+    state.winmap_name = winmap_name
+    return state
 enddef
 
 var ModeKeys = {
@@ -104,11 +106,19 @@ enddef
 
 # Put Splice into given mode,layout
 # mode == '' means no change in mode; layout idx defaults to 0
-export def CmdLayout(mode: string = '', layout_idx: number = 0)
-    if mode != ''
-        CmdMode(mode)
-    endif
+export def CmdLayout(mode_: string = '', layout_idx: number = 0)
+    var mode = mode_
     var state = CurModeState()
+    if mode == ''
+        mode = state.id
+    endif
+    if state.id != mode
+        CmdMode(mode)
+        state = CurModeState()
+    endif
+    if state.layout_idx == layout_idx
+        return
+    endif
     if state.layout_count <= layout_idx
         assert_true(false)
         throw $'FAIL: {layout_idx} out of range'
@@ -117,10 +127,6 @@ export def CmdLayout(mode: string = '', layout_idx: number = 0)
         feedkeys('- ', 'x')
         state = CurModeState()
     endwhile
-enddef
-
-def XCmdLayout(mode: string = '', layout_idx: string = '')
-    CmdLayout(mode, str2nr(layout_idx))
 enddef
 
 export def FullName(name: string): string
@@ -218,11 +224,9 @@ enddef
 
 # comp_xform has been applied. Now check the results.
 export def CheckCompFileSelect(comp_xform: list<any>)
-    var state: any
-    state = CurModeState()
+    var state = CurModeState()
     # ReportTest(() => printf("CheckCompSel: ENTER: %s", state))
 
-    #var cmd = comp_xform[3]
     var [_, in_left: string, in_right: string, cmd: string] = comp_xform
     # Determine the expectations.
     # If cmd '-o' or '-r' that's the only change, focus ends up on 'orig' or 'result'
@@ -239,7 +243,6 @@ export def CheckCompFileSelect(comp_xform: list<any>)
         left = in_left
     else
         # Not '-o' or '-r', so lookup expected result
-        #var [focus: number, left: string, right: string] = comp_xform_one_two[string(comp_xform)]
         [focus, left, right] = comp_xform_one_two[string(comp_xform)]
     endif
 
@@ -270,10 +273,6 @@ export def CompareLayout(mode: string, layout_idx: number)
     assert_equal(layout_idx, state.layout_idx)
     var l = eval('i_layouts.' .. mode .. '_layout_' .. string(layout_idx))
     assert_equal(l, LayoutWithBufferNames())
-enddef
-
-def XCompareLayout(mode: string, layout_idx: string)
-    CompareLayout(mode, str2nr(layout_idx))
 enddef
 
 #
