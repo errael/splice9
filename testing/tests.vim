@@ -11,10 +11,20 @@ const CmdLayout = test_lib.CmdLayout
 const CmdNormal = test_lib.CmdNormal
 const CurModeState = test_lib.CurModeState
 const CompareLayout = test_lib.CompareLayout
-const SelectAndFocusCompFiles = test_lib.SelectAndFocusCompFiles
-const CheckCompFileSelect = test_lib.CheckCompFileSelect
 const ReportTest = test_lib.ReportTest
 const ReportTestError = test_lib.ReportTestError
+
+const SelectAndFocusLoupFiles   = test_lib.SelectAndFocusLoupFiles
+const CheckLoupFileSelect       = test_lib.CheckLoupFileSelect
+const SelectAndFocusPathFiles   = test_lib.SelectAndFocusPathFiles
+const CheckPathFileSelect       = test_lib.CheckPathFileSelect
+const SelectAndFocusGrid0Files  = test_lib.SelectAndFocusGrid0Files
+const CheckGrid0FileSelect      = test_lib.CheckGrid0FileSelect
+const SelectAndFocusGrid1Files  = test_lib.SelectAndFocusGrid1Files
+const CheckGrid1FileSelect      = test_lib.CheckGrid1FileSelect
+
+const SelectAndFocusCompFiles   = test_lib.SelectAndFocusCompFiles
+const CheckCompFileSelect       = test_lib.CheckCompFileSelect
 
 
 # This command is executed as part of gvi startup.
@@ -31,9 +41,14 @@ export def RunTheTest()
     #timer_start(1000, Run1)
     try
         RunFuncTest($SPLICE_TEST_NAME)
-    catch
+    catch /^FAIL:/
+    catch /^SUCCESS:/
         # Note, using 'x' in the following leaves things in a screwy situation
         echom 'MODE after done with tests:' mode(true)
+    catch
+        ReportTestError(() => printf("%s", v:exception))
+        ReportTestError(() => printf("%s", v:throwpoint))
+        ReportTestError(() => printf('Test failed with random exception'))
     endtry
     CmdNormal()
     if $SPLICE_QUIT_AFTER_TEST != ''
@@ -104,44 +119,71 @@ def TestAllLayouts(F: any, args: list<any>)
 enddef
 
 import golden_dir .. '/comp_xform.vim' as i_comp_xform
+import golden_dir .. '/xform.vim' as i_xform
 #const comp_xform_one_two = i_comp_xform.comp_xform_one_two
-const comp_xform_all = i_comp_xform.comp_xform_all
+const comp_xform = i_comp_xform.comp_xform
+const comp_xform_small_test = i_comp_xform.comp_xform_small_test
+const loup_xform = i_xform.loup_xform
+const path_xform = i_xform.path_xform
+const grid0_xform = i_xform.grid0_xform
+const grid1_xform = i_xform.grid1_xform
 
-def TestAllFileSelect()
-    TestAllCompFileSelect()
+def TestAllFileSelect(F: any, args: list<any>)
+    # Put all the tests in a single list. Each list element looks like
+    #       ['grid' args_list]
+    # The first list item is used to select the fuction to perform the test.
+    var file_select_tests: list<any>
+
+    file_select_tests->extend(comp_xform->mapnew((_, test_args) => ['Comp', test_args]))
+    file_select_tests->extend(loup_xform->mapnew((_, test_args) => ['Loup', test_args]))
+    file_select_tests->extend(path_xform->mapnew((_, test_args) => ['Path', test_args]))
+    file_select_tests->extend(grid0_xform->mapnew((_, test_args) => ['Grid0', test_args]))
+    file_select_tests->extend(grid1_xform->mapnew((_, test_args) => ['Grid1', test_args]))
+
+    for [cap_mode, test_args] in i_lists.ListRandomize(file_select_tests)
+        echom cap_mode string(test_args)
+        TestAnyFileSelect(cap_mode, test_args, F, args)
+    endfor
+
+    ReportTest(() => printf('TestFileSelectCount: %s', file_select_test_count))
 enddef
 
-var test_stuff = [
-    [ 1, 'orig',  'result',  '-1'],
-    [ 1, 'orig',  'one',     '-2'],
-    [ 2, 'orig',  'two',     '-1'],
+var funcs: dict<func> = {
+    SelectAndFocusLoupFiles:    function(SelectAndFocusLoupFiles),
+    CheckLoupFileSelect:        function(CheckLoupFileSelect),
+    SelectAndFocusPathFiles:    function(SelectAndFocusPathFiles),
+    CheckPathFileSelect:        function(CheckPathFileSelect),
+    SelectAndFocusGrid0Files:   function(SelectAndFocusGrid0Files),
+    CheckGrid0FileSelect:       function(CheckGrid0FileSelect),
+    SelectAndFocusGrid1Files:   function(SelectAndFocusGrid1Files),
+    CheckGrid1FileSelect:       function(CheckGrid1FileSelect),
+    SelectAndFocusCompFiles:    function(SelectAndFocusCompFiles),
+    CheckCompFileSelect:        function(CheckCompFileSelect),
+}
 
-    [ 2, 'one',   'result',  '-2'],
-    [ 1, 'one',   'result',  '-2'],
+var file_select_test_count: dict<number> =
+{
+    Grid0:  0,
+    Grid1:  0,
+    Comp:   0,
+    Path:   0,
+    Loup:   0,
+}
 
-    [ 2, 'one',   'result',  '-o'],
-    [ 1, 'one',   'result',  '-r'],
+def TestAnyFileSelect(cap_mode: string, xform: list<any>, F: any, args: list<any>)
+    Run1Test(F, args, () => {
+        ReportTest(() => printf('Test%sFileSelect: XFORM: %s', cap_mode, xform))
+        file_select_test_count[cap_mode] += 1
 
-    [ 1, 'two',   'result',  '-1'],
-    [ 1, 'one',   'two',     '-2'],
-    [ 2, 'one',   'two',     '-2'],
-]
+        # call('SelectAndFocus' .. cap_mode .. 'Files', [xform])
+        funcs['SelectAndFocus' .. cap_mode .. 'Files'](xform)
 
-def TestAllCompFileSelect(F: any, args: list<any>)
-    #var [focus: number, left: string, right: string, cmd: string] = comp_xform
-    #for comp_xform in test_stuff
-    #for comp_xform in i_lists.ListRandomize(flattennew([comp_xform_all, test_stuff], 1))
-    for comp_xform in i_lists.ListRandomize(comp_xform_all)
-        Run1Test(F, args, () => {
-            ReportTest(() => printf('TestAllCompFileSelect: XFORM: %s', comp_xform))
-            SelectAndFocusCompFiles(comp_xform)
-            var state: any
-            # ReportTest(() => printf("CompSel: before feedkeys: %s", CurModeState()))
-            # Apply the command, like '-1', '-r'.
-            feedkeys(comp_xform[3], 'x')
+        # ReportTest(() => printf("%sSel: before feedkeys: %s", cap_mode, CurModeState()))
+        # Apply the command, like '-1', '-r'.
+        feedkeys(xform[1], 'x')
 
-            CheckCompFileSelect(comp_xform)
-        })
-    endfor
+        #call('Check' .. cap_mode .. 'FileSelect', [xform])
+        funcs['Check' .. cap_mode .. 'FileSelect'](xform)
+    })
 enddef
 
