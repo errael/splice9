@@ -49,18 +49,30 @@ do
   esac
 done
 
-declare -a tests=(TestAllLayouts TestAllCompFileSelect)
+############################################################################
+#
+# Tests
+#
+
+#declare -a tests=(TestAllLayouts TestAllCompFileSelect)
+
+#declare -a tests=(TestAllLayouts TestAllFileSelect)
+
+declare -a tests=(TestAllFileSelect)
 
 export SPLICE_TEST_NAME=
-#SPLICE_TEST_NAME=TestAllCompFileSelect
 
 # If the following is not empty, test exits splice exits after running.
 export SPLICE_QUIT_AFTER_TEST=yes
-
 if ((wait_flag))
 then
     SPLICE_QUIT_AFTER_TEST=
 fi
+
+############################################################################
+#
+# Main
+#
 
 Main() {
     > $SPLICE_LOG
@@ -103,6 +115,11 @@ CheckFailure() {
     return 0
 }
 
+############################################################################
+#
+# RunSplice
+#
+
 RunSplice() {
     # Start splice with fresh files
     rm -rf $PLAY_DIR
@@ -125,7 +142,8 @@ RunSplice() {
     #gvim -f -u NONE -U $TEST_DIR/vimrc \
     #/junk/test_install/vim/bin/gvim -f -u DEFAULTS -U $TEST_DIR/vimrc \
     #/junk/test_install/vim/bin/vim -u DEFAULTS -U NONE \
-    gvim -f -u DEFAULTS -U NONE \
+    #gvim -f -u DEFAULTS -U NONE \
+    /junk/test_install/vim/bin/gvim -f -u DEFAULTS -U $TEST_DIR/vimrc \
         -c "source $TEST_DIR/vimrc" \
         -c "runtime plugin/splice.vim" \
         $PLAY_DIR/f00-orig.txt \

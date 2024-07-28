@@ -1,53 +1,16 @@
 vim9script
 
-# This dict maps initial compare mode state to expected compare state,
-# after the specified "cmd-1-2" is run.
 #
-# The tranistion for '-o' and '-r' is calculated manually at runtime.
+# If compare mode, there is a left and right side file (or top/bottom)
+# This list contains all 48 possible selected file xformations in compare
+# mode. The 24 keys in comp_xform_one_two which change with the '-1' or '-2'
+# commands, plus the 24 by using '-r' and '-o' instean of '-1' and '-2'.
+# Each entry looks like:
+#       var [focus: number, left: string, right: string, cmd: string]
+# Left and right are each one of 'orig', 'one', 'two' or 'result', note that
+# some combinations are not possible. Focus is which side is focused 1 or 2
+# which is left or right respectively. Cmd is one of '-o', '-1', '-2', '-r'.
 #
-# initial state: [foucus-num-1-2, 'name-1', 'name-2', 'cmd-1-2']
-# expected state: [foucus-num-1-2, 'name-1', 'name-2']
-#       [1, 'orig', 'result', '-1']: [1, 'one', 'result']
-#       [1, 'orig', 'result', '-2']: [1, 'two', 'result']
-
-export const comp_xform_one_two: dict<list<any>> =
-{
-    [string([ 1, 'orig',  'result',  '-1'])]: [ 1, 'one',  'result'],
-    [string([ 1, 'orig',  'result',  '-2'])]: [ 1, 'two',  'result'],
-    [string([ 2, 'orig',  'result',  '-1'])]: [ 2, 'orig', 'one'],
-    [string([ 2, 'orig',  'result',  '-2'])]: [ 2, 'orig', 'two'],
-
-    [string([ 1, 'orig',  'one',     '-1'])]: [ 2, 'orig', 'one'],
-    [string([ 1, 'orig',  'one',     '-2'])]: [ 2, 'orig', 'two'],
-    [string([ 2, 'orig',  'one',     '-1'])]: [ 2, 'orig', 'one'],
-    [string([ 2, 'orig',  'one',     '-2'])]: [ 2, 'orig', 'two'],
-
-    [string([ 1, 'orig',  'two',     '-1'])]: [ 1, 'one',  'two'],
-    [string([ 1, 'orig',  'two',     '-2'])]: [ 2, 'orig', 'two'],
-    [string([ 2, 'orig',  'two',     '-1'])]: [ 2, 'orig', 'one'],
-    [string([ 2, 'orig',  'two',     '-2'])]: [ 2, 'orig', 'two'],
-
-    [string([ 1, 'one',   'result',  '-1'])]: [ 1, 'one',  'result'],
-    [string([ 1, 'one',   'result',  '-2'])]: [ 1, 'two',  'result'],
-    [string([ 2, 'one',   'result',  '-1'])]: [ 1, 'one',  'result'],
-    [string([ 2, 'one',   'result',  '-2'])]: [ 2, 'one',  'two'],
-
-    [string([ 1, 'two',   'result',  '-1'])]: [ 1, 'one',  'result'],
-    [string([ 1, 'two',   'result',  '-2'])]: [ 1, 'two',  'result'],
-    [string([ 2, 'two',   'result',  '-1'])]: [ 1, 'one',  'result'],
-    [string([ 2, 'two',   'result',  '-2'])]: [ 1, 'two',  'result'],
-
-    [string([ 1, 'one',   'two',     '-1'])]: [ 1, 'one',  'two'],
-    [string([ 1, 'one',   'two',     '-2'])]: [ 2, 'one',  'two'],
-    [string([ 2, 'one',   'two',     '-1'])]: [ 1, 'one',  'two'],
-    [string([ 2, 'one',   'two',     '-2'])]: [ 2, 'one',  'two'],
-}
-#comp_xform_one_two->foreach((k, v) => {
-#    echo printf("%-30s %s", k, v)
-#})
-
-# This list contains all 48 possible xformations. The 24 keys in comp_xform_one_two
-# plus the 24 by using '-r' and '-o' instean of '-1' and '-2'.
 def CompXformAll(): list<list<any>>
     var ret: list<list<any>>
     var all = ['orig', 'one', 'two', 'result']
@@ -63,9 +26,10 @@ def CompXformAll(): list<list<any>>
 
             #echo [left, right]
             # got the left/right now wich
-            for focus in [1, 2]
+            #for focus in [1, 2]
+            for focus in range(2, 3)
                 for cmd in ['-o', '-1', '-2', '-r']
-                    ret->add([focus, left, right, cmd])
+                    ret->add([focus, cmd, left, right])
                 endfor
             endfor
         endfor
@@ -73,13 +37,80 @@ def CompXformAll(): list<list<any>>
     return ret
 enddef
 
-export const comp_xform_all = CompXformAll()
-#echo comp_xform_all->len()
+export const comp_xform = CompXformAll()
+#echo comp_xform->len()
 
-#for [focus, left, right, cmd] in comp_xform_all
+#for [focus, left, right, cmd] in comp_xform
 #    echo printf("%d %s %s %s", focus, left, right, cmd)
 #endfor
-#echo comp_xform_all->join("\n")
+#echo comp_xform->join("\n")
+
+# For testing
+export const comp_xform_small_test = [
+    [ 2, '-1', 'orig',  'result', ],
+    [ 2, '-2', 'orig',  'one',    ],
+    [ 3, '-1', 'orig',  'two',    ],
+
+    [ 3, '-2', 'one',   'result', ],
+    [ 2, '-2', 'one',   'result', ],
+
+    [ 3, '-o', 'one',   'result', ],
+    [ 2, '-r', 'one',   'result', ],
+
+    [ 2, '-1', 'two',   'result', ],
+    [ 2, '-2', 'one',   'two',    ],
+    [ 3, '-2', 'one',   'two',    ],
+]
+
+
+# This dict maps initial compare mode state to expected compare state,
+# after the specified "cmd-1-2" is run. 24 transitions,
+#
+# The 24 tranistion for '-o' and '-r' eare calculated at runtime.
+#
+# initial state: [foucus-num-2-3, 'name-1', 'name-2', 'cmd-1-2']
+# expected state: [foucus-num-2-3, 'name-1', 'name-2']
+#       [2, 'orig', 'result', '-1']: [2, 'one', 'result']
+#       [2, 'orig', 'result', '-2']: [2, 'two', 'result']
+
+export const comp_xform_one_two: dict<list<any>> =
+{
+    [string([ 2, '-1', 'orig',  'result', ])]: [ 2, 'one',  'result'],
+    [string([ 2, '-2', 'orig',  'result', ])]: [ 2, 'two',  'result'],
+    [string([ 3, '-1', 'orig',  'result', ])]: [ 3, 'orig', 'one'],
+    [string([ 3, '-2', 'orig',  'result', ])]: [ 3, 'orig', 'two'],
+
+    [string([ 2, '-1', 'orig',  'one',    ])]: [ 3, 'orig', 'one'],
+    [string([ 2, '-2', 'orig',  'one',    ])]: [ 3, 'orig', 'two'],
+    [string([ 3, '-1', 'orig',  'one',    ])]: [ 3, 'orig', 'one'],
+    [string([ 3, '-2', 'orig',  'one',    ])]: [ 3, 'orig', 'two'],
+
+    [string([ 2, '-1', 'orig',  'two',    ])]: [ 2, 'one',  'two'],
+    [string([ 2, '-2', 'orig',  'two',    ])]: [ 3, 'orig', 'two'],
+    [string([ 3, '-1', 'orig',  'two',    ])]: [ 3, 'orig', 'one'],
+    [string([ 3, '-2', 'orig',  'two',    ])]: [ 3, 'orig', 'two'],
+
+    [string([ 2, '-1', 'one',   'result', ])]: [ 2, 'one',  'result'],
+    [string([ 2, '-2', 'one',   'result', ])]: [ 2, 'two',  'result'],
+    [string([ 3, '-1', 'one',   'result', ])]: [ 2, 'one',  'result'],
+    [string([ 3, '-2', 'one',   'result', ])]: [ 3, 'one',  'two'],
+
+    [string([ 2, '-1', 'two',   'result', ])]: [ 2, 'one',  'result'],
+    [string([ 2, '-2', 'two',   'result', ])]: [ 2, 'two',  'result'],
+    [string([ 3, '-1', 'two',   'result', ])]: [ 2, 'one',  'result'],
+    [string([ 3, '-2', 'two',   'result', ])]: [ 2, 'two',  'result'],
+
+    [string([ 2, '-1', 'one',   'two',    ])]: [ 2, 'one',  'two'],
+    [string([ 2, '-2', 'one',   'two',    ])]: [ 3, 'one',  'two'],
+    [string([ 3, '-1', 'one',   'two',    ])]: [ 2, 'one',  'two'],
+    [string([ 3, '-2', 'one',   'two',    ])]: [ 3, 'one',  'two'],
+}
+#comp_xform_one_two->foreach((k, v) => {
+#    echo printf("%-30s %s", k, v)
+#})
+
+finish
+######################################################################
 
 # This has identical ->keys() to comp_xform_one_two.
 # The value is the key as a list to avoid eval

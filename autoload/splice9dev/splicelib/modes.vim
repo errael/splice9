@@ -1297,7 +1297,6 @@ const abbrev2mode_name = {
 }
 
 def CollectState(modeName: string): dict<any>
-    #var m: Mode = modes->get(modeName, null_object)
     var m: Mode = modes->get(abbrev2mode_name[modeName], null_object)
     return m.CollectState()
 enddef

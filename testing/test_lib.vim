@@ -6,8 +6,12 @@ import autoload config.Rlib('util/log.vim') as i_log
 
 var golden_dir = $GOLD_DIR ?? '/src/tools/splice9/testing/golden'
 
+import golden_dir .. '/tables.vim' as i_tables
+const mode_keys = i_tables.mode_keys
+const file_keys = i_tables.file_keys
+
 # LayoutWithBufferNames(tabnr = tabpagenr()): list<any>
-# LayoutPrettyPrint(layout: list<any>, depth = 0): list<string>
+# LayoutPrettyPrint(layout : list<any>, depth = 0): list<string>
 
 # command! -nargs=* AA {
 #    var args = eval('[ <f-args> ]')
@@ -93,15 +97,8 @@ export def CurModeState(get_all = false): dict<any>
     state.winmap_name = winmap_name
     return state
 enddef
-
-var ModeKeys = {
-    grid:   '-g',
-    comp:   '-c',
-    loup:   '-l',
-    path:   '-p'
-}
-export def CmdMode(mode: string)
-    feedkeys(ModeKeys[mode], 'x')
+def CmdMode(mode: string)
+    feedkeys(mode_keys[mode], 'x')
 enddef
 
 # Put Splice into given mode,layout
@@ -151,14 +148,13 @@ enddef
 #
 
 import golden_dir .. '/comp_xform.vim' as i_comp_xform
-const comp_xform_one_two = i_comp_xform.comp_xform_one_two
+import golden_dir .. '/xform.vim' as i_xform
 
-var FileKeys = {
-    orig:   '-o',
-    one:    '-1',
-    two:    '-2',
-    result: '-r'
-}
+const comp_xform_one_two = i_comp_xform.comp_xform_one_two
+const loup_xform_results = i_xform.loup_xform_results
+const path_xform_results = i_xform.path_xform_results
+const grid0_xform_results = i_xform.grid0_xform_results
+const grid1_xform_results = i_xform.grid1_xform_results
 
 def CarefulWinGoto(winnr: number, MsgFunc: func)
     var winid = win_getid(winnr)
@@ -170,86 +166,219 @@ def CarefulWinGoto(winnr: number, MsgFunc: func)
     endif
 enddef
 
+#############
+#
+# Loup
+#
+
 # Get Splice to the given state
-export def SelectAndFocusCompFiles(comp_init: list<any>)
-    var [focus: number, left: string, right: string; rest] = comp_init
+export def SelectAndFocusLoupFiles(xform: list<any>)
+    var [focus: number, _, file: string] = xform
+    assert_equal(focus, 2, 'loup internal error')
+    CmdLayout('loup')
+    feedkeys(file_keys[file], 'x')  # do '-r' command
+
+    var state = CurModeState()
+    assert_equal(focus, state.winnr, "loup_init focus")
+    assert_equal(file, state.winmap_name[2], "loup_init file")
+enddef
+
+# loup_xform has been applied. Now check the results.
+export def CheckLoupFileSelect(xform: list<any>)
+    var state = CurModeState()
+    var results = loup_xform_results[string(xform)]
+    var [focus: number, file: string] = results
+
+    ReportTest(() => printf("CheckLoupSel: EXPECT: %s", results))
+    assert_equal('loup', state.id, "loup_check id")
+    assert_equal(focus, state.winnr, "loup_check focus")
+    assert_equal(file, state.winmap_name[2], "loup_check file")
+enddef
+
+#############
+#
+# Path
+#
+
+# Get Splice to the given state
+export def SelectAndFocusPathFiles(xform: list<any>)
+    var [focus: number, _, left: string, middle: string, right: string] = xform
+    CmdLayout('path')
+    feedkeys(file_keys[middle], 'x')   # do '-1' or '-2' command
+    CarefulWinGoto(focus, () => printf("SelectAndFocusPathFiles: wnr %d", focus))
+
+    var state = CurModeState()
+    assert_equal(focus, state.winnr, "path_init focus")
+    assert_equal(left, state.winmap_name[2], "path_init left")
+    assert_equal(middle, state.winmap_name[3], "path_init middle")
+    assert_equal(right, state.winmap_name[4], "path_init right")
+enddef
+
+# path_xform has been applied. Now check the results.
+export def CheckPathFileSelect(xform: list<any>)
+    var state = CurModeState()
+    var results = path_xform_results[string(xform)]
+    var [focus: number, left: string, middle: string, right: string] = results
+
+    ReportTest(() => printf("CheckPathSel: EXPECT: %s", results))
+    assert_equal('path', state.id, "path_check id")
+    assert_equal(focus, state.winnr, "path_check focus")
+    #assert_equal(file, state.winmap_name[1], "path_check file")
+    assert_equal(left, state.winmap_name[2], "path_check left")
+    assert_equal(middle, state.winmap_name[3], "path_check middle")
+    assert_equal(right, state.winmap_name[4], "path_check right")
+enddef
+
+#############
+#
+# Grid
+#
+
+# Get Splice to the given state
+export def SelectAndFocusGrid0Files(xform: list<any>)
+    var [focus: number, _, top: string, left: string, right: string, bottom: string] = xform
+    CmdLayout('grid')
+    # Grid0 mode shows all the files; just set the focus..
+    CarefulWinGoto(focus, () => printf("SelectAndFocusGrid0Files: wnr %d", focus))
+
+    var state = CurModeState()
+    assert_equal(focus, state.winnr, "grid0_init focus")
+    assert_equal(top, state.winmap_name[2], "grid0_init top")
+    assert_equal(left, state.winmap_name[3], "grid0_init left")
+    assert_equal(right, state.winmap_name[4], "grid0_init right")
+    assert_equal(bottom, state.winmap_name[5], "grid0_init bottom")
+enddef
+
+export def CheckGrid0FileSelect(xform: list<any>)
+    var state = CurModeState()
+    var results = grid0_xform_results[string(xform)]
+    var [focus: number, top: string, left: string, right: string, bottom: string] = results
+
+    ReportTest(() => printf("CheckGrid0Sel: EXPECT: %s", results))
+    assert_equal('grid', state.id, "grid0_check id")
+    assert_equal(focus, state.winnr, "grid0_check focus")
+    assert_equal(top, state.winmap_name[2], "grid0_init top")
+    assert_equal(left, state.winmap_name[3], "grid0_init left")
+    assert_equal(right, state.winmap_name[4], "grid0_init right")
+    assert_equal(bottom, state.winmap_name[5], "grid0_init bottom")
+enddef
+
+# Get Splice to the given state
+export def SelectAndFocusGrid1Files(xform: list<any>)
+    var [focus: number, _, left: string, middle: string, right: string] = xform
+    CmdLayout('grid', 1)
+    # Grid1 mode always shows the same 3 files; just set the focus..
+    CarefulWinGoto(focus, () => printf("SelectAndFocusGrid1Files: wnr %d", focus))
+
+    var state = CurModeState()
+    assert_equal(focus, state.winnr, "grid1_init focus")
+    assert_equal(left, state.winmap_name[2], "grid1_init left")
+    assert_equal(middle, state.winmap_name[3], "grid1_init middle")
+    assert_equal(right, state.winmap_name[4], "grid1_init right")
+enddef
+
+export def CheckGrid1FileSelect(xform: list<any>)
+    var state = CurModeState()
+    var results = grid1_xform_results[string(xform)]
+    #var [focus: number, top: string, left: string, right: string, bottom: string] = results
+    var [focus: number, left: string, middle: string, right: string] = results
+
+    ReportTest(() => printf("CheckGrid1Sel: EXPECT: %s", results))
+    assert_equal('grid', state.id, "grid1_check id")
+    assert_equal(focus, state.winnr, "grid1_check focus")
+    assert_equal(left, state.winmap_name[2], "grid1_init left")
+    assert_equal(middle, state.winmap_name[3], "grid1_init middle")
+    assert_equal(right, state.winmap_name[4], "grid1_init right")
+enddef
+
+#############
+#
+# Comp
+#
+
+# Get Splice to the given state
+export def SelectAndFocusCompFiles(xform: list<any>)
+    var [focus: number, _, left: string, right: string] = xform
 
     # First get in 'comp' mode, layout 0.
-    CmdLayout('comp', 0)
+    CmdLayout('comp')
 
     # Select windows so that left/right are as indicated, this can be tricky.
     # If 'orig' or 'result' are present, assume 'orig' is left, 'result' is right.
-    # other_side is the side that's not orig/result. 1 - left, 2 - right
-    var other_side: number
+    # other_side_win is the side that's not orig/result. 2 - left, 3 - right
+    var other_side_win: number
+    var other_side_file: string
     var count = 0
     if left == 'orig'
-        other_side = 2                  # change the right side
+        other_side_win = 3              # change the right side
+        other_side_file = xform[3]
         count += 1                      # count 'orig'
-        feedkeys(FileKeys[left], 'x')   # do '-o' command
+        feedkeys(file_keys[left], 'x')  # do '-o' command
     endif
     if right == 'result'
-        other_side = 1                  # change the left side
+        other_side_win = 2                  # change the left side
+        other_side_file = xform[2]
         count += 1                      # count 'result'
-        feedkeys(FileKeys[right], 'x')  # do '-r' command
+        feedkeys(file_keys[right], 'x') # do '-r' command
     endif
-    # if only 1 of 'orig'/'result', then need to setup the other side: other_side.
+    # if only 1 of 'orig'/'result', then need to setup the other side: other_side_win.
     if count == 1
-        CarefulWinGoto(other_side + 1,
-            () => printf("SelectAndFocusCompFiles: other_side %d", other_side))
-        feedkeys(FileKeys[comp_init[other_side]], 'x')
+        CarefulWinGoto(other_side_win,
+            () => printf("SelectAndFocusCompFiles: other_side_win %d", other_side_win))
+        feedkeys(file_keys[other_side_file], 'x')
     endif
     if count == 0
         # No 'orig' or 'result'; must be left 'one', right 'two'.
 
         # Bring up 'orig', it's always on the left;
         # this gives a known starting position for the 'two' and 'one' commands.
-        feedkeys(FileKeys['orig'], 'x')
+        feedkeys(file_keys['orig'], 'x')
         # Select 'two' on the right, then 'one' on the left.
         CarefulWinGoto(3, () => printf("SelectAndFocusCompFiles: right"))
-        feedkeys(FileKeys['two'], 'x')
+        feedkeys(file_keys['two'], 'x')
         CarefulWinGoto(2, () => printf("SelectAndFocusCompFiles: left"))
-        feedkeys(FileKeys['one'], 'x')
+        feedkeys(file_keys['one'], 'x')
     endif
 
-    # use focus, 1/2 - left/right, recall hud is window 1
-    CarefulWinGoto(focus + 1, () => printf("SelectAndFocusCompFiles: wnr %d", focus + 1))
+    # use focus, 2/3 - left/right, recall hud is window 1
+    CarefulWinGoto(focus, () => printf("SelectAndFocusCompFiles: wnr %d", focus))
 
     var state = CurModeState()
     # ReportTest(() => printf("SelFocCompFile: EXIT: %s", state))
     # ReportTest(() => printf("SelFocCompFile: EXIT: %s", [focus, left, right]))
-    assert_equal(focus, state.winnr - 1, "comp_init focus")
+    assert_equal(focus, state.winnr, "comp_init focus")
     assert_equal(left, state.winmap_name[2], "comp_init left")
     assert_equal(right, state.winmap_name[3], "comp_init right")
 enddef
 
-# comp_xform has been applied. Now check the results.
-export def CheckCompFileSelect(comp_xform: list<any>)
+# xfrom has been applied. Now check the results.
+export def CheckCompFileSelect(xfrom: list<any>)
     var state = CurModeState()
     # ReportTest(() => printf("CheckCompSel: ENTER: %s", state))
 
-    var [_, in_left: string, in_right: string, cmd: string] = comp_xform
+    var [_, cmd: string, in_left: string, in_right: string] = xfrom
     # Determine the expectations.
     # If cmd '-o' or '-r' that's the only change, focus ends up on 'orig' or 'result'
     var focus: number
     var left: string
     var right: string
     if cmd == '-o'
-        focus = 1
+        focus = 2
         left = 'orig'
         right = in_right
     elseif cmd == '-r'
-        focus = 2
+        focus = 3
         right = 'result'
         left = in_left
     else
         # Not '-o' or '-r', so lookup expected result
-        [focus, left, right] = comp_xform_one_two[string(comp_xform)]
+        [focus, left, right] = comp_xform_one_two[string(xfrom)]
     endif
 
     ReportTest(() => printf("CheckCompSel: EXPECT: %s", [focus, left, right]))
     # layout doesn't matter, the window numbers are the same
     assert_equal('comp', state.id, "comp_check id")
-    assert_equal(focus, state.winnr - 1, "comp_check focus")
+    assert_equal(focus, state.winnr, "comp_check focus")
     assert_equal(left, state.winmap_name[2], "comp_check left")
     assert_equal(right, state.winmap_name[3], "comp_check right")
 enddef
