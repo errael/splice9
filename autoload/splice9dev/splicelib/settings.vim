@@ -6,6 +6,11 @@ const Rlib = rlib.Rlib
 import autoload Rlib('util/log.vim') as i_log
 import autoload './util/keys.vim' as i_keys
 
+import './util/log_categories.vim'
+const ERROR = log_categories.ERROR
+const DIFFOPTS = log_categories.DIFFOPTS
+const SETTING = log_categories.SETTING
+
 # The splice defined highlights
 highlight SpliceCommand term=bold cterm=bold gui=bold
 highlight SpliceLabel term=underline ctermfg=6 guifg=DarkCyan
@@ -46,12 +51,12 @@ export def GetDefault(name: string): any
 enddef
 
 export def Setting(key: string): any
-    i_log.Log(() => $"Setting: key: {key}", 'setting')
+    i_log.Log(() => $"Setting: key: {key}", SETTING)
     if ! config_dict->has_key(key)
         throw $"Setting unknown: '{key}'"
     endif
     i_log.Log(() => printf("Setting: get(key): '%s', type {%s}",
-        config_dict->get(key), type(config_dict->get(key))), 'setting')
+        config_dict->get(key), type(config_dict->get(key))), SETTING)
     return config_dict->get(key)
 enddef
 
@@ -59,7 +64,7 @@ export def Set_cur_window_wrap()
     var setting = Setting('wrap')
     if setting != null
         &wrap = setting == 'wrap'
-        i_log.Log(() => printf("winnr %d, &wrap set to %s", winnr(), &wrap), 'diffopts')
+        i_log.Log(() => printf("winnr %d, &wrap set to %s", winnr(), &wrap), DIFFOPTS)
     endif
 enddef
 
@@ -68,7 +73,7 @@ export def ApplyWrap(is_wrap: bool)
         # Skip the HUD
         if d.winnr != 1
             i_log.Log(() => printf("    WID %d, WNR %d, BNR %d, set %s",
-                d.winid, d.winnr, d.bufnr, is_wrap ? 'wrap' : 'nowrap'), 'diffopts')
+                d.winid, d.winnr, d.bufnr, is_wrap ? 'wrap' : 'nowrap'), DIFFOPTS)
             win_execute(d.winid, ":set " .. (is_wrap ? 'wrap' : 'nowrap'))
         endif
     })
@@ -95,7 +100,7 @@ export def WindowWrapInfo(): list<any>
             else
                 all_on = false
             endif
-            i_log.Log(() => printf("    WNR %d, on %s, off %s", d.winnr, all_on, all_off), 'diffopts')
+            i_log.Log(() => printf("    WNR %d, on %s, off %s", d.winnr, all_on, all_off), DIFFOPTS)
         endif
     })
     return [ on_off, all_on || all_off, all_on]
@@ -107,11 +112,11 @@ export def ChangeSetting(key: string, value: any)
     # only allow wrap to change
     if key == 'wrap'
         if ['wrap', 'nowrap']->index(value) < 0
-            i_log.Log(printf("ChangeSetting: value %s'"), 'error')
+            i_log.Log(printf("ChangeSetting: value %s'"), ERROR)
             return
         endif
     else
-        i_log.Log(printf("ChangeSetting: key %s'"), 'error')
+        i_log.Log(printf("ChangeSetting: key %s'"), ERROR)
         return
     endif
 
@@ -207,7 +212,7 @@ enddef
 # If the call wan't some additional message massaging, One way
 # is to use the GetDefault() to put in a tag and edit it.
 def CheckOneOfSetting(setting: string, default: any, okfunc: any): bool
-    i_log.Log(() => printf("CheckOneOfSetting '%s', default '%s'", setting, default), 'setting')
+    i_log.Log(() => printf("CheckOneOfSetting '%s', default '%s'", setting, default), SETTING)
 
     var val = config_dict->get(setting, null)
     if val != null
@@ -260,7 +265,7 @@ def ValidNumber(setting: string, val: any, default: any): bool
 enddef
 
 def ValidStringList(setting: string, val: any, default: any): bool
-    i_log.Log(() => printf("ValidStringList: %s %s - %s - %s", setting, typename(val), val, default), 'setting')
+    i_log.Log(() => printf("ValidStringList: %s %s - %s - %s", setting, typename(val), val, default), SETTING)
     if type(val) != v:t_list || !val->empty() && typename(val) != "list<string>"
         RecordSettingError(setting, default, v:none, 'list<string> got ' .. typename(val))
     endif
@@ -390,7 +395,7 @@ export def InitSettings(): list<string>
 
     # Put resolved prefix into config dictionary.
     config_dict.prefix = prefix
-    i_log.Log($'PREFIX: {prefix}', 'setting')
+    i_log.Log($'PREFIX: {prefix}', SETTING)
 
     CheckTypeOfSetting('prefix', '-', [ v:t_string ])
 

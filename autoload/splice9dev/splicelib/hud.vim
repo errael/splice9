@@ -29,6 +29,10 @@ import autoload './util/keys.vim' as i_keys
 
 import autoload "../../../plugin/splice.vim" as i_plugin
 
+import './util/log_categories.vim'
+const ERROR = log_categories.ERROR
+const DIFFOPTS = log_categories.DIFFOPTS
+
 # highlights used on the HUD and in its text properties
 
 var hl_label: string    = splice.hl_label
@@ -612,10 +616,10 @@ def HighlightDiffLabelsInLayout(labels: list<string>)
                 prop_add(line, col, props)
             else
                 i_log.Log(() => printf("DiffLabel '%s' wrong area %d,%d",
-                    label, line, col), 'error')
+                    label, line, col), ERROR)
             endif
         else
-            i_log.Log(() => printf("DiffLabel '%s' not found", label), 'error')
+            i_log.Log(() => printf("DiffLabel '%s' not found", label), ERROR)
         endif
     endfor
 enddef
@@ -872,7 +876,7 @@ var diff_options_append_msgs: list<string>
 def DiffOptionsPopup()
     AddWrapRadio()
     if winid_props != 0
-        i_log.Log(() => 'DiffOptionsPopup: DiffOpts winid out out sync', 'error')
+        i_log.Log(() => 'DiffOptionsPopup: DiffOpts winid out out sync', ERROR)
         return
     endif
     i_log.Log(() => printf("DiffOptionsPopup: &diffopt= '%s'", &diffopt))
@@ -890,7 +894,7 @@ def DiffOptionsPopup()
         diffopt_state[v] = true
     })
     var wraps = i_settings.WindowWrapInfo()
-    i_log.Log(() => printf('WindowWrapInfo: %s', wraps), 'diffopts')
+    i_log.Log(() => printf('WindowWrapInfo: %s', wraps), DIFFOPTS)
 
     diff_options_append_msgs = [
         $"Win wrap: {wraps[1] ? (wraps[2] ? "all wrapped" : "none wrapped") : wraps[0]}",
@@ -913,7 +917,7 @@ enddef
 def DiffOptsDialogClosing(winid: number, result: any): void
 
     if winid != winid_props
-        i_log.Log(() => 'DiffOptsDialogClosing: DiffOpts winid out out sync', 'error')
+        i_log.Log(() => 'DiffOptsDialogClosing: DiffOpts winid out out sync', ERROR)
     endif
     winid_props = 0
 
@@ -942,7 +946,7 @@ def DiffOptsDialogClosing(winid: number, result: any): void
             if radio_btn_group_wrap_opts->index(k) >= 0
                 # handle wrap radio buttons
                 if type(v) == v:t_bool
-                    i_log.Log(() => printf("WRAP-ALL: key=%s, val=%s", k, v), 'diffopts')
+                    i_log.Log(() => printf("WRAP-ALL: key=%s, val=%s", k, v), DIFFOPTS)
                     # turn wrap on/off in all the diff windows, don't change setting
                     if k == 'wrap-all-on' && v
                         i_settings.ApplyWrap(true)
