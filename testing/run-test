@@ -13,66 +13,106 @@ set -e
 # grep -E 'NEW_LOG|SPLICE_TEST_ERROR|SPLICE_TEST' /src/tools/splice9/testing/SPLICE_LOG 
 #
 
-# TODO: option to select which test to run
-# TODO: option to select initialization of splice_config? part of which test?
-# TODO: option for which vimrc?
-
-usage() {
-    echo "$CMD [-r] [--wait] [-1]"
-    echo "    -r        run autmated tests"
-    echo "    --wait    don't exit splice after running each test"
-    echo "    -1        only run 1 test"
-    exit 1
-}
-
-declare TEMP
-TEMP=$(getopt -o "r1" --long 'wait' -n "$CMD" -- "$@")
-if [[ $? -ne 0 ]]; then usage > /dev/stderr; fi
-eval set -- "$TEMP"
-unset TEMP
-
-typeset -i rflag
-typeset -i wait_flag
-typeset -i one_test_flag
-
-while true
-do
-  case "$1" in
-    -r) rflag=1;                     shift   ;;
-    -1) one_test_flag=1;             shift   ;;
-    --wait) wait_flag=1;             shift   ;;
-    -h) usage                                ;;
-    --) shift
-        break
-        ;;
-     *) echo Internal Error "'$1'"; exit 1   ;;
-  esac
-done
-
 ############################################################################
 #
 # Tests
 #
 
-#declare -a tests=(TestAllLayouts TestAllCompFileSelect)
+declare -a major_tests=(TestAllLayouts TestAllFileSelect)
 
-#declare -a tests=(TestAllLayouts TestAllFileSelect)
+declare -a sub_tests=(
+    TestAllLayouts
+    'TestAllFileSelect Comp'
+    'TestAllFileSelect Loup'
+    'TestAllFileSelect Path'
+    'TestAllFileSelect Grid0'
+    'TestAllFileSelect Grid1'
+)
 
-declare -a tests=(TestAllFileSelect)
+# TODO: option to select initialization of splice_config? part of which test?
+# TODO: option for which vimrc?
 
-export SPLICE_TEST_NAME=
+############################################################################
+#
+# Options processing
+#
 
-# If the following is not empty, test exits splice exits after running.
-export SPLICE_QUIT_AFTER_TEST=yes
-if ((wait_flag))
+usage() {
+    echo "$CMD [-r] [--wait] [-1] [--test=n]*"
+    echo "    -r           run automated tests, otherwise start splice"
+    echo "    --wait       don't exit splice after running each test"
+
+    echo "    --test=n     add this test to tests to run"
+    local -i i=0
+    while ((i < ${#sub_tests[@]}))
+    do
+        echo "                     $i - ${sub_tests[i]}"
+        ((i += 1))
+    done
+
+    echo "    --gvim=path  use specified vim to run the tests"
+    
+    exit 1
+}
+
+declare TEMP
+TEMP=$(getopt -o "rh" --long 'wait,test:,gvim:' -n "$CMD" -- "$@")
+if [[ $? -ne 0 ]]; then usage > /dev/stderr; fi
+eval set -- "$TEMP"
+unset TEMP
+
+# The tests that will be run
+declare -a run_tests
+
+# empty means exit splice/vim after running test.
+export SPLICE_WAIT_AFTER_TEST=
+
+GVIM_CMD=gvim
+
+# when rflag true run some tests, otherwise just start up splice.
+typeset -i rflag
+
+AddTest() {
+    local -i i=$1
+    run_tests+=("${sub_tests[i]}")
+    rflag=1
+}
+
+while true
+do
+  case "$1" in
+    -r) rflag=1;                               shift   ;;
+    --wait) SPLICE_WAIT_AFTER_TEST=yes;        shift   ;;
+    --test) AddTest $2;                        shift 2 ;;
+    --gvim) GVIM_CMD=$2;                       shift 2 ;;
+    -h) usage                                          ;;
+    --) shift
+        break
+        ;;
+     *) echo Internal Error "'$1'"; exit 1             ;;
+  esac
+done
+
+# If no specific tests, then by default run the major tests.
+if ((${#run_tests[@]} == 0))
 then
-    SPLICE_QUIT_AFTER_TEST=
+    run_tests=("${major_tests[@]}")
 fi
+
+while ((i < ${#run_tests[@]}))
+do
+    tests_string="$tests_string \"${run_tests[i]}\""
+    ((i += 1))
+done
+
+echo Running tests: $tests_string
 
 ############################################################################
 #
 # Main
 #
+
+export SPLICE_TEST_NAME=
 
 Main() {
     > $SPLICE_LOG
@@ -86,17 +126,11 @@ Main() {
     # Run one of more tests
 
     local test
-    for test in ${tests[@]}
+    for test in "${run_tests[@]}"
     do
-        #echo TEST: $test
-
-        SPLICE_TEST_NAME=$test
+        SPLICE_TEST_NAME="$test"
 
         RunSplice
-        if ((one_test_flag))
-        then
-            break
-        fi
     done
 
     cp -f --backup=numbered $SPLICE_LOG $SPLICE_LOG
@@ -135,7 +169,7 @@ RunSplice() {
     fi
     SPLICE_INIT='-c Splice9DevInit'
 
-    # Don't abort if running splice returns an error code.
+    # Don't abort if splice returns an error code.
     set +e
 
     #gvim -f -u $TEST_DIR/vimrc -U NONE \
@@ -143,7 +177,8 @@ RunSplice() {
     #/junk/test_install/vim/bin/gvim -f -u DEFAULTS -U $TEST_DIR/vimrc \
     #/junk/test_install/vim/bin/vim -u DEFAULTS -U NONE \
     #gvim -f -u DEFAULTS -U NONE \
-    /junk/test_install/vim/bin/gvim -f -u DEFAULTS -U $TEST_DIR/vimrc \
+
+    $GVIM_CMD -f -u DEFAULTS -U $TEST_DIR/vimrc \
         -c "source $TEST_DIR/vimrc" \
         -c "runtime plugin/splice.vim" \
         $PLAY_DIR/f00-orig.txt \

@@ -1,4 +1,6 @@
 
+# NOTE: this is also process by vim code
+
 export SRC_DIR=/src/tools/splice9
 export TEST_DIR=$SRC_DIR/testing
 export PLAY_DIR=$TEST_DIR/play
