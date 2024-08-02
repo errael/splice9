@@ -17,6 +17,11 @@ import autoload './util/keys.vim' as i_keys
 import autoload './util/search.vim' as i_search
 import autoload '../splice.vim' as i_splice
 
+import './util/log_categories.vim'
+const ERROR = log_categories.ERROR
+const DIFFOPTS = log_categories.DIFFOPTS
+const LAYOUT = log_categories.LAYOUT
+
 type Buffer = i_buflib.Buffer
 const buffers = i_buflib.buffers
 
@@ -178,7 +183,7 @@ class Mode
                 windows.Focus(winnr)
                 var curbuffer = buffers.Current()
 
-                i_log.Log(() => printf("    WNR %d, BNR %d", winnr, curbuffer.bufnr), 'diffopts')
+                i_log.Log(() => printf("    WNR %d, BNR %d", winnr, curbuffer.bufnr), DIFFOPTS)
                 # Note the "!" removes hidden buffers from the list of diff'd.
                 :diffoff!
                 i_settings.Set_cur_window_wrap()
@@ -270,7 +275,7 @@ class Mode
     def Key_layout(diffmode: number = -1) # diffmode not used
         var next_layout = (this._current_layout + 1) % len(this._layouts)
         i_log.Log(() => printf("Key_layout: id: %s, next %d, this.layouts %s",
-            this.id, next_layout, this._layouts), 'layout')
+            this.id, next_layout, this._layouts), LAYOUT)
         this.Layout(next_layout)
     enddef
 
@@ -362,7 +367,7 @@ class Mode
 
 
     def Goto_result()
-        i_log.Log(() => "Goto_result: mode: " .. current_mode.id, 'error')
+        i_log.Log(() => "Goto_result: mode: " .. current_mode.id, ERROR)
     enddef
 
 
@@ -725,7 +730,7 @@ class GridMode extends Mode
         endif
         var w2 = buffers.result.Winnr()
         if w2 != winnr
-            i_log.Log(() => $'mode.goto_result: winnr: {winnr}, w2: {w2}', 'error')
+            i_log.Log(() => $'mode.goto_result: winnr: {winnr}, w2: {w2}', ERROR)
         endif
         i_log.Log(() => $'mode.{this.id}.goto_result: winnr: {winnr}, w2: {w2}')
 
@@ -1381,7 +1386,7 @@ def Change2Mode(modeName: string): void
         current_mode = m
         current_mode.Activate()
     else
-        i_log.Log(() => $"Change2Mode: unknown mode '{modeName}'", 'error', true)
+        i_log.Log(() => $"Change2Mode: unknown mode '{modeName}'", ERROR, true)
     endif
 enddef
 
@@ -1418,7 +1423,7 @@ export def ModesDispatch(op: string)
     endif
 
     i_log.Log(() => printf('===EXECUTE COMMAND===: %s mode: %s', op, current_mode.id))
-    dispatch->get(op, () => i_log.Log("Dispatch: unknown op: " .. op, 'error', true))()
+    dispatch->get(op, () => i_log.Log("Dispatch: unknown op: " .. op, ERROR, true))()
     i_hud.UpdateHudStatus()
 enddef
 

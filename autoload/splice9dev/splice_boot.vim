@@ -11,6 +11,9 @@ import autoload Rlib('util/log.vim') as i_log
 import autoload './splicelib/settings.vim' as i_settings
 import autoload './splice.vim' as i_splice
 
+import './splicelib/util/log_categories.vim'
+const ERROR = log_categories.ERROR
+
 #
 # This file initializes log.vim and settings.vim.
 # The idea is avoid any dependency problems.
@@ -95,7 +98,7 @@ def SpliceBootError2()
     failures->extend(instrs)
     if i_log.IsEnabled()
         for msg in failures
-            i_log.Log(msg, 'error')
+            i_log.Log(msg, ERROR)
         endfor
     endif
     SpliceDidNotLoad()

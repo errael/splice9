@@ -14,6 +14,9 @@ import autoload './util/windows.vim'
 import autoload './util/bufferlib.vim' as i_buflib
 import autoload './util/search.vim' as i_search
 
+import './util/log_categories.vim'
+const RESULT = log_categories.RESULT
+
 const CONFLICT_MARKER_START = '<<<<<<<'
 const CONFLICT_MARKER_MARK  = '======='
 const CONFLICT_MARKER_END   = '>>>>>>>'
@@ -103,7 +106,7 @@ def Process_result()
     var lines = []
     var in_conflict = false
     for line in getline(1, '$')
-        i_log.Log(line, 'result')
+        i_log.Log(line, RESULT)
         if in_conflict
             var magic = false
             if line =~ CONFLICT_MARKER_MARK_PATTERN
@@ -119,7 +122,7 @@ def Process_result()
             if ! magic
                 cur_hunk->add(line)
             endif
-            i_log.Log(() => 'DISCARD1: ' .. line, 'result')
+            i_log.Log(() => 'DISCARD1: ' .. line, RESULT)
             continue
         endif
 
@@ -127,7 +130,7 @@ def Process_result()
             in_conflict = true
             conflicts->add(ConflictLocal.new(conflicts->len() + 1))
             cur_hunk = conflicts[-1].left
-            i_log.Log(() => 'DISCARD2: ' .. line, 'result')
+            i_log.Log(() => 'DISCARD2: ' .. line, RESULT)
             continue
         endif
 
