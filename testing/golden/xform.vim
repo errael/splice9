@@ -1,10 +1,15 @@
 vim9script
 
 import './tables.vim'
+import './comp_xform.vim' as i_comp_xform
+
 const cmd2file = tables.cmd2file
 
 var dump_xform = false
 var dump_results = false
+
+# Let all the FileSelect xforms be exported from this file
+export const comp_xform = i_comp_xform.comp_xform
 
 #
 # This file generates/contains tables enumerating file select tranformations,
