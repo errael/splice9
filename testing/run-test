@@ -154,11 +154,40 @@ CheckFailure() {
 # RunSplice
 #
 
+typeset -ar simple_file_list=(
+    f00-orig.txt
+    f00-one.txt
+    f00-two.txt
+    f00-result.txt
+)
+
 RunSplice() {
     # Start splice with fresh files
     rm -rf $PLAY_DIR
     mkdir $PLAY_DIR
-    cp $TEST_DIR/files/* $PLAY_DIR
+
+    local -a file_list
+
+    # list of files, full path, in $TEST_DIR/files/
+    file_list=(${simple_file_list[@]/#/$TEST_DIR/files/})
+    cp ${file_list[@]} $PLAY_DIR
+
+    # list of files, full path, in $PLAY_DIR
+    file_list=(${simple_file_list[@]/#/$PLAY_DIR/})
+
+    # Test some error cases.
+
+    ### Command line with a non existent file.
+    # rm ${file_list[1]}
+
+    ### Command line with less than four files.
+    # unset file_list[1]
+
+    ### Command line with a duplicate file; only be 3 buffers.
+    # file_list[1]=${file_list[2]}
+
+    ### Result file must be writeable.
+    # chmod a-w ${file_list[3]}
 
     rm -rf $RESULT_DIR
     mkdir $RESULT_DIR
@@ -178,16 +207,15 @@ RunSplice() {
     #/junk/test_install/vim/bin/vim -u DEFAULTS -U NONE \
     #gvim -f -u DEFAULTS -U NONE \
 
-    $GVIM_CMD -f -u DEFAULTS -U $TEST_DIR/vimrc \
+    $GVIM_CMD -f \
+        -u DEFAULTS -U NONE \
         -c "source $TEST_DIR/vimrc" \
         -c "runtime plugin/splice.vim" \
-        $PLAY_DIR/f00-orig.txt \
-        $PLAY_DIR/f00-one.txt \
-        $PLAY_DIR/f00-two.txt \
-        $PLAY_DIR/f00-result.txt \
+        ${file_list[@]} \
         $SPLICE_INIT \
         $RUN_TEST
     set -e
 }
 
 Main
+

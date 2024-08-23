@@ -53,7 +53,7 @@ then
     rm $leftover_tags
 fi
 
-rm $BUILD9/doc/tags
+rm -f $BUILD9/doc/tags
 vim -u NONE -c ":helptags $BUILD9/doc" -c ":quit"
 
 # grab the string in quotes from the version definition
@@ -69,7 +69,7 @@ fi
 #echo "version:" $version $BUILD9
 
 ZIP_FILE=$BASEDIR/splice9-$version.zip
-rm $ZIP_FILE
+rm -f $ZIP_FILE
 cd $BUILD
 zip -q -r $ZIP_FILE splice9
 
