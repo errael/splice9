@@ -79,8 +79,10 @@ export def SpliceInit9(settings_issues: list<string>)
     boot_complete = true
 
     try
-        i_log.Log('SpliceInit')
+        i_log.Log(() => 'SpliceInit', '', false, ':ls')
         set guioptions+=l
+
+        CheckArguments()
 
         ConfigureUiHighlights()
         i_keys.InitializeBindings()
@@ -105,5 +107,76 @@ export def SpliceInit9(settings_issues: list<string>)
     ReportConfigIssues(settings_issues)
 
     i_log.Log('Splice started.')
+enddef
+
+#
+# Look at the command line file arguments.
+# All should be existing readable files.
+#
+# In the future, with some option, a different number of files may be allowed.
+#
+def CheckArguments()
+    var errs: list<string>
+    def AddIndentErrList(title: string, bufs: list<string>)
+        if ! title->empty()
+            errs->add(title)
+        endif
+        errs->extend(bufs->mapnew((_, v) => printf("    '%s'", v)))
+    enddef
+
+    const n_expect = 4
+    if argc(-1) != n_expect
+        AddIndentErrList(printf(
+                "Exactly %d files must be specified on the command line, not %d.",
+                n_expect, argc(-1)),
+            argv(-1))
+    endif
+
+    var bufnames: list<string>
+    if errs->empty()
+        # During startup, no buffers have been added.
+        # There should be 4 unique files; they should be 1 .. 4.
+        var n_file = 0
+        for i in range(1, n_expect + 2)
+            if bufexists(i)
+                n_file += 1
+                bufnames->add(bufname(i))
+            endif
+        endfor
+        if n_file != n_expect
+            errs->add(printf('Only %d unique files found, not %d.', n_file, n_expect))
+            AddIndentErrList('  = command line files', argv(-1))
+            AddIndentErrList('  = buffer files', bufnames)
+        endif
+    endif
+
+    if errs->empty()
+        for f in bufnames
+            if glob(f, false, true)->empty()
+                errs->add(printf("'%s' does not exist.", f))
+            endif
+        endfor
+    endif
+
+    if errs->empty()
+        for f in bufnames
+            if ! filereadable(f)
+                errs->add(printf("'%s' is not readable.", f))
+            endif
+        endfor
+    endif
+
+    if errs->empty()
+        var f: string = bufnames[-1]
+        if ! filewritable(f)
+            errs->add(printf("Result file '%s' is not writable.", f))
+        endif
+    endif
+
+    if ! errs->empty()
+        errs->insert('')
+    endif
+
+    startup_error_msgs->extend(errs)
 enddef
 
