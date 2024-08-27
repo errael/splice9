@@ -2,7 +2,9 @@
 
 `Splice9` plugin for resolving three-way merges; it runs on `Vim9.1`.
 <br>It's inspired by Adobe Lightroom's user interface. 
-<br>[Watch the demo screencast](http://vimeo.com/25764692)
+<br>Watch the [demo screencast](http://vimeo.com/25764692) by Steve Losh
+that introduces `Splice` (originally named `Threesome`). It offers a good idea
+of how it works and an opportunity to see it in action.
 
 `Splice9` is pure `vim9script` port of Steve Losh's [Splice](https://github.com/sjl/splice.vim) which is a vimscript/python hybrid.
 

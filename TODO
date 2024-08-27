@@ -2,11 +2,10 @@ TODO:   3 file mode
             https://github.com/sjl/splice.vim/issues/23
             https://github.com/sjl/splice.vim/issues/11
 
-TODO:   Option to remove menu, is that "disable"?
-
-TODO:   Each click on "SpliceCommnads" bring up another, even if already.
-
-TODO:   Only use *highlight-default* for Splice default highlights.
+        Search: conflict merge with three files
+        https://jvns.ca/blog/2023/11/10/how-cherry-pick-and-revert-work/
+        https://docs.gearset.com/en/articles/9325332-two-way-and-three-way-merges-explained
+        https://blog.git-init.com/the-magic-of-3-way-merge/
 
 TODO:   Convert help to html. Use jVi tools?
 
@@ -15,42 +14,23 @@ TODO:   Let highlight settings be dynamic, have popup window to configure.
 
 TODO:   enum for settings keys?
 
-TODO:   Doc show example of adding additional mappings. bind_extra: [[]...]
-
 TODO:   ? click on "Layout:" to just do highlight.
         But clicking on mode does the same thing, redoes the layout, but fast.
-
-TODO:   In diff mode, clicking in "One" changes cursor in "Result". scrollbind?
-
-TODO:   Visit Focus(#) in favor of Focus(buffers.<window_name>)
-
-TODO:   Don't change 'diff' if not toggled.
 
 TODO:   No shortcuts for diff options.
 TODO:   ?Have diff options be dynamic change as you click properties
 
 TODO:   window 2 wiggle when SetProperty on diff options
-TODO:   keep same buffer active when cycling layouts
-
-TODO:   In search.vim get rid of "var use_props". Also "debug"?
-        CAN'T DO THIS until props can override diff coloration
-        Diff highlighing not replaced by text property highlighting when combine false
-        https://github.com/vim/vim/issues/14966
 
 TODO:   Higlight interactions with vim's diff mode.
         Query vim to find out buffer-line/window-line correspondence
         for conflict display across all windows. Other uses?
 
 
-
+TODO:   Check logging options before using them.
 TODO:   In config "logging_exclude_categories: [3]" gets exception in spice_boot.
         But the error message does say "init logging expected list<string>
         got list<number>. So that's workable for now.
-
-TODO:   When searching for conflicts look only between <<<<,>>>>.
-        Build a structure for conflict {start,end,marker}.
-TODO:   Play with how can take both sides
-
 
 
 TODO:   <M-n>,<M-N> highlight conflict in all windows?
@@ -62,42 +42,6 @@ TODO:   Use construct like: buffers.result.winnr (NOTE: the -1)
 TODO:   Understand scrollbind,syncbind,scrollopt
         'diff' mode, diff.txt
 
-===========  Issues from the original Splice  ===========
-
-https://github.com/sjl/splice.vim
-
-Ability to quickly switch both panels in 'compare' mode
-        https://github.com/sjl/splice.vim/issues/32
-    Commented: Maybe user defined shortcuts? Like `bind_user`.
-
-can't open submodule dir
-        https://github.com/sjl/splice.vim/issues/25
-    fugitive interactions?
-
-Problem when file path contains dot
-        https://github.com/sjl/splice.vim/issues/26
-    python traceback
-
-Splice inserts carriage returns (^M) to every line in the final
-version when merging text file
-        https://github.com/sjl/splice.vim/issues/24
-    Commented: How to reproduce?
-
-Splice fails to load if any input file is missing
-        https://github.com/sjl/splice.vim/issues/23
-    Commented: What should happen? Difftool mode?
-
-Splice closes immediatly on Windows
-        https://github.com/sjl/splice.vim/issues/20
-    Commented: still an issue?
-
-Bug in changing files to compare
-        https://github.com/sjl/splice.vim/issues/10
-    Commented:
-    Hi @dwijnand , @Profpatsch, @vlmarek
-    Think that this issue and #16 and #32 all the same thing?
-
-The rest of them are very old, assume they're dealt with.
 
 
 === Do the other premerge options work? keep-merge3, keep-mergediff
@@ -121,15 +65,54 @@ TODO:   If not vim9script, map SpliceInit (or whatever) to no vim9 message.
 
 =========== DOC  ===========
 
-TODO:   doc logging
         the log file is never trunctated, persists, grows without limit
 
 =========== DONE ===========
+
+=== post v1.0.0
+
+TODO:   Each click on "SpliceCommnads" bring up another, even if already.
+
+=== v1.0.0
+
+TODO:   Only use *highlight-default* for Splice default highlights.
+
+TODO:   Doc show example of adding additional mappings. bind_extra: [[]...]
+
+TODO:   Visit Focus(#) in favor of Focus(buffers.<window_name>)
+
+TODO:?? In diff mode, clicking in "One" changes cursor in "Result". scrollbind?
+
+TODO:?? Don't change 'diff' if not toggled.
+
+TODO:   keep same buffer active when cycling layouts
+
+TODO:   In search.vim get rid of "var use_props". Also "debug"?
+        CAN'T DO THIS until props can override diff coloration
+        Diff highlighing not replaced by text property highlighting when combine false
+        https://github.com/vim/vim/issues/14966
+
+        RESOLVED: props not used (debug gone)
+
+TODO:   Play with how can take both sides. 
+
+TODO:   When searching for conflicts look only between <<<<,>>>>.
+        Build a structure for conflict {start,end,marker}.
+        RESOLVED: each conflict numbered: ======= :1:
+
+TODO:   doc logging
 
 DONE:   boolsetting bug, BUT: see comment with defaults in splice.vim
     === boolsetting bug, see comment with defaults in splice.vim
 
 TODO:   Options for cursorline highlight, Enable, hl_cursorline.
+
+
+===========  Issues from the original Splice  ===========
+
+See Fixed in splice9. Issues from the original splice #24 
+    https://github.com/errael/splice9/issues/24
+And a few open/others issues
 
 =============================
 ======= Documentation =======

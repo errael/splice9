@@ -1,5 +1,8 @@
 vim9script
 
+set guioptions-=T
+set guioptions-=m
+
 # Set the environment variables; may not be in environment depending on startup.
 for line in readfile('COMMON')
     # handle: "export a=b"; the '=' is optional; comment if first non-blank is "#"
@@ -54,7 +57,7 @@ command -nargs=0 DL3 {
 #set runtimepath=$SRC_DIR
 set runtimepath=$SPLICE_RUNTIME_DIR,$VIMRUNTIME
 
-set columns=200
+set columns=180
 set ttimeout
 set notimeout
 set so=0

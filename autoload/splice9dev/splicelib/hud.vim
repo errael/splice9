@@ -812,13 +812,25 @@ enddef
 # Display Shortcuts
 #
 
+var shortcuts_winid: number
+
+def DisplayShortcutsClosing(winid: number, result: any): void
+    shortcuts_winid = 0
+enddef
+
 export def DisplayCommandShortcutPopup()
+    if shortcuts_winid != 0
+        return
+    endif
     var text = i_keys.CreateCurrentMappings(command_display_names)
-    var extras: dict<any> = { tweak_options: {} }
-    extras.tweak_options.title = ' Shortcuts (Splice9 '
-                                    .. i_plugin.splice9_string_version .. ') '
-    extras.header_line = 1
-    i_ui.PopupMessage(text, extras)
+    var extras: dict<any> = {
+        header_line: 1,
+        tweak_options: {
+            title: ' Shortcuts (Splice9 ' .. i_plugin.splice9_string_version .. ') ',
+            callback: DisplayShortcutsClosing,
+        }
+    }
+    shortcuts_winid = i_ui.PopupMessage(text, extras)
 enddef
 
 ################################################################
@@ -905,13 +917,15 @@ def DiffOptionsPopup()
         " 'CTRL-C'  - dismiss without changes",
     ]
     var extras: dict<any> = {
-        tweak_options: {},
-        append_msgs: diff_options_append_msgs,
+        tweak_options: {
+            title:    ' Diff Options ',
+            drag:     false,
+            callback: DiffOptsDialogClosing,
+        },
+        append_msgs:     diff_options_append_msgs,
         close_click_idx: 3,
     }
-    extras.tweak_options.title = ' Diff Options '
     winid_props = i_sheet.DisplayPropertyPopup(diffopts, diffopt_state, extras)
-    popup_setoptions(winid_props, { callback: DiffOptsDialogClosing })
 enddef
 
 def DiffOptsDialogClosing(winid: number, result: any): void

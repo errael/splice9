@@ -40,7 +40,7 @@ vim9script
 
 # NOTE: The following is grabbed by shell to label the release zip
 #           "1.0.0-RC4-dev"
-export const splice9_string_version = "1.0.0-dev"
+export const splice9_string_version = "1.0.1-dev"
 
 # TODO: SHOULD THERE BE A SPLICE COMMAND IF VERSION PREVENTS RUNNING?
 
