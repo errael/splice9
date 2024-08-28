@@ -6,7 +6,7 @@
 
 `Splice9` is pure `vim9script` port of Steve Losh's [Splice](https://github.com/sjl/splice.vim) which is a vimscript/python hybrid.
 
-In vim do `:he Splice`. **Recommended at least once**.
+In vim do `:he Splice`. [**`:he Splice`** as hyperlinked html](https://errael.github.io/splice9/vimhelp/splice.txt.html)
 
 See [Dynamic HUD](#dynamic-hud) below for a description of new features in `Splice9`.
 
